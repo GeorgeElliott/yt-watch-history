@@ -11,8 +11,13 @@ const renderNextBatch = () => {
   const nextBatch = allHistory.slice(currentIndex, currentIndex + ITEMS_PER_PAGE);
 
   nextBatch.forEach(video => {
-    const url = `https://www.youtube.com/watch?v=${video.id}&t=${video.time}s`;
+    const url = video.live
+      ? `https://www.youtube.com/watch?v=${video.id}`
+      : `https://www.youtube.com/watch?v=${video.id}&t=${video.time}s`;
     const thumbUrl = `https://i.ytimg.com/vi/${video.id}/mqdefault.jpg`;
+    const timeMeta = video.live
+      ? '🔴 Livestream'
+      : `${Math.floor(video.time / 60)}m ${video.time % 60}s`;
 
     const div = document.createElement('div');
     div.className = 'video-list-item';
@@ -22,7 +27,7 @@ const renderNextBatch = () => {
       </a>
       <div class="item-info">
         <a href="${url}" target="_blank" class="item-title">${video.title}</a>
-        <span class="item-meta">${Math.floor(video.time / 60)}m ${video.time % 60}s &bull; ${new Date(video.timestamp).toLocaleDateString()}</span>
+        <span class="item-meta">${timeMeta} &bull; ${new Date(video.timestamp).toLocaleDateString()}</span>
       </div>
       <button class="btn-icon" data-id="${video.id}" title="Remove">✕</button>
     `;

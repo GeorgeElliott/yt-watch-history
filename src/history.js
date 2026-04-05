@@ -59,9 +59,12 @@ const renderBatch = () => {
   }
 
   batch.forEach(video => {
-    const url = `https://www.youtube.com/watch?v=${video.id}&t=${video.time}s`;
+    const url = video.live
+      ? `https://www.youtube.com/watch?v=${video.id}`
+      : `https://www.youtube.com/watch?v=${video.id}&t=${video.time}s`;
     const thumbUrl = `https://i.ytimg.com/vi/${video.id}/mqdefault.jpg`;
     const date = new Date(video.timestamp).toLocaleDateString();
+    const timeBadge = video.live ? '🔴 Livestream' : formatTime(video.time);
 
     const card = document.createElement('div');
     card.className = 'video-card';
@@ -69,7 +72,7 @@ const renderBatch = () => {
       <button class="delete-btn" data-id="${video.id}" title="Remove">✕</button>
       <a href="${url}" target="_blank" class="thumb-link">
         <img src="${thumbUrl}" class="thumb-img" alt="">
-        <span class="time-badge">${formatTime(video.time)}</span>
+        <span class="time-badge">${timeBadge}</span>
       </a>
       <div class="card-body">
         <a href="${url}" target="_blank" class="card-title">${video.title}</a>
