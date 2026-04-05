@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Options — YT History</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .options-container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+
+    .panel + .panel {
+      margin-top: 16px;
+    }
+
+    .panel-row + .panel-row {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .panel-row label {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .panel-row .help-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .about-section {
+      text-align: center;
+      padding: 20px;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .about-section .version {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="page-header">
+    <div class="logo">
+      <div class="logo-icon">YTWH</div>
+      <div class="logo-text">YT <span>Watch History</span></div>
+    </div>
+    <nav class="nav-tabs">
+      <a href="history.html" class="nav-tab">History</a>
+      <a href="options.html" class="nav-tab active">Options</a>
+    </nav>
+  </div>
+
+  <div class="options-container">
+    <!-- Storage Settings -->
+    <div class="panel">
+      <div class="panel-title">Storage</div>
+      <div class="panel-description">Control how many videos are kept in your local history.</div>
+      <div class="panel-row">
+        <div>
+          <label>History limit</label>
+          <div class="help-text">Between 50 and 500 videos. Oldest entries are removed when the limit is reached.</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="number" id="limit-input" class="input" min="50" max="500" style="width: 80px; text-align: center;">
+          <button id="save-limit" class="btn btn-sm btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Management -->
+    <div class="panel">
+      <div class="panel-title">Data</div>
+      <div class="panel-description">Manage your locally stored watch history.</div>
+      <div class="panel-row">
+        <div>
+          <label>Export history</label>
+          <div class="help-text">Download your history as a JSON file.</div>
+        </div>
+        <button id="export-btn" class="btn btn-sm">Export</button>
+      </div>
+      <div class="panel-row">
+        <div>
+          <label>Import history</label>
+          <div class="help-text">Restore from a previously exported JSON file.</div>
+        </div>
+        <div>
+          <input type="file" id="import-file" accept=".json" class="hidden">
+          <button id="import-btn" class="btn btn-sm">Import</button>
+        </div>
+      </div>
+      <div class="panel-row">
+        <div>
+          <label class="text-red">Clear all history</label>
+          <div class="help-text">Permanently delete all saved videos. This cannot be undone.</div>
+        </div>
+        <button id="clear-btn" class="btn btn-sm btn-danger">Clear All</button>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="about-section">
+      <div class="version">YT Local History v<span id="version-number">1.1</span></div>
+      <div>Tracks YouTube videos locally and resumes where you left off.</div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

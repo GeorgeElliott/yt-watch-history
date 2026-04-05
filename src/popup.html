@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    body {
+      width: 400px;
+      min-height: 200px;
+      padding: 0;
+      margin: 0;
+    }
+
+    .popup-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .popup-header .logo-icon {
+      width: 42px;
+      height: 26px;
+      background: #CC0000;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .popup-header .title {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .popup-header .title span {
+      color: #CC0000;
+    }
+
+    .popup-nav {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .popup-nav a {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: var(--transition);
+      border-bottom: 2px solid transparent;
+    }
+
+    .popup-nav a:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+
+    .popup-nav a .nav-icon {
+      font-size: 16px;
+    }
+
+    .popup-stats {
+      display: flex;
+      gap: 12px;
+      padding: 10px 16px;
+      background: var(--bg-secondary);
+      font-size: 12px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .popup-stats strong {
+      color: var(--text-primary);
+    }
+
+    .popup-section-label {
+      padding: 10px 16px 6px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-disabled);
+    }
+
+    #history-list {
+      padding: 0 16px;
+    }
+
+    #show-more-btn {
+      margin: 8px 16px 16px;
+      width: calc(100% - 32px);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <div class="popup-header">
+    <div class="logo-icon">YTWH</div>
+    <div class="title">YT <span>Watch History</span></div>
+  </div>
+
+  <!-- Navigation Links -->
+  <div class="popup-nav">
+    <a href="history.html" target="_blank" id="open-history">
+      <span class="nav-icon">📋</span> History
+    </a>
+    <a href="options.html" target="_blank" id="open-options">
+      <span class="nav-icon">⚙️</span> Options
+    </a>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="popup-stats">
+    <span><strong id="stat-count">0</strong> videos tracked</span>
+    <span><strong id="stat-limit">50</strong> limit</span>
+  </div>
+
+  <!-- Recent Videos -->
+  <div class="popup-section-label">Recent</div>
+  <div id="history-list"></div>
+  <button id="show-more-btn" class="btn btn-sm hidden" style="width: calc(100% - 32px); margin: 8px 16px 16px;">Show More</button>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>

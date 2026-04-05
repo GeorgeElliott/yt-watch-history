@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Watch History — YT History</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .search-bar {
+      padding: 12px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .search-bar input {
+      flex: 1;
+    }
+
+    .sort-select {
+      background: var(--bg-input);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-pill);
+      padding: 8px 14px;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .load-more-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 24px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="page-header">
+    <div class="logo">
+      <div class="logo-icon">YTWH</div>
+      <div class="logo-text">YT <span>Watch History</span></div>
+    </div>
+    <nav class="nav-tabs">
+      <a href="history.html" class="nav-tab active">History</a>
+      <a href="options.html" class="nav-tab">Options</a>
+    </nav>
+    <div class="page-header-actions">
+      <button id="clear-all" class="btn btn-danger btn-sm">Clear All</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-bar">
+    <span class="stat-item"><strong id="stat-total">0</strong> videos</span>
+    <span class="stat-item">Limit: <strong id="stat-limit">50</strong></span>
+  </div>
+
+  <!-- Search & Filter -->
+  <div class="search-bar">
+    <input type="text" id="search-input" class="input input-search" placeholder="Search your history...">
+    <select id="sort-select" class="sort-select">
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+      <option value="title">Title A–Z</option>
+    </select>
+  </div>
+
+  <!-- Video Grid -->
+  <div id="history-container" class="video-grid"></div>
+
+  <!-- Load More -->
+  <div class="load-more-wrap">
+    <button id="load-more-btn" class="btn hidden">Load More</button>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script src="history.js"></script>
+</body>
+</html>
