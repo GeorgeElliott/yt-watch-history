@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <title>Options — YT History</title>
@@ -11,11 +12,11 @@
       padding: 32px 20px;
     }
 
-    .panel + .panel {
+    .panel+.panel {
       margin-top: 16px;
     }
 
-    .panel-row + .panel-row {
+    .panel-row+.panel-row {
       margin-top: 12px;
       padding-top: 12px;
       border-top: 1px solid var(--border-color);
@@ -47,6 +48,7 @@
     }
   </style>
 </head>
+
 <body>
   <!-- Header -->
   <div class="page-header">
@@ -72,7 +74,8 @@
           <div class="help-text">Between 50 and 1000 videos. Oldest entries are removed when the limit is reached.</div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
-          <input type="number" id="limit-input" class="input" min="50" max="1000" style="width: 80px; text-align: center;">
+          <input type="number" id="limit-input" class="input" min="50" max="1000"
+            style="width: 80px; text-align: center;">
           <button id="save-limit" class="btn btn-sm btn-primary">Save</button>
         </div>
       </div>
@@ -149,7 +152,11 @@
       <div class="version">YT Local History v<span id="version-number">1.1</span></div>
       <div>Tracks YouTube videos locally and resumes where you left off.</div>
       <div style="margin-top: 12px;">
-        <a href="https://github.com/GeorgeElliott/yt-watch-history" target="_blank" style="color: var(--accent); text-decoration: none;">View on GitHub</a>
+        <a href="https://github.com/GeorgeElliott/yt-watch-history" target="_blank" rel="noopener noreferrer"
+          style="color: var(--accent); text-decoration: none;">View on GitHub</a>
+        <span style="margin: 0 8px; opacity: 0.4;">|</span>
+        <a href="https://github.com/GeorgeElliott/yt-watch-history/issues" target="_blank" rel="noopener noreferrer"
+          style="color: var(--accent); text-decoration: none;">Report a Bug</a>
       </div>
     </div>
   </div>
@@ -159,4 +166,5 @@
 
   <script src="options.js"></script>
 </body>
+
 </html>
