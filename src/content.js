@@ -2,7 +2,10 @@
  * YT Local History - Content Script
  */
 
-const isLiveStream = () => document.querySelector('.ytp-live-badge') != null;
+const isLiveStream = () => {
+  const badge = document.querySelector('.ytp-live-badge');
+  return badge != null && getComputedStyle(badge).display !== 'none';
+};
 
 const resumeVideo = () => {
   const video = document.querySelector('video');
