@@ -1,4 +1,5 @@
 const limitInput = document.getElementById('limit-input');
+const badgeToggle = document.getElementById('badge-toggle');
 
 const showToast = (message) => {
   const toast = document.getElementById('toast');
@@ -8,9 +9,17 @@ const showToast = (message) => {
 };
 
 // Load current settings
-chrome.storage.local.get({ limit: 50 }, (data) => {
+chrome.storage.local.get({ limit: 50, resumeBadges: true }, (data) => {
   limitInput.value = data.limit;
+  badgeToggle.checked = data.resumeBadges;
 });
+
+// Toggle resume badges
+badgeToggle.onchange = () => {
+  chrome.storage.local.set({ resumeBadges: badgeToggle.checked }, () => {
+    showToast(badgeToggle.checked ? 'Resume badges enabled' : 'Resume badges disabled');
+  });
+};
 
 // Save limit
 document.getElementById('save-limit').onclick = () => {
