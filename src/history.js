@@ -60,30 +60,22 @@ const renderBatch = () => {
 
   batch.forEach(video => {
     const url = video.live
-      ? `https://www.youtube.com/watch?v=${video.id}`
-      : `https://www.youtube.com/watch?v=${video.id}&t=${video.time}s`;
-    const thumbUrl = `https://i.ytimg.com/vi/${video.id}/mqdefault.jpg`;
+      ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}`
+      : `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}&t=${video.time}s`;
+    const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/mqdefault.jpg`;
     const date = new Date(video.timestamp).toLocaleDateString();
-    const timeBadge = video.live ? '🔴 Livestream' : formatTime(video.time);
+    const timeBadge = video.live ? '\u{1F534} Livestream' : formatTime(video.time);
 
     const card = document.createElement('div');
     card.className = 'video-card';
-    card.innerHTML = `
-      <button class="delete-btn" data-id="${video.id}" title="Remove">✕</button>
-      <a href="${url}" target="_blank" class="thumb-link">
-        <img src="${thumbUrl}" class="thumb-img" alt="">
-        <span class="time-badge">${timeBadge}</span>
-      </a>
-      <div class="card-body">
-        <a href="${url}" target="_blank" class="card-title">${video.title}</a>
-        <div class="card-meta">${date}</div>
-      </div>
-    `;
 
-    card.querySelector('.delete-btn').onclick = (e) => {
-      const id = e.target.closest('[data-id]').getAttribute('data-id');
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.title = 'Remove';
+    deleteBtn.textContent = '\u2715';
+    deleteBtn.onclick = () => {
       chrome.storage.local.get({ history: [] }, (d) => {
-        const filtered = d.history.filter(v => v.id !== id);
+        const filtered = d.history.filter(v => v.id !== video.id);
         chrome.storage.local.set({ history: filtered }, () => {
           showToast('Video removed');
           loadHistory();
@@ -91,6 +83,38 @@ const renderBatch = () => {
       });
     };
 
+    const thumbLink = document.createElement('a');
+    thumbLink.href = url;
+    thumbLink.target = '_blank';
+    thumbLink.rel = 'noopener noreferrer';
+    thumbLink.className = 'thumb-link';
+    const thumbImg = document.createElement('img');
+    thumbImg.src = thumbUrl;
+    thumbImg.className = 'thumb-img';
+    thumbImg.alt = '';
+    const timeBadgeEl = document.createElement('span');
+    timeBadgeEl.className = 'time-badge';
+    timeBadgeEl.textContent = timeBadge;
+    thumbLink.appendChild(thumbImg);
+    thumbLink.appendChild(timeBadgeEl);
+
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    const titleLink = document.createElement('a');
+    titleLink.href = url;
+    titleLink.target = '_blank';
+    titleLink.rel = 'noopener noreferrer';
+    titleLink.className = 'card-title';
+    titleLink.textContent = video.title;
+    const metaDiv = document.createElement('div');
+    metaDiv.className = 'card-meta';
+    metaDiv.textContent = date;
+    body.appendChild(titleLink);
+    body.appendChild(metaDiv);
+
+    card.appendChild(deleteBtn);
+    card.appendChild(thumbLink);
+    card.appendChild(body);
     container.appendChild(card);
   });
 

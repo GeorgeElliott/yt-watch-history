@@ -2,6 +2,9 @@
  * YT Local History - Content Script
  */
 
+const DEBUG = false;
+const log = (...args) => { if (DEBUG) console.log('[YT Local History]', ...args); };
+
 const isWatchPage = () => location.pathname === '/watch';
 
 const isLiveStream = () => {
@@ -21,7 +24,7 @@ const resumeVideo = () => {
     // If this is a livestream, jump to the live edge
     if (isLiveStream()) {
       video.currentTime = video.duration;
-      console.log('[YT Local History] Livestream detected — jumped to live');
+      log('Livestream detected — jumped to live');
       return;
     }
 
@@ -30,7 +33,7 @@ const resumeVideo = () => {
       // Auto-jump if we are at the very start of the video
       if (savedVideo && video.currentTime < 5) {
         video.currentTime = savedVideo.time;
-        console.log(`[YT Local History] Resumed at ${savedVideo.time}s`);
+        log(`Resumed at ${savedVideo.time}s`);
       }
     });
   }

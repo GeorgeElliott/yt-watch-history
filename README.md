@@ -8,7 +8,8 @@ A lightweight browser extension that tracks your YouTube watch history locally a
 
 - 📺 **Track Videos** — Automatically saves the last 50–500 YouTube videos you watch (configurable)
 - ▶️ **Resume Automatically** — Jump back to where you left off when you revisit a video
-- 💾 **Local Storage** — All data stays on your device—nothing sent to external servers
+- � **Resume Badges** — See "Resume" tags on thumbnails across YouTube for videos in your history (toggleable)
+- �💾 **Local Storage** — All data stays on your device—nothing sent to external servers
 - 🔍 **Search & Sort** — Find videos by title, sorted by newest, oldest, or alphabetical
 - 📥 **Import/Export** — Back up and restore your watch history as JSON
 - 🎨 **Dark/Light Mode** — Automatically adapts to your system theme
@@ -87,8 +88,14 @@ No build step required. The `src/` folder is ready to load directly into Chrome/
 ## Permissions
 
 - `storage` — Save/load watch history from local storage
-- `webNavigation` — Track page navigation
-- `https://www.youtube.com/*` — Access YouTube watch pages
+- `https://www.youtube.com/*` — Access YouTube pages for tracking and resume badges
+
+## Security
+
+- **No innerHTML** \u2014 All dynamic content is rendered via safe DOM construction (`textContent`, `createElement`) to prevent XSS
+- **Import validation** \u2014 Imported JSON is validated (video ID format, string lengths, numeric bounds) before storage
+- **Minimal permissions** \u2014 Only `storage` permission is requested; no background scripts or remote code
+- **Link hardening** \u2014 All external links use `rel="noopener noreferrer"` to prevent tabnabbing
 
 ## Privacy
 

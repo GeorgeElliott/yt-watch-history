@@ -12,34 +12,56 @@ const renderNextBatch = () => {
 
   nextBatch.forEach(video => {
     const url = video.live
-      ? `https://www.youtube.com/watch?v=${video.id}`
-      : `https://www.youtube.com/watch?v=${video.id}&t=${video.time}s`;
-    const thumbUrl = `https://i.ytimg.com/vi/${video.id}/mqdefault.jpg`;
+      ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}`
+      : `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}&t=${video.time}s`;
+    const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/mqdefault.jpg`;
     const timeMeta = video.live
-      ? '🔴 Livestream'
+      ? '\u{1F534} Livestream'
       : `${Math.floor(video.time / 60)}m ${video.time % 60}s`;
 
     const div = document.createElement('div');
     div.className = 'video-list-item';
-    div.innerHTML = `
-      <a href="${url}" target="_blank">
-        <div class="thumb-container"><img src="${thumbUrl}" alt=""></div>
-      </a>
-      <div class="item-info">
-        <a href="${url}" target="_blank" class="item-title">${video.title}</a>
-        <span class="item-meta">${timeMeta} &bull; ${new Date(video.timestamp).toLocaleDateString()}</span>
-      </div>
-      <button class="btn-icon" data-id="${video.id}" title="Remove">✕</button>
-    `;
 
-    div.querySelector('.btn-icon').onclick = (e) => {
-      const id = e.target.closest('[data-id]').getAttribute('data-id');
+    const thumbLink = document.createElement('a');
+    thumbLink.href = url;
+    thumbLink.target = '_blank';
+    thumbLink.rel = 'noopener noreferrer';
+    const thumbContainer = document.createElement('div');
+    thumbContainer.className = 'thumb-container';
+    const img = document.createElement('img');
+    img.src = thumbUrl;
+    img.alt = '';
+    thumbContainer.appendChild(img);
+    thumbLink.appendChild(thumbContainer);
+
+    const info = document.createElement('div');
+    info.className = 'item-info';
+    const titleLink = document.createElement('a');
+    titleLink.href = url;
+    titleLink.target = '_blank';
+    titleLink.rel = 'noopener noreferrer';
+    titleLink.className = 'item-title';
+    titleLink.textContent = video.title;
+    const meta = document.createElement('span');
+    meta.className = 'item-meta';
+    meta.textContent = `${timeMeta} \u2022 ${new Date(video.timestamp).toLocaleDateString()}`;
+    info.appendChild(titleLink);
+    info.appendChild(meta);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn-icon';
+    removeBtn.title = 'Remove';
+    removeBtn.textContent = '\u2715';
+    removeBtn.onclick = () => {
       chrome.storage.local.get({ history: [] }, (data) => {
-        const filtered = data.history.filter(v => v.id !== id);
+        const filtered = data.history.filter(v => v.id !== video.id);
         chrome.storage.local.set({ history: filtered }, init);
       });
     };
 
+    div.appendChild(thumbLink);
+    div.appendChild(info);
+    div.appendChild(removeBtn);
     listContainer.appendChild(div);
   });
 

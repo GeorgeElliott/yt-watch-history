@@ -11,8 +11,7 @@
     "128": "icons/icon128.png"
   },
   "permissions": [
-    "storage",
-    "webNavigation"
+    "storage"
   ],
   "host_permissions": [
     "https://www.youtube.com/*"

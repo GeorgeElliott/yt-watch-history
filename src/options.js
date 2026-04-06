@@ -72,12 +72,35 @@ importFile.onchange = (e) => {
         showToast('Invalid file format');
         return;
       }
+
+      const VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
+      const MAX_TITLE_LEN = 300;
+      const maxEntries = Math.min(data.history.length, 500);
+
+      const validated = data.history.slice(0, maxEntries).filter(v => {
+        if (typeof v.id !== 'string' || !VIDEO_ID_RE.test(v.id)) return false;
+        if (typeof v.title !== 'string' || v.title.length > MAX_TITLE_LEN) return false;
+        if (!Number.isFinite(v.time) || v.time < 0 || v.time > 86400) return false;
+        if (!Number.isFinite(v.timestamp) || v.timestamp < 0) return false;
+        return true;
+      }).map(v => ({
+        id: v.id,
+        title: v.title,
+        time: Math.floor(v.time),
+        timestamp: Math.floor(v.timestamp),
+        live: v.live === true ? true : undefined
+      }));
+
+      const limit = Number.isFinite(data.limit)
+        ? Math.min(Math.max(Math.floor(data.limit), 50), 500)
+        : 50;
+
       chrome.storage.local.set({
-        history: data.history,
-        limit: data.limit || 50
+        history: validated,
+        limit
       }, () => {
-        limitInput.value = data.limit || 50;
-        showToast(`Imported ${data.history.length} videos`);
+        limitInput.value = limit;
+        showToast(`Imported ${validated.length} videos`);
       });
     } catch {
       showToast('Failed to parse file');
