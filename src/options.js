@@ -1,5 +1,7 @@
 const limitInput = document.getElementById('limit-input');
 const badgeToggle = document.getElementById('badge-toggle');
+const redirectToggle = document.getElementById('redirect-toggle');
+const subsRedirectToggle = document.getElementById('subs-redirect-toggle');
 
 const showToast = (message) => {
   const toast = document.getElementById('toast');
@@ -9,15 +11,31 @@ const showToast = (message) => {
 };
 
 // Load current settings
-chrome.storage.local.get({ limit: 100, resumeBadges: true }, (data) => {
+chrome.storage.local.get({ limit: 100, resumeBadges: true, historyRedirect: false, subsRedirect: false }, (data) => {
   limitInput.value = data.limit;
   badgeToggle.checked = data.resumeBadges;
+  redirectToggle.checked = data.historyRedirect;
+  subsRedirectToggle.checked = data.subsRedirect;
 });
 
 // Toggle resume badges
 badgeToggle.onchange = () => {
   chrome.storage.local.set({ resumeBadges: badgeToggle.checked }, () => {
     showToast(badgeToggle.checked ? 'Resume badges enabled' : 'Resume badges disabled');
+  });
+};
+
+// Toggle history redirect
+redirectToggle.onchange = () => {
+  chrome.storage.local.set({ historyRedirect: redirectToggle.checked }, () => {
+    showToast(redirectToggle.checked ? 'History redirect enabled' : 'History redirect disabled');
+  });
+};
+
+// Toggle subscriptions redirect
+subsRedirectToggle.onchange = () => {
+  chrome.storage.local.set({ subsRedirect: subsRedirectToggle.checked }, () => {
+    showToast(subsRedirectToggle.checked ? 'Subscriptions redirect enabled' : 'Subscriptions redirect disabled');
   });
 };
 

@@ -40,7 +40,7 @@ const applyFilters = () => {
   }
 
   currentIndex = 0;
-  container.innerHTML = '';
+  container.replaceChildren();
   renderBatch();
 };
 
@@ -48,12 +48,22 @@ const renderBatch = () => {
   const batch = filteredHistory.slice(currentIndex, currentIndex + PAGE_SIZE);
 
   if (currentIndex === 0 && batch.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state" style="grid-column: 1 / -1;">
-        <div class="empty-icon">📺</div>
-        <div class="empty-text">${searchInput.value ? 'No matching videos' : 'No history saved yet'}</div>
-        <div class="empty-sub">${searchInput.value ? 'Try a different search term' : 'Watch YouTube videos to start tracking'}</div>
-      </div>`;
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.style.gridColumn = '1 / -1';
+    const icon = document.createElement('div');
+    icon.className = 'empty-icon';
+    icon.textContent = '\uD83D\uDCFA';
+    const text = document.createElement('div');
+    text.className = 'empty-text';
+    text.textContent = searchInput.value ? 'No matching videos' : 'No history saved yet';
+    const sub = document.createElement('div');
+    sub.className = 'empty-sub';
+    sub.textContent = searchInput.value ? 'Try a different search term' : 'Watch YouTube videos to start tracking';
+    empty.appendChild(icon);
+    empty.appendChild(text);
+    empty.appendChild(sub);
+    container.replaceChildren(empty);
     loadMoreBtn.classList.add('hidden');
     return;
   }

@@ -159,6 +159,29 @@ const tagThumbnails = () => {
   });
 };
 
+// ─── Redirects ───────────────────────────────────────────────
+
+const checkRedirects = () => {
+  const path = location.pathname;
+
+  if (path === '/feed/history') {
+    chrome.storage.local.get({ historyRedirect: false }, (data) => {
+      if (data.historyRedirect) {
+        chrome.runtime.sendMessage({ type: 'redirect-history' });
+      }
+    });
+    return;
+  }
+
+  if (path === '/' || path.startsWith('/shorts')) {
+    chrome.storage.local.get({ subsRedirect: false }, (data) => {
+      if (data.subsRedirect) {
+        chrome.runtime.sendMessage({ type: 'redirect-subs' });
+      }
+    });
+  }
+};
+
 // ─── Observers & Timers ─────────────────────────────────────
 
 let badgeTimer = null;
@@ -171,6 +194,7 @@ let lastUrl = location.href;
 const observer = new MutationObserver(() => {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
+    checkRedirects();
     setTimeout(resumeVideo, 1000);
   }
   debouncedTagThumbnails();
@@ -178,6 +202,7 @@ const observer = new MutationObserver(() => {
 observer.observe(document.body, { childList: true, subtree: true });
 
 // Initial triggers
+checkRedirects();
 injectBadgeStyles();
 setTimeout(resumeVideo, 1500);
 setInterval(saveProgress, 10000);

@@ -74,16 +74,26 @@ const init = () => {
     allHistory = data.history;
     statCount.textContent = data.history.length;
     statLimit.textContent = data.limit;
-    listContainer.innerHTML = '';
+    listContainer.replaceChildren();
     currentIndex = 0;
 
     if (allHistory.length === 0) {
-      listContainer.innerHTML = `
-        <div class="empty-state" style="padding: 30px 10px;">
-          <div class="empty-icon">📺</div>
-          <div class="empty-text">No videos yet</div>
-          <div class="empty-sub">Watch YouTube videos to start tracking</div>
-        </div>`;
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.style.padding = '30px 10px';
+      const icon = document.createElement('div');
+      icon.className = 'empty-icon';
+      icon.textContent = '\uD83D\uDCFA';
+      const text = document.createElement('div');
+      text.className = 'empty-text';
+      text.textContent = 'No videos yet';
+      const sub = document.createElement('div');
+      sub.className = 'empty-sub';
+      sub.textContent = 'Watch YouTube videos to start tracking';
+      empty.appendChild(icon);
+      empty.appendChild(text);
+      empty.appendChild(sub);
+      listContainer.replaceChildren(empty);
       showMoreBtn.classList.add('hidden');
     } else {
       renderNextBatch();

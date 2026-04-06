@@ -40,7 +40,7 @@ A lightweight browser extension that tracks your YouTube watch history locally a
 ### Popup (Click the extension icon)
 - See your 5 most recent videos
 - Quick stats (total videos, current limit)
-- Links to full History and Options pages
+- Links to full History, Options, and YouTube
 
 ### History Page
 - View all tracked videos in a grid
@@ -51,7 +51,10 @@ A lightweight browser extension that tracks your YouTube watch history locally a
 
 ### Options Page
 - 📊 Set history limit (50-1000 videos)
-- 📤 **Export** your history as JSON
+- � Toggle **resume badges** on YouTube thumbnails
+- 🔀 **Redirect YouTube history** to your local history page
+- 🏠 **Redirect Home & Shorts** to your subscriptions feed
+- �📤 **Export** your history as JSON
 - 📥 **Import** previously exported history
 - 🗑️ Clear all data
 
@@ -69,13 +72,17 @@ A lightweight browser extension that tracks your YouTube watch history locally a
 
 ```
 src/
-  content.js          # YouTube page injection (auto-save & resume)
-  popup.html/js       # Extension icon popup (recent videos)
-  history.html/js     # Full history page (search, sort, grid view)
-  options.html/js     # Settings page (limit, export, import)
-  theme.css           # Shared dark/light theme & components
-  manifest.json       # Extension metadata
-  icons/              # Icon PNGs (16, 32, 48, 128px)
+  manifest.json       # Extension manifest (permissions, scripts, icons)
+  background.js       # Service worker for internal redirect handling
+  content.js          # YouTube page injection (auto-save, resume, badges, redirects)
+  popup.html          # Extension popup UI (recent videos, stats, nav)
+  popup.js            # Popup logic (loads history, renders list, nav links)
+  history.html        # Full history page UI (search bar, video grid, stats)
+  history.js          # History logic (search, sort, pagination, delete)
+  options.html        # Settings page UI (toggles, import/export, clear)
+  options.js          # Settings logic (limit, badges, redirects, import validation)
+  theme.css           # Shared dark/light theme, components, toggle switches
+  icons/              # Extension icons (16, 32, 48, 128px PNGs)
 LICENSE             # MIT License
 ```
 
@@ -120,7 +127,7 @@ Keep feature branches focused on a single feature. This makes code review easier
 
 - **No innerHTML** - All dynamic content is rendered via safe DOM construction (`textContent`, `createElement`) to prevent XSS
 - **Import validation** - Imported JSON is validated (video ID format, string lengths, numeric bounds) before storage
-- **Minimal permissions** - Only `storage` permission is requested; no background scripts or remote code
+- **Minimal permissions** - Only `storage` permission is requested; background service worker handles internal redirects only
 - **Link hardening** - All external links use `rel="noopener noreferrer"` to prevent tabnabbing
 
 ## Privacy
