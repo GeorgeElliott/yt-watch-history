@@ -48,7 +48,7 @@ const saveProgress = () => {
   if (video && videoId && !video.paused && !document.hidden) {
     const isLive = isLiveStream();
 
-    chrome.storage.local.get({ history: [], limit: 50 }, (data) => {
+    chrome.storage.local.get({ history: [], limit: 100 }, (data) => {
       // Clean title: remove notification counts like (1) and the " - YouTube" suffix
       const cleanTitle = document.title
         .replace(/^\(\d+\)\s/, '')

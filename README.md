@@ -2,18 +2,22 @@
 
 A lightweight browser extension that tracks your YouTube watch history locally and resumes videos where you left off.
 
-**Perfect for:** Users who have YouTube watch history disabled, want privacy, or prefer local-only tracking.
+**Perfect for:**
+
+- Privacy-conscious users who disabled watch history but still want to resume videos
+- Anyone frustrated by YouTube losing progress on long streams, podcasts, or tutorials
+- Users who want a fast, local search across their 50-1,000 most recent videos without YouTube's clutter
 
 ## Features
 
-- 📺 **Track Videos** — Automatically saves the last 50–500 YouTube videos you watch (configurable)
-- ▶️ **Resume Automatically** — Jump back to where you left off when you revisit a video
-- � **Resume Badges** — See "Resume" tags on thumbnails across YouTube for videos in your history (toggleable)
-- �💾 **Local Storage** — All data stays on your device—nothing sent to external servers
-- 🔍 **Search & Sort** — Find videos by title, sorted by newest, oldest, or alphabetical
-- 📥 **Import/Export** — Back up and restore your watch history as JSON
-- 🎨 **Dark/Light Mode** — Automatically adapts to your system theme
-- ⚙️ **Customizable** — Set your preferred history limit (50–500 videos)
+- 📺 **Track Videos** - Automatically saves the last 50-1000 YouTube videos you watch (configurable)
+- ▶️ **Resume Automatically** - Jump back to where you left off when you revisit a video
+- 🔖 **Resume Badges** - See "Resume" tags on thumbnails across YouTube for videos in your history (toggleable)
+- 💾 **Local Storage** - All data stays on your device - nothing sent to external servers
+- 🔍 **Search & Sort** - Find videos by title, sorted by newest, oldest, or alphabetical
+- 📥 **Import/Export** - Back up and restore your watch history as JSON
+- 🎨 **Dark/Light Mode** - Automatically adapts to your system theme
+- ⚙️ **Customizable** - Set your preferred history limit (50-1000 videos)
 
 ## Installation
 
@@ -46,10 +50,12 @@ A lightweight browser extension that tracks your YouTube watch history locally a
 - Delete individual videos
 
 ### Options Page
-- 📊 Set history limit (50–500 videos)
+- 📊 Set history limit (50-1000 videos)
 - 📤 **Export** your history as JSON
 - 📥 **Import** previously exported history
 - 🗑️ Clear all data
+
+**Note:** This is a rolling limit. To keep your browser fast, we only remember your most recent 1,000 videos. Older entries are deleted automatically.
 
 ## How It Works
 
@@ -76,7 +82,7 @@ LICENSE             # MIT License
 ## Development
 
 ### Dependencies
-None — vanilla JavaScript with no external libraries beyond Chrome APIs.
+None - vanilla JavaScript with no external libraries beyond Chrome APIs.
 
 ### Building
 No build step required. The `src/` folder is ready to load directly into Chrome/Edge.
@@ -85,17 +91,37 @@ No build step required. The `src/` folder is ready to load directly into Chrome/
 - **UI Changes** → Edit `.html` and `theme.css`
 - **Behavior** → Edit corresponding `.js` files
 
+### Feature Branches
+When developing new features:
+
+```bash
+# Create a feature branch from main
+git checkout -b feature/your-feature-name
+
+# Make your changes, test thoroughly
+# Commit with clear messages
+git add .
+git commit -m "Add your clear commit message"
+
+# Push your branch
+git push origin feature/your-feature-name
+
+# Open a Pull Request on GitHub
+```
+
+Keep feature branches focused on a single feature. This makes code review easier and keeps the history clean.
+
 ## Permissions
 
-- `storage` — Save/load watch history from local storage
-- `https://www.youtube.com/*` — Access YouTube pages for tracking and resume badges
+- `storage` - Save/load watch history from local storage
+- `https://www.youtube.com/*` - Access YouTube pages for tracking and resume badges
 
 ## Security
 
-- **No innerHTML** \u2014 All dynamic content is rendered via safe DOM construction (`textContent`, `createElement`) to prevent XSS
-- **Import validation** \u2014 Imported JSON is validated (video ID format, string lengths, numeric bounds) before storage
-- **Minimal permissions** \u2014 Only `storage` permission is requested; no background scripts or remote code
-- **Link hardening** \u2014 All external links use `rel="noopener noreferrer"` to prevent tabnabbing
+- **No innerHTML** - All dynamic content is rendered via safe DOM construction (`textContent`, `createElement`) to prevent XSS
+- **Import validation** - Imported JSON is validated (video ID format, string lengths, numeric bounds) before storage
+- **Minimal permissions** - Only `storage` permission is requested; no background scripts or remote code
+- **Link hardening** - All external links use `rel="noopener noreferrer"` to prevent tabnabbing
 
 ## Privacy
 
@@ -103,13 +129,13 @@ No build step required. The `src/` folder is ready to load directly into Chrome/
 - No tracking, analytics, or external requests
 - All data stored locally in browser storage (tied to your browser profile/login)
 - Each browser user/profile has separate, isolated history
-- Separate storage on each device — not synced across browsers
+- Separate storage on each device - not synced across browsers
 - No server communication (except YouTube's own APIs)
 - Can be completely deleted anytime
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ## Contributing
 

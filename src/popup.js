@@ -70,7 +70,7 @@ const renderNextBatch = () => {
 };
 
 const init = () => {
-  chrome.storage.local.get({ history: [], limit: 50 }, (data) => {
+  chrome.storage.local.get({ history: [], limit: 100 }, (data) => {
     allHistory = data.history;
     statCount.textContent = data.history.length;
     statLimit.textContent = data.limit;

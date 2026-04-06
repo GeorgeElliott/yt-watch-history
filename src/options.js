@@ -9,7 +9,7 @@ const showToast = (message) => {
 };
 
 // Load current settings
-chrome.storage.local.get({ limit: 50, resumeBadges: true }, (data) => {
+chrome.storage.local.get({ limit: 100, resumeBadges: true }, (data) => {
   limitInput.value = data.limit;
   badgeToggle.checked = data.resumeBadges;
 });
@@ -23,7 +23,7 @@ badgeToggle.onchange = () => {
 
 // Save limit
 document.getElementById('save-limit').onclick = () => {
-  let val = Math.min(Math.max(parseInt(limitInput.value) || 50, 50), 500);
+  let val = Math.min(Math.max(parseInt(limitInput.value) || 100, 50), 1000);
   limitInput.value = val;
   chrome.storage.local.set({ limit: val }, () => {
     showToast(`History limit set to ${val}`);
@@ -41,7 +41,7 @@ document.getElementById('clear-btn').onclick = () => {
 
 // Export history
 document.getElementById('export-btn').onclick = () => {
-  chrome.storage.local.get({ history: [], limit: 50 }, (data) => {
+  chrome.storage.local.get({ history: [], limit: 100 }, (data) => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -92,8 +92,8 @@ importFile.onchange = (e) => {
       }));
 
       const limit = Number.isFinite(data.limit)
-        ? Math.min(Math.max(Math.floor(data.limit), 50), 500)
-        : 50;
+        ? Math.min(Math.max(Math.floor(data.limit), 50), 1000)
+        : 100;
 
       chrome.storage.local.set({
         history: validated,

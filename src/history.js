@@ -123,7 +123,7 @@ const renderBatch = () => {
 };
 
 const loadHistory = () => {
-  chrome.storage.local.get({ history: [], limit: 50 }, (data) => {
+  chrome.storage.local.get({ history: [], limit: 100 }, (data) => {
     allHistory = data.history;
     statTotal.textContent = data.history.length;
     statLimit.textContent = data.limit;
