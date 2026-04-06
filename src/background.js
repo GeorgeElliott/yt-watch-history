@@ -10,10 +10,4 @@ chrome.runtime.onMessage.addListener((message, sender) => {
       url: chrome.runtime.getURL('history.html')
     });
   }
-
-  if (message.type === 'redirect-subs') {
-    chrome.tabs.update(sender.tab.id, {
-      url: 'https://www.youtube.com/feed/subscriptions'
-    });
-  }
 });

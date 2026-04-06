@@ -173,10 +173,10 @@ const checkRedirects = () => {
     return;
   }
 
-  if (path === '/' || path.startsWith('/shorts')) {
+  if (path === '/' || path === '/shorts/') {
     chrome.storage.local.get({ subsRedirect: false }, (data) => {
       if (data.subsRedirect) {
-        chrome.runtime.sendMessage({ type: 'redirect-subs' });
+        location.replace('https://www.youtube.com/feed/subscriptions');
       }
     });
   }
