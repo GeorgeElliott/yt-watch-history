@@ -1,4 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="24" fill="#CC0000"/>
-  <text x="64" y="72" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="36" fill="#FFFFFF" letter-spacing="1">YTWH</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1E88E5"/>
+      <stop offset="100%" stop-color="#0D47A1"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect x="1.5" y="1.5" width="125" height="125" rx="24" fill="url(#bg)" stroke="#FFFFFF" stroke-width="3" stroke-opacity="0.7"/>
+  <text x="64" y="64" text-anchor="middle" dominant-baseline="central" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="34" fill="#FFFFFF" letter-spacing="2" filter="url(#shadow)">WHYT</text>
 </svg>

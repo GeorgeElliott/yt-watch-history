@@ -1,5 +1,5 @@
 /* ============================================================
-   YT Local History — Shared Theme
+   WatchHistory for YouTube™ — Shared Theme
    Video history design system with dark/light mode
    ============================================================ */
 
@@ -7,10 +7,10 @@
 
 :root {
   /* Brand */
-  --accent: #CC0000;
-  --accent-hover: #aa0000;
-  --accent-light: #ff4d4d;
-  --accent-surface: rgba(204, 0, 0, 0.1);
+  --accent: #1565C0;
+  --accent-hover: #0D47A1;
+  --accent-light: #42A5F5;
+  --accent-surface: rgba(21, 101, 192, 0.1);
 
   /* Dark mode (default) */
   --bg-primary: #0f0f0f;
@@ -99,7 +99,7 @@ a {
 .page-header .logo-icon {
   width: 46px;
   height: 28px;
-  background: #CC0000;
+  background: #1565C0;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -117,7 +117,7 @@ a {
 }
 
 .page-header .logo-text span {
-  color: #CC0000;
+  color: #1565C0;
 }
 
 .page-header-actions {

@@ -1,5 +1,5 @@
 /**
- * YT Local History - Background Service Worker
+ * WatchHistory for YouTube™ - Background Service Worker
  */
 
 chrome.runtime.onMessage.addListener((message, sender) => {

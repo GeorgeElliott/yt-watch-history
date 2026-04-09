@@ -1,10 +1,11 @@
-# YT Watch History
+# WatchHistory for YouTube™
 
 A lightweight browser extension that tracks your YouTube watch history locally and resumes videos where you left off.
 
 **Perfect for:**
 
 - Privacy-conscious users who disabled watch history but still want to resume videos
+- Users who aren't signed in to YouTube but still want history and resume functionality
 - Anyone frustrated by YouTube losing progress on long streams, podcasts, or tutorials
 - Users who want a fast, local search across their 50-1,000 most recent videos without YouTube's clutter
 
@@ -16,10 +17,21 @@ A lightweight browser extension that tracks your YouTube watch history locally a
 - 💾 **Local Storage** - All data stays on your device - nothing sent to external servers
 - 🔍 **Search & Sort** - Find videos by title, sorted by newest, oldest, or alphabetical
 - 📥 **Import/Export** - Back up and restore your watch history as JSON
+- 🚫 **Hide Shorts** - Remove Shorts from all YouTube feeds including home, subscriptions and search
 - 🎨 **Dark/Light Mode** - Automatically adapts to your system theme
 - ⚙️ **Customizable** - Set your preferred history limit (50-1000 videos)
 
 ## Installation
+
+### From ZIP (Quickest)
+
+1. Go to the [GitHub repository](https://github.com/GeorgeElliott/yt-watch-history) and click **Code → Download ZIP**
+2. Extract the ZIP file
+3. Load in Chrome/Edge:
+   - Go to `chrome://extensions` (or `edge://extensions`)
+   - Enable **Developer mode** (top right)
+   - Click **Load unpacked**
+   - Select the `src/` folder from the extracted files
 
 ### From Source (Development)
 
@@ -54,7 +66,8 @@ A lightweight browser extension that tracks your YouTube watch history locally a
 - � Toggle **resume badges** on YouTube thumbnails
 - 🔀 **Redirect YouTube history** to your local history page
 - 🏠 **Redirect Home & Shorts** to your subscriptions feed
-- �📤 **Export** your history as JSON
+- 🚫 **Hide Shorts** from all YouTube feeds
+- 📤 **Export** your history as JSON
 - 📥 **Import** previously exported history
 - 🗑️ Clear all data
 

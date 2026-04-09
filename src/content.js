@@ -1,9 +1,9 @@
 /**
- * YT Local History - Content Script
+ * WatchHistory for YouTube™ - Content Script
  */
 
 const DEBUG = false;
-const log = (...args) => { if (DEBUG) console.log('[YT Local History]', ...args); };
+const log = (...args) => { if (DEBUG) console.log('[WatchHistory for YouTube]', ...args); };
 
 const isWatchPage = () => location.pathname === '/watch';
 
@@ -182,6 +182,34 @@ const checkRedirects = () => {
   }
 };
 
+// ─── Hide Shorts on Subscriptions ───────────────────────────
+
+const HIDE_SHORTS_ID = 'whyt-hide-shorts-css';
+
+const applyHideShorts = () => {
+  chrome.storage.local.get({ hideShorts: false }, (data) => {
+    const existing = document.getElementById(HIDE_SHORTS_ID);
+    if (data.hideShorts) {
+      if (!existing) {
+        const style = document.createElement('style');
+        style.id = HIDE_SHORTS_ID;
+        style.textContent = `
+          ytd-rich-item-renderer:has(a[href*="/shorts/"]),
+          ytd-video-renderer:has(a[href*="/shorts/"]),
+          ytd-grid-video-renderer:has(a[href*="/shorts/"]),
+          ytd-reel-shelf-renderer,
+          ytd-rich-shelf-renderer[is-shorts] {
+            display: none !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    } else if (existing) {
+      existing.remove();
+    }
+  });
+};
+
 // ─── Observers & Timers ─────────────────────────────────────
 
 let badgeTimer = null;
@@ -195,6 +223,7 @@ const observer = new MutationObserver(() => {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
     checkRedirects();
+    applyHideShorts();
     setTimeout(resumeVideo, 1000);
   }
   debouncedTagThumbnails();
@@ -203,6 +232,7 @@ observer.observe(document.body, { childList: true, subtree: true });
 
 // Initial triggers
 checkRedirects();
+applyHideShorts();
 injectBadgeStyles();
 setTimeout(resumeVideo, 1500);
 setInterval(saveProgress, 10000);
