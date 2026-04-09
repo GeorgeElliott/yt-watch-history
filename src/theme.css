@@ -354,15 +354,20 @@ a {
   height: 30px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   color: white;
-  font-size: 14px;
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
+  padding: 0;
+  opacity: 0.5;
   transition: var(--transition);
+  z-index: 10;
 }
 
 .video-card:hover .delete-btn {
@@ -371,6 +376,7 @@ a {
 
 .video-card .delete-btn:hover {
   background: var(--accent);
+  transform: scale(1.1);
 }
 
 /* ---- Grid Layouts ---- */
