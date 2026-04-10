@@ -42,10 +42,19 @@ const renderNextBatch = () => {
     titleLink.rel = 'noopener noreferrer';
     titleLink.className = 'item-title';
     titleLink.textContent = video.title;
+    info.appendChild(titleLink);
+    if (video.channel) {
+      const channelLink = document.createElement('a');
+      channelLink.href = video.channelUrl || '#';
+      channelLink.target = '_blank';
+      channelLink.rel = 'noopener noreferrer';
+      channelLink.className = 'item-channel';
+      channelLink.textContent = video.channel;
+      info.appendChild(channelLink);
+    }
     const meta = document.createElement('span');
     meta.className = 'item-meta';
     meta.textContent = `${timeMeta} \u2022 ${new Date(video.timestamp).toLocaleDateString()}`;
-    info.appendChild(titleLink);
     info.appendChild(meta);
 
     const removeBtn = document.createElement('button');

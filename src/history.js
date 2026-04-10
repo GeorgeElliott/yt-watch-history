@@ -116,10 +116,19 @@ const renderBatch = () => {
     titleLink.rel = 'noopener noreferrer';
     titleLink.className = 'card-title';
     titleLink.textContent = video.title;
+    body.appendChild(titleLink);
+    if (video.channel) {
+      const channelLink = document.createElement('a');
+      channelLink.href = video.channelUrl || '#';
+      channelLink.target = '_blank';
+      channelLink.rel = 'noopener noreferrer';
+      channelLink.className = 'card-channel';
+      channelLink.textContent = video.channel;
+      body.appendChild(channelLink);
+    }
     const metaDiv = document.createElement('div');
     metaDiv.className = 'card-meta';
-    metaDiv.textContent = date;
-    body.appendChild(titleLink);
+    metaDiv.textContent = `${date} ${date ? '•' : ''} ${timeBadge}`;
     body.appendChild(metaDiv);
 
     card.appendChild(deleteBtn);

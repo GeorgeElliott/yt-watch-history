@@ -39,6 +39,38 @@ const resumeVideo = () => {
   }
 };
 
+const getChannelName = () => {
+  // Try different selectors for channel name (YouTube layout variations)
+  const channelLink = document.querySelector('a[href*="/@"], a[href*="/channel/"], ytd-channel-name a');
+  if (channelLink) {
+    return channelLink.textContent.trim()
+      || channelLink.getAttribute('title')
+      || channelLink.getAttribute('aria-label')
+      || '';
+  }
+  
+  // Fallback: try to find channel name in metadata
+  const channelMeta = document.querySelector('ytd-channel-name');
+  if (channelMeta) {
+    return channelMeta.textContent.trim();
+  }
+  
+  return '';
+};
+
+const getChannelUrl = () => {
+  // Try different selectors for channel link (YouTube layout variations)
+  const channelLink = document.querySelector('a[href*="/@"], a[href*="/channel/"], ytd-channel-name a');
+  if (channelLink) {
+    const href = channelLink.getAttribute('href');
+    if (href) {
+      // Convert relative URLs to absolute
+      return href.startsWith('http') ? href : `https://www.youtube.com${href}`;
+    }
+  }
+  return '';
+};
+
 const saveProgress = () => {
   if (!isWatchPage()) return;
 
@@ -59,6 +91,8 @@ const saveProgress = () => {
       history.unshift({
         id: videoId,
         title: cleanTitle,
+        channel: getChannelName(),
+        channelUrl: getChannelUrl(),
         time: isLive ? 0 : Math.floor(video.currentTime),
         live: isLive || undefined,
         timestamp: Date.now()

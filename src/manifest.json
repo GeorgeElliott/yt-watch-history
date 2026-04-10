@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "WatchHistory for YouTube™",
   "short_name": "WatchHistory",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Best for when YouTube watch history is off. Tracks up to 1000 videos locally and lets you resume where you left off.",
   "homepage_url": "https://github.com/GeorgeElliott/yt-watch-history",
   "icons": {
