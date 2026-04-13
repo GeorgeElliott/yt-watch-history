@@ -40,17 +40,30 @@ _Works on Chrome, Microsoft Edge, and Brave browsers._
 
 _Edge Add-ons listing coming soon. For now, use the Chrome Web Store installation or load from ZIP._
 
+#### Firefox Add-ons
+
+🔜 **Coming soon to Firefox Add-ons (AMO)**
+
+_Firefox listing coming soon. For now, use the build script to package for Firefox or load from ZIP._
+
 ---
 
-### From ZIP
+### From Release Package
 
-1. Go to the [GitHub repository](https://github.com/GeorgeElliott/yt-watch-history) and click **Code → Download ZIP**
-2. Extract the ZIP file
-3. Load in Chrome/Edge:
+1. Go to [GitHub Releases](https://github.com/GeorgeElliott/yt-watch-history/releases)
+2. Download the appropriate ZIP for your browser:
+   - `yt-watch-history-chrome-v*.zip` — For Chrome, Edge, or Brave
+   - `yt-watch-history-firefox-v*.zip` — For Firefox
+3. Extract the ZIP file
+4. Load in Chrome/Edge/Brave:
    - Go to `chrome://extensions` (or `edge://extensions`)
    - Enable **Developer mode** (top right)
    - Click **Load unpacked**
-   - Select the `src/` folder from the extracted files
+   - Select the extracted folder
+5. Load in Firefox:
+   - Go to `about:debugging#/runtime/this-firefox`
+   - Click **Load Temporary Add-on**
+   - Select the `manifest.json` from the extracted folder
 
 ### From Source (Development)
 
@@ -65,6 +78,45 @@ _Edge Add-ons listing coming soon. For now, use the Chrome Web Store installatio
    - Enable **Developer mode** (top right)
    - Click **Load unpacked**
    - Select the `src/` folder
+
+### Building Locally
+
+To build the extension package locally for testing:
+
+#### **Windows (PowerShell)**
+```powershell
+.\build.ps1                           # Interactive mode
+.\build.ps1 -Browser chrome -Version 1.2.3    # With parameters
+```
+
+#### **macOS/Linux/Git Bash**
+```bash
+./build.sh                            # Interactive mode
+./build.sh chrome 1.2.3               # With parameters
+```
+
+**Outputs** (in `dist/` folder):
+- `yt-watch-history-chrome-v1.2.3.zip` — For Chrome/Edge
+- `yt-watch-history-firefox-v1.2.3.zip` — For Firefox
+
+Load the package locally for testing via `chrome://extensions` (Chrome/Edge) or `about:debugging` (Firefox).
+
+### Creating a Release
+
+Releases are triggered by pushing a Git tag. When you push a tag like `v1.2.3`:
+
+```bash
+git tag -a v1.2.3 -m "v1.2.3"
+git push origin v1.2.3
+```
+
+GitHub Actions will automatically:
+- Build both Chrome and Firefox packages
+- Create a GitHub Release with both ZIPs attached
+
+Then go to **Releases** and edit the release notes manually.
+
+For detailed instructions, see [RELEASING.md](RELEASING.md).
 
 ## Usage
 

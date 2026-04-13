@@ -1,0 +1,45 @@
+name: Build Extension Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Build Chrome/Edge Package
+        shell: bash
+        run: bash build.sh chrome "${{ steps.version.outputs.version }}"
+
+      - name: Build Firefox Package
+        shell: bash
+        run: bash build.sh firefox "${{ steps.version.outputs.version }}"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: WatchHistory for YouTube ${{ github.ref_name }}
+          files: |
+            dist/yt-watch-history-chrome-v${{ steps.version.outputs.version }}.zip
+            dist/yt-watch-history-firefox-v${{ steps.version.outputs.version }}.zip
+          body: "Release notes coming soon..."
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
