@@ -16,8 +16,6 @@ DIST_DIR="$SCRIPT_DIR/dist"
 
 echo ""
 echo "=== WatchHistory for YouTube - Build ==="
-echo "SCRIPT_DIR: $SCRIPT_DIR"
-echo "DIST_DIR: $DIST_DIR"
 echo ""
 
 # Prompt for browser if not provided
@@ -50,13 +48,10 @@ echo "Building for $BROWSER..."
 if [ -z "$VERSION" ]; then
     if command -v node &>/dev/null; then
         VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$SRC_DIR/manifest.json', 'utf8')).version)")
-        echo "Version from manifest: $VERSION"
     else
         echo "Error: node is required to read version from manifest."
         exit 1
     fi
-else
-    echo "Using version: $VERSION"
 fi
 
 ZIP_NAME="yt-watch-history-${BROWSER}-v${VERSION}.zip"
@@ -161,27 +156,14 @@ fi
 
 # Create zip
 echo "Creating $ZIP_NAME..."
-echo "ZIP_PATH: $ZIP_PATH"
 
 if [ ! -d "$BUILD_DIR" ]; then
     echo "Error: Build directory not found at $BUILD_DIR"
     exit 1
 fi
 
-echo "Contents of build directory before zipping:"
-ls -la "$BUILD_DIR"
-
-echo ""
-echo "Manifest content:"
-head -20 "$BUILD_DIR/manifest.json"
-
 # Create ZIP from build directory
 cd "$BUILD_DIR" || exit 1
-echo "Changed to: $(pwd)"
-echo "Files to be zipped:"
-ls -la
-echo ""
-
 zip -r "$ZIP_PATH" . -q
 ZIP_RESULT=$?
 cd "$SCRIPT_DIR" || exit 1
@@ -195,8 +177,6 @@ fi
 if [ ! -f "$ZIP_PATH" ]; then
     echo ""
     echo "ERROR: Failed to create $ZIP_PATH"
-    echo "Checking dist directory contents:"
-    ls -lha "$DIST_DIR" || echo "  (dist directory not found)"
     exit 1
 fi
 
@@ -206,7 +186,6 @@ rm -rf "$BUILD_DIR"
 echo ""
 echo "Done! Package created:"
 echo "  $ZIP_PATH"
-ls -lh "$ZIP_PATH"
 echo ""
 
 if [ "$BROWSER" = "firefox" ]; then

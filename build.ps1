@@ -47,7 +47,6 @@ $buildDir = Join-Path $root "build"
 if (-not $Version) {
     $manifest = Get-Content (Join-Path $srcDir "manifest.json") -Raw | ConvertFrom-Json
     $Version = $manifest.version
-    Write-Host "Version from manifest: $Version" -ForegroundColor Yellow
 }
 else {
     Write-Host "Using version: $Version" -ForegroundColor Yellow
@@ -113,28 +112,8 @@ if (-not (Test-Path $manifestPath)) {
 }
 
 # Create the zip
-Write-Host ""
-Write-Host "Creating $zipName..."
-Write-Host "ZIP_PATH: $zipPath"
-
-if (-not (Test-Path $buildDir)) {
-    Write-Host "ERROR: Build directory not found at $buildDir" -ForegroundColor Red
-    exit 1
-}
-
-Write-Host ""
-Write-Host "Contents of build directory before zipping:"
-Get-ChildItem -Path $buildDir -Recurse | Format-Table -Property FullName
-
-Write-Host ""
-Write-Host "Manifest content (first 20 lines):"
-Get-Content $manifestPath | Select-Object -First 20 | Write-Host
-
-Write-Host ""
-Write-Host "Creating archive..."
 try {
     Compress-Archive -Path "$buildDir\*" -DestinationPath $zipPath -Force -ErrorAction Stop
-    Write-Host "Archive created successfully."
 }
 catch {
     Write-Host "ERROR: Compress-Archive failed: $_" -ForegroundColor Red
@@ -143,27 +122,15 @@ catch {
 
 # Verify file exists
 if (-not (Test-Path $zipPath)) {
-    Write-Host ""
     Write-Host "ERROR: Failed to create $zipPath" -ForegroundColor Red
-    Write-Host ""
-    Write-Host "Checking dist directory contents:"
-    if (Test-Path $distDir) {
-        Get-ChildItem -Path $distDir -Force | Format-List FullName, Length
-    }
-    else {
-        Write-Host "  (dist directory not found)"
-    }
     exit 1
 }
 
 # Clean up build dir
 Remove-Item -Recurse -Force $buildDir
 
-Write-Host ""
 Write-Host "Done! Package created:" -ForegroundColor Green
 Write-Host "  $zipPath" -ForegroundColor Yellow
-Get-Item $zipPath | Format-Table -Property Length, FullName
-Write-Host ""
 Write-Host ""
 
 if ($browser -eq "firefox") {
