@@ -40,72 +40,132 @@ const resumeVideo = () => {
 };
 
 const getChannelName = () => {
-  // Try different selectors for channel name (YouTube layout variations)
-  const channelLink = document.querySelector('a[href*="/@"], a[href*="/channel/"], ytd-channel-name a');
+  // Target the video owner's channel link specifically
+  // On watch pages, this is in the info section near the title
+  let channelLink = document.querySelector(
+    'ytd-channel-name a, ' +
+    '#channel-name a, ' +
+    'a[href*="/@"][class*="channel"], ' +
+    'a[href*="/channel/"][class*="channel"]'
+  );
+  
   if (channelLink) {
-    return channelLink.textContent.trim()
+    const text = channelLink.textContent.trim()
       || channelLink.getAttribute('title')
-      || channelLink.getAttribute('aria-label')
-      || '';
+      || channelLink.getAttribute('aria-label');
+    if (text) return text;
   }
   
-  // Fallback: try to find channel name in metadata
+  // Fallback: look for channel name in structured data
   const channelMeta = document.querySelector('ytd-channel-name');
   if (channelMeta) {
-    return channelMeta.textContent.trim();
+    const text = channelMeta.textContent.trim();
+    if (text && text.length > 0 && text.length < 200) return text;
   }
+  
+  // Last resort: search metadata
+  try {
+    const jsonLd = document.querySelector('script[type="application/ld+json"]');
+    if (jsonLd) {
+      const data = JSON.parse(jsonLd.textContent);
+      if (data.author?.name) return data.author.name;
+      if (data.itemListElement?.[0]?.item?.author?.name) return data.itemListElement[0].item.author.name;
+    }
+  } catch { /* ignore */ }
   
   return '';
 };
 
 const getChannelUrl = () => {
-  // Try different selectors for channel link (YouTube layout variations)
-  const channelLink = document.querySelector('a[href*="/@"], a[href*="/channel/"], ytd-channel-name a');
+  // Target the video owner's channel link specifically
+  let channelLink = document.querySelector(
+    'ytd-channel-name a, ' +
+    '#channel-name a, ' +
+    'a[href*="/@"][class*="channel"], ' +
+    'a[href*="/channel/"][class*="channel"]'
+  );
+  
   if (channelLink) {
     const href = channelLink.getAttribute('href');
     if (href) {
-      // Convert relative URLs to absolute
       return href.startsWith('http') ? href : `https://www.youtube.com${href}`;
     }
   }
+  
+  // Fallback from metadata
+  try {
+    const jsonLd = document.querySelector('script[type="application/ld+json"]');
+    if (jsonLd) {
+      const data = JSON.parse(jsonLd.textContent);
+      if (data.author?.url) return data.author.url;
+    }
+  } catch { /* ignore */ }
+  
   return '';
+};
+
+const _doSaveProgress = () => {
+  const video = document.querySelector('video');
+  const videoId = new URLSearchParams(window.location.search).get('v');
+
+  if (!video || !videoId) return;
+
+  const isLive = isLiveStream();
+  const duration = video.duration || 0;
+  const currentTime = Math.floor(video.currentTime);
+  const progress = duration > 0 ? video.currentTime / duration : 0;
+
+  chrome.storage.local.get({ history: [], limit: 100 }, (data) => {
+    // Clean title: remove notification counts like (1) and the " - YouTube" suffix
+    const cleanTitle = document.title
+      .replace(/^\(\d+\)\s/, '')
+      .replace(' - YouTube', '');
+
+    const existing = data.history.find(item => item.id === videoId);
+    let history = data.history.filter(item => item.id !== videoId);
+
+    // Determine watched status
+    const wasWatched = existing?.watched || false;
+    let watched;
+    if (!isLive && progress >= 0.95) {
+      watched = true;
+    } else if (wasWatched && progress < 0.1) {
+      watched = false; // Reset on re-watch from beginning
+    } else {
+      watched = wasWatched;
+    }
+
+    history.unshift({
+      id: videoId,
+      title: cleanTitle,
+      channel: getChannelName(),
+      channelUrl: getChannelUrl(),
+      time: isLive ? 0 : currentTime,
+      duration: isLive ? 0 : Math.floor(duration),
+      watched,
+      live: isLive || undefined,
+      timestamp: Date.now()
+    });
+
+    // Trim history based on user-defined limit
+    if (history.length > data.limit) {
+      history = history.slice(0, data.limit);
+    }
+
+    chrome.storage.local.set({ history });
+  });
 };
 
 const saveProgress = () => {
   if (!isWatchPage()) return;
-
   const video = document.querySelector('video');
-  const videoId = new URLSearchParams(window.location.search).get('v');
+  if (!video || video.paused || document.hidden) return;
+  _doSaveProgress();
+};
 
-  if (video && videoId && !video.paused && !document.hidden) {
-    const isLive = isLiveStream();
-
-    chrome.storage.local.get({ history: [], limit: 100 }, (data) => {
-      // Clean title: remove notification counts like (1) and the " - YouTube" suffix
-      const cleanTitle = document.title
-        .replace(/^\(\d+\)\s/, '')
-        .replace(' - YouTube', '');
-
-      let history = data.history.filter(item => item.id !== videoId);
-      
-      history.unshift({
-        id: videoId,
-        title: cleanTitle,
-        channel: getChannelName(),
-        channelUrl: getChannelUrl(),
-        time: isLive ? 0 : Math.floor(video.currentTime),
-        live: isLive || undefined,
-        timestamp: Date.now()
-      });
-
-      // Trim history based on user-defined limit
-      if (history.length > data.limit) {
-        history = history.slice(0, data.limit);
-      }
-
-      chrome.storage.local.set({ history });
-    });
-  }
+const saveProgressImmediate = () => {
+  if (!isWatchPage()) return;
+  _doSaveProgress();
 };
 
 // ─── Resume Badges (all pages) ──────────────────────────────
@@ -132,6 +192,21 @@ const injectBadgeStyles = () => {
       font-family: 'Roboto', Arial, sans-serif;
       line-height: 1.3;
     }
+    .ytwh-watched-badge {
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      background: rgba(76, 175, 80, 0.9);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 3px;
+      z-index: 100;
+      pointer-events: none;
+      font-family: 'Roboto', Arial, sans-serif;
+      line-height: 1.3;
+    }
   `;
   document.head.appendChild(style);
 };
@@ -148,22 +223,28 @@ const tagThumbnails = () => {
 
     const historyMap = new Map(data.history.map(v => [v.id, v]));
 
-    // Target video renderer elements — one per video, covers all page layouts
+    // Target video renderer elements — covers all page layouts including channel pages, subscriptions, and recommendations
     const renderers = document.querySelectorAll([
       'ytd-rich-item-renderer',
       'ytd-video-renderer',
       'ytd-grid-video-renderer',
       'ytd-compact-video-renderer',
-      'ytd-reel-item-renderer'
+      'ytd-reel-item-renderer',
+      'ytd-rich-grid-media',
+      'ytd-rich-shelf-renderer',
+      'ytd-section-list-renderer',
+      'ytd-video-list-item-renderer',
+      'yt-lockup-view-model'
     ].join(', '));
 
     renderers.forEach(renderer => {
       if (renderer.hasAttribute(BADGE_ATTR)) return;
-      renderer.setAttribute(BADGE_ATTR, '');
 
       // Find the first watch link to extract the video ID
       const link = renderer.querySelector('a[href*="/watch"]');
-      if (!link) return;
+      if (!link) return; // Don't mark — link may not be loaded yet
+
+      renderer.setAttribute(BADGE_ATTR, '');
 
       try {
         const url = new URL(link.getAttribute('href'), location.origin);
@@ -171,23 +252,44 @@ const tagThumbnails = () => {
         if (!videoId) return;
 
         const saved = historyMap.get(videoId);
-        if (!saved || saved.time < 5) return;
+        if (!saved) return;
+        if (!saved.watched && saved.time < 5) return;
 
         // Place badge on the thumbnail element specifically
-        // Prefer the <a> wrapper for new lockup layout since custom elements may not create a box
-        const thumbnail = renderer.querySelector(
-          '#thumbnail, ytd-thumbnail, a.yt-lockup-view-model__content-image'
-        );
+        // Try to find the thumbnail container - could be various custom elements
+        let thumbnail = renderer.querySelector('yt-thumbnail-view-model');
+        
+        // If not found, try other selectors
+        if (!thumbnail) {
+          thumbnail = renderer.querySelector('[class*="Thumbnail"], #thumbnail, ytd-thumbnail');
+        }
+        
         if (!thumbnail) return;
 
-        const style = getComputedStyle(thumbnail);
-        if (style.position === 'static') thumbnail.style.position = 'relative';
-        if (style.display === 'contents' || style.display === 'inline') thumbnail.style.display = 'block';
+        // Find the image container within the thumbnail
+        const imageContainer = thumbnail.querySelector('[class*="ThumbnailImage"], .ytThumbnailViewModelImage');
+        const appendTarget = imageContainer || thumbnail;
 
-        const badge = document.createElement('span');
-        badge.className = 'ytwh-resume-badge';
-        badge.textContent = `Resume ${formatTime(saved.time)}`;
-        thumbnail.appendChild(badge);
+        const style = getComputedStyle(appendTarget);
+        if (style.position === 'static') appendTarget.style.position = 'relative';
+        
+        // For custom elements, ensure display is not 'contents'
+        const display = style.display;
+        if (display === 'contents' || display === 'inline') {
+          appendTarget.style.display = 'block';
+        }
+
+        if (saved.watched) {
+          const badge = document.createElement('span');
+          badge.className = 'ytwh-watched-badge';
+          badge.textContent = 'Watched';
+          appendTarget.appendChild(badge);
+        } else if (saved.time >= 5) {
+          const badge = document.createElement('span');
+          badge.className = 'ytwh-resume-badge';
+          badge.textContent = `Resume ${formatTime(saved.time)}`;
+          appendTarget.appendChild(badge);
+        }
       } catch { /* ignore malformed hrefs */ }
     });
   });
@@ -271,3 +373,10 @@ injectBadgeStyles();
 setTimeout(resumeVideo, 1500);
 setInterval(saveProgress, 10000);
 setTimeout(tagThumbnails, 2000);
+
+// Save progress on tab close, navigation, or visibility change
+window.addEventListener('beforeunload', saveProgressImmediate);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) saveProgressImmediate();
+});
+window.addEventListener('popstate', saveProgressImmediate);

@@ -17,7 +17,9 @@ const renderNextBatch = () => {
     const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/mqdefault.jpg`;
     const timeMeta = video.live
       ? '\u{1F534} Livestream'
-      : `${Math.floor(video.time / 60)}m ${video.time % 60}s`;
+      : video.watched
+        ? '\u2713 Watched'
+        : `${Math.floor(video.time / 60)}m ${video.time % 60}s`;
 
     const div = document.createElement('div');
     div.className = 'video-list-item';
@@ -57,20 +59,61 @@ const renderNextBatch = () => {
     meta.textContent = `${timeMeta} \u2022 ${new Date(video.timestamp).toLocaleDateString()}`;
     info.appendChild(meta);
 
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'btn-icon';
-    removeBtn.title = 'Remove';
-    removeBtn.textContent = '\u2715';
-    removeBtn.onclick = () => {
+    const menuWrap = document.createElement('div');
+    menuWrap.className = 'video-menu-wrap';
+    const menuBtn = document.createElement('button');
+    menuBtn.className = 'video-menu-btn';
+    menuBtn.title = 'More actions';
+    menuBtn.textContent = '\u22EE';
+    menuBtn.onclick = (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.video-menu.open').forEach(m => m.classList.remove('open'));
+      menu.classList.toggle('open');
+    };
+    const menu = document.createElement('div');
+    menu.className = 'video-menu';
+
+    const watchedItem = document.createElement('button');
+    watchedItem.className = 'video-menu-item';
+    watchedItem.textContent = video.watched ? '\u21A9 Reset progress' : '\u2713 Mark as watched';
+    watchedItem.onclick = () => {
+      chrome.storage.local.get({ history: [] }, (data) => {
+        const entry = data.history.find(v => v.id === video.id);
+        if (entry) {
+          entry.watched = !entry.watched;
+          if (!entry.watched) entry.time = 0;
+        }
+        chrome.storage.local.set({ history: data.history }, init);
+      });
+    };
+
+    const copyItem = document.createElement('button');
+    copyItem.className = 'video-menu-item';
+    copyItem.textContent = '\uD83D\uDD17 Copy link';
+    copyItem.onclick = () => {
+      navigator.clipboard.writeText(`https://www.youtube.com/watch?v=${video.id}`);
+      menu.classList.remove('open');
+    };
+
+    const removeItem = document.createElement('button');
+    removeItem.className = 'video-menu-item danger';
+    removeItem.textContent = '\uD83D\uDDD1 Remove from history';
+    removeItem.onclick = () => {
       chrome.storage.local.get({ history: [] }, (data) => {
         const filtered = data.history.filter(v => v.id !== video.id);
         chrome.storage.local.set({ history: filtered }, init);
       });
     };
 
+    menu.appendChild(watchedItem);
+    menu.appendChild(copyItem);
+    menu.appendChild(removeItem);
+    menuWrap.appendChild(menuBtn);
+    menuWrap.appendChild(menu);
+
     div.appendChild(thumbLink);
     div.appendChild(info);
-    div.appendChild(removeBtn);
+    div.appendChild(menuWrap);
     listContainer.appendChild(div);
   });
 
@@ -122,5 +165,10 @@ document.getElementById('open-options').onclick = (e) => {
   e.preventDefault();
   chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
 };
+
+// Close menus on outside click
+document.addEventListener('click', () => {
+  document.querySelectorAll('.video-menu.open').forEach(m => m.classList.remove('open'));
+});
 
 init();

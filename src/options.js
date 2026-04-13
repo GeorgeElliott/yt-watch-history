@@ -3,6 +3,7 @@ const badgeToggle = document.getElementById('badge-toggle');
 const redirectToggle = document.getElementById('redirect-toggle');
 const subsRedirectToggle = document.getElementById('subs-redirect-toggle');
 const hideShortsToggle = document.getElementById('hide-shorts-toggle');
+const hideWatchedDefaultToggle = document.getElementById('hide-watched-default-toggle');
 
 const showToast = (message) => {
   const toast = document.getElementById('toast');
@@ -12,12 +13,13 @@ const showToast = (message) => {
 };
 
 // Load current settings
-chrome.storage.local.get({ limit: 100, resumeBadges: true, historyRedirect: false, subsRedirect: false, hideShorts: false }, (data) => {
+chrome.storage.local.get({ limit: 100, resumeBadges: true, historyRedirect: false, subsRedirect: false, hideShorts: false, hideWatchedDefault: false }, (data) => {
   limitInput.value = data.limit;
   badgeToggle.checked = data.resumeBadges;
   redirectToggle.checked = data.historyRedirect;
   subsRedirectToggle.checked = data.subsRedirect;
   hideShortsToggle.checked = data.hideShorts;
+  hideWatchedDefaultToggle.checked = data.hideWatchedDefault;
 });
 
 // Toggle resume badges
@@ -45,6 +47,13 @@ subsRedirectToggle.onchange = () => {
 hideShortsToggle.onchange = () => {
   chrome.storage.local.set({ hideShorts: hideShortsToggle.checked }, () => {
     showToast(hideShortsToggle.checked ? 'Shorts hidden' : 'Shorts visible');
+  });
+};
+
+// Toggle hide watched default
+hideWatchedDefaultToggle.onchange = () => {
+  chrome.storage.local.set({ hideWatchedDefault: hideWatchedDefaultToggle.checked }, () => {
+    showToast(hideWatchedDefaultToggle.checked ? 'Watched videos hidden in search by default' : 'Watched videos shown in search');
   });
 };
 

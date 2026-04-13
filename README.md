@@ -13,17 +13,36 @@ A lightweight browser extension that tracks your YouTube watch history locally a
 
 - 📺 **Track Videos** - Automatically saves the last 50-1000 YouTube videos you watch (configurable)
 - ▶️ **Resume Automatically** - Jump back to where you left off when you revisit a video
-- 🔖 **Resume Badges** - See "Resume" tags on thumbnails across YouTube for videos in your history (toggleable)
+- 🎯 **Auto-mark as Watched** - Videos are automatically tagged as "watched" when you reach 95% progress
+- 🔖 **Smart Badges** - See "Resume" or "Watched" tags on thumbnails across YouTube (toggleable)
+- 📋 **Video Actions Menu** - Long-press menu on each video offering: Mark as watched/Reset progress, Copy link, Remove from history
+- 🔄 **Smart Progress Tracking** - Saves progress when closing tabs, navigating away, or closing the browser
+- 🔍 **Advanced Search** - Find videos by title or channel name, with toggleable "hide watched" filter
 - 💾 **Local Storage** - All data stays on your device - nothing sent to external servers
-- 🔍 **Search & Sort** - Find videos by title, sorted by newest, oldest, or alphabetical
 - 📥 **Import/Export** - Back up and restore your watch history as JSON
 - 🚫 **Hide Shorts** - Remove Shorts from all YouTube feeds including home, subscriptions and search
+- ⚙️ **Customizable Defaults** - Set default "hide watched" behavior in search, history limit (50-1000 videos)
 - 🎨 **Dark/Light Mode** - Automatically adapts to your system theme
-- ⚙️ **Customizable** - Set your preferred history limit (50-1000 videos)
 
 ## Installation
 
-### From ZIP (Quickest)
+### From Chrome Web Store
+
+Install instantly from the Chrome Web Store:
+
+[WatchHistory for YouTube™ on Chrome Web Store](https://chromewebstore.google.com/detail/watchhistory-for-youtube/bjfbnpccgejpbeofaepnjommafgdknap?authuser=0&hl=en)
+
+_Works on Chrome, Microsoft Edge, and Brave browsers._
+
+#### Microsoft Edge Add-ons
+
+🔜 **Coming soon to Microsoft Edge Add-ons Store**
+
+_Edge Add-ons listing coming soon. For now, use the Chrome Web Store installation or load from ZIP._
+
+---
+
+### From ZIP
 
 1. Go to the [GitHub repository](https://github.com/GeorgeElliott/yt-watch-history) and click **Code → Download ZIP**
 2. Extract the ZIP file
@@ -56,30 +75,47 @@ A lightweight browser extension that tracks your YouTube watch history locally a
 
 ### History Page
 - View all tracked videos in a grid
-- **Search** by title
+- **Search** by video title or channel name
+- **Toggle "Hide watched"** to filter out watched videos (default behavior configurable in options)
 - **Sort** by newest, oldest, or alphabetical
+- **Video actions menu** (three dots) on each video:
+  - Mark as watched / Reset progress
+  - Copy video link
+  - Remove from history
 - Click a thumbnail to resume watching
-- Delete individual videos
+- Batch delete via **Clear All** button
 
 ### Options Page
 - 📊 Set history limit (50-1000 videos)
-- � Toggle **resume badges** on YouTube thumbnails
+- 🔖 Toggle **resume badges** on YouTube thumbnails
+- 👁️ Toggle **watched badges** on thumbnails
 - 🔀 **Redirect YouTube history** to your local history page
 - 🏠 **Redirect Home & Shorts** to your subscriptions feed
 - 🚫 **Hide Shorts** from all YouTube feeds
+- 👀 **Hide watched in search** - Set default "hide watched" state for the history page search (users can override per session)
 - 📤 **Export** your history as JSON
 - 📥 **Import** previously exported history
 - 🗑️ Clear all data
 
-**Note:** This is a rolling limit. To keep your browser fast, we only remember your most recent 1,000 videos. Older entries are deleted automatically.
-
 ## How It Works
 
 1. **Content Script** (`content.js`) runs on all YouTube watch pages
-2. Every 10 seconds, it saves your current video ID, timestamp, and title to local storage (only while the tab is active and the video is playing)
-3. When you revisit a video, it automatically jumps to your saved position (if within first 5 seconds)
-4. Livestreams are saved in your history and automatically resume at the live edge
-5. History is trimmed when it exceeds your configured limit
+2. Every 10 seconds, it saves your current video ID, timestamp, title, and channel to local storage (only while the tab is active and the video is playing)
+3. **Smart Progress Tracking** - Saves progress immediately when you:
+   - Close the tab or browser window
+   - Navigate away from the video
+   - Use the back button
+4. **Auto-watched Detection** - Videos are automatically marked as "watched" when you reach 95% progress; resets to unwatched if you restart from the beginning
+5. When you revisit a video, it automatically jumps to your saved position (if within first 5 seconds)
+6. **Resume & Watched Badges** appear on video thumbnails across:
+   - Home feed recommendations
+   - Subscription feeds
+   - Channel pages
+   - Search results
+7. Livestreams are saved in your history and automatically resume at the live edge
+8. History is trimmed when it exceeds your configured limit
+
+**Note:** This is a rolling limit. To keep your browser fast, we only remember your most recent 1,000 videos. Older entries are deleted automatically.
 
 ## File Structure
 

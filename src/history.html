@@ -30,6 +30,22 @@
       cursor: pointer;
     }
 
+    .hide-watched-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .hide-watched-label input {
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
     .load-more-wrap {
       display: flex;
       justify-content: center;
@@ -63,7 +79,11 @@
 
   <!-- Search & Filter -->
   <div class="search-bar">
-    <input type="text" id="search-input" class="input input-search" placeholder="Search your history...">
+    <input type="text" id="search-input" class="input input-search" placeholder="Search by title or channel...">
+    <label class="hide-watched-label">
+      <input type="checkbox" id="hide-watched-toggle">
+      <span>Hide watched</span>
+    </label>
     <select id="sort-select" class="sort-select">
       <option value="newest">Newest first</option>
       <option value="oldest">Oldest first</option>
