@@ -16,6 +16,8 @@ DIST_DIR="$SCRIPT_DIR/dist"
 
 echo ""
 echo "=== WatchHistory for YouTube - Build ==="
+echo "SCRIPT_DIR: $SCRIPT_DIR"
+echo "DIST_DIR: $DIST_DIR"
 echo ""
 
 # Prompt for browser if not provided
@@ -132,9 +134,29 @@ echo "Manifest configured for $BROWSER with version $VERSION."
 
 # Create zip
 echo "Creating $ZIP_NAME..."
-cd "$BUILD_DIR"
+echo "ZIP_PATH: $ZIP_PATH"
+
+if [ ! -d "$BUILD_DIR" ]; then
+    echo "Error: Build directory not found at $BUILD_DIR"
+    exit 1
+fi
+
+# Create ZIP from build directory
+cd "$BUILD_DIR" || exit 1
 zip -r "$ZIP_PATH" . -q
-cd "$SCRIPT_DIR"
+ZIP_RESULT=$?
+cd "$SCRIPT_DIR" || exit 1
+
+if [ $ZIP_RESULT -ne 0 ]; then
+    echo "Error: zip command failed with code $ZIP_RESULT"
+    exit 1
+fi
+
+# Verify file exists
+if [ ! -f "$ZIP_PATH" ]; then
+    echo "Error: Failed to create $ZIP_PATH"
+    exit 1
+fi
 
 # Clean up
 rm -rf "$BUILD_DIR"
@@ -142,6 +164,7 @@ rm -rf "$BUILD_DIR"
 echo ""
 echo "Done! Package created:"
 echo "  $ZIP_PATH"
+ls -lh "$ZIP_PATH"
 echo ""
 
 if [ "$BROWSER" = "firefox" ]; then

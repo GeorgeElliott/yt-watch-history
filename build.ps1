@@ -104,12 +104,20 @@ Write-Host "Manifest configured for $Browser with version $Version."
 Write-Host "Creating $zipName..."
 Compress-Archive -Path "$buildDir\*" -DestinationPath $zipPath -Force
 
+# Verify file exists
+if (-not (Test-Path $zipPath)) {
+    Write-Host "Error: Failed to create $zipPath" -ForegroundColor Red
+    exit 1
+}
+
 # Clean up build dir
 Remove-Item -Recurse -Force $buildDir
 
 Write-Host ""
 Write-Host "Done! Package created:" -ForegroundColor Green
 Write-Host "  $zipPath" -ForegroundColor Yellow
+Get-Item $zipPath | Format-List Length, FullName
+Write-Host ""
 Write-Host ""
 
 if ($browser -eq "firefox") {

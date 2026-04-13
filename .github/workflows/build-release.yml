@@ -24,12 +24,28 @@ jobs:
 
       - name: Build Chrome/Edge Package
         shell: bash
-        run: bash build.sh chrome "${{ steps.version.outputs.version }}"
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "Working directory: $(pwd)"
+          bash build.sh chrome "${{ steps.version.outputs.version }}"
 
       - name: Build Firefox Package
         shell: bash
-        run: bash build.sh firefox "${{ steps.version.outputs.version }}"
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "Working directory: $(pwd)"
+          bash build.sh firefox "${{ steps.version.outputs.version }}"
 
+      - name: Verify build artifacts
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Contents of workspace:"
+          ls -la
+          echo ""
+          echo "Contents of dist directory:"
+          ls -lh dist/ || echo "dist directory not found!"
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
