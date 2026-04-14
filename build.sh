@@ -65,6 +65,14 @@ mkdir -p "$BUILD_DIR" "$DIST_DIR"
 echo "Copying source files..."
 cp -r "$SRC_DIR"/* "$BUILD_DIR/"
 
+# Remove icon.svg for Firefox builds
+if [ "$BROWSER" = "firefox" ]; then
+    if [ -f "$BUILD_DIR/icons/icon.svg" ]; then
+        rm "$BUILD_DIR/icons/icon.svg"
+        echo "Removed icon.svg for Firefox build."
+    fi
+fi
+
 # Modify manifest for target browser
 MANIFEST="build/manifest.json"
 

@@ -66,6 +66,15 @@ New-Item -ItemType Directory -Path $distDir -ErrorAction SilentlyContinue | Out-
 Write-Host "Copying source files..."
 Copy-Item -Path "$srcDir\*" -Destination $buildDir -Recurse
 
+# Remove icon.svg for Firefox builds
+if ($Browser -eq "firefox") {
+    $iconPath = Join-Path $buildDir "icons\icon.svg"
+    if (Test-Path $iconPath) {
+        Remove-Item -Path $iconPath -Force
+        Write-Host "Removed icon.svg for Firefox build."
+    }
+}
+
 # Read the manifest and modify for the target browser
 $manifestPath = Join-Path $buildDir "manifest.json"
 
