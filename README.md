@@ -36,9 +36,11 @@ _Works on Chrome, Microsoft Edge, and Brave browsers._
 
 #### Microsoft Edge Add-ons
 
-🔜 **Coming soon to Microsoft Edge Add-ons Store**
+Install from Microsoft Edge Add-ons:
 
-_Edge Add-ons listing coming soon. For now, use the Chrome Web Store installation or load from ZIP._
+[WatchHistory for YouTube™ on Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/watchhistory-for-youtube%E2%84%A2/dddoogddjkbiknfieibadpibibmmkpnj)
+
+_Works on Microsoft Edge ._ 
 
 #### Firefox Add-ons
 
@@ -101,22 +103,6 @@ To build the extension package locally for testing:
 
 Load the package locally for testing via `chrome://extensions` (Chrome/Edge) or `about:debugging` (Firefox).
 
-### Creating a Release
-
-Releases are triggered by pushing a Git tag. When you push a tag like `v1.2.3`:
-
-```bash
-git tag -a v1.2.3 -m "v1.2.3"
-git push origin v1.2.3
-```
-
-GitHub Actions will automatically:
-- Build both Chrome and Firefox packages
-- Create a GitHub Release with both ZIPs attached
-
-Then go to **Releases** and edit the release notes manually.
-
-For detailed instructions, see [RELEASING.md](RELEASING.md).
 
 ## Usage
 
