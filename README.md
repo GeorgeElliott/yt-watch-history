@@ -17,13 +17,13 @@ A lightweight browser extension that tracks your YouTube watch history locally a
 - 🔖 **Smart Badges** - See "Resume" or "Watched" tags on thumbnails across YouTube (toggleable)
 - 📋 **Video Actions Menu** - Long-press menu on each video offering: Mark as watched/Reset progress, Copy link, Remove from history
 - 🔄 **Smart Progress Tracking** - Saves progress when closing tabs, navigating away, or closing the browser
+- 👻 **Ghost Mode** - Pause all history and progress tracking for the current session with a single click
 - 🔍 **Advanced Search** - Find videos by title or channel name, with toggleable "hide watched" filter
 - 💾 **Local Storage** - All data stays on your device - nothing sent to external servers
 - 📥 **Import/Export** - Back up and restore your watch history as JSON
 - 🚫 **Hide Shorts** - Remove Shorts from all YouTube feeds including home, subscriptions and search
 - ⚙️ **Customizable Defaults** - Set default "hide watched" behavior in search, history limit (50-1000 videos)
 - 🎨 **Dark/Light Mode** - Automatically adapts to your system theme
-
 ## Installation
 
 ### From Chrome Web Store

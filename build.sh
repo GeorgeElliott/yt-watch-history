@@ -73,89 +73,38 @@ if [ "$BROWSER" = "firefox" ]; then
     fi
 fi
 
-# Modify manifest for target browser
-MANIFEST="build/manifest.json"
-
+# Swap manifest files based on browser
 if [ "$BROWSER" = "firefox" ]; then
-    # Replace service_worker with scripts for Firefox
-    if command -v node &>/dev/null; then
-        node -e "
-const fs = require('fs');
-const path = require('path');
-try {
-    const manifestPath = path.join(process.cwd(), '$MANIFEST');
-    const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    m.version = '$VERSION';
-    m.background = { scripts: ['background.js'] };
-    if (!m.browser_specific_settings) {
-        m.browser_specific_settings = { gecko: { id: 'yt-watch-history', strict_min_version: '109.0' } };
-    }
-    fs.writeFileSync(manifestPath, JSON.stringify(m, null, 2));
-} catch (e) {
-    console.error('ERROR: Failed to modify manifest:', e.message);
-    process.exit(1);
-}
-" || { echo "Error: Manifest modification failed for Firefox"; exit 1; }
-    elif command -v python3 &>/dev/null; then
-        python3 -c "
-import json
-try:
-    with open('$MANIFEST', 'r') as f:
-        m = json.load(f)
-    m['version'] = '$VERSION'
-    m['background'] = {'scripts': ['background.js']}
-    if 'browser_specific_settings' not in m:
-        m['browser_specific_settings'] = {'gecko': {'id': 'yt-watch-history', 'strict_min_version': '109.0'}}
-    with open('$MANIFEST', 'w') as f:
-        json.dump(m, f, indent=2)
-except Exception as e:
-    print(f'ERROR: Failed to modify manifest: {e}')
-    exit(1)
-" || { echo "Error: Manifest modification failed for Firefox"; exit 1; }
+    # Use manifest.firefox.json as the main manifest
+    if [ -f "$BUILD_DIR/manifest.firefox.json" ]; then
+        rm "$BUILD_DIR/manifest.json"
+        mv "$BUILD_DIR/manifest.firefox.json" "$BUILD_DIR/manifest.json"
+        echo "Using Firefox manifest."
     else
-        echo "Error: node or python3 is required to modify the manifest."
+        echo "Error: manifest.firefox.json not found."
         exit 1
     fi
 else
-    # Chrome/Edge: ensure service_worker, remove browser_specific_settings
-    if command -v node &>/dev/null; then
-        node -e "
-const fs = require('fs');
-const path = require('path');
-try {
-    const manifestPath = path.join(process.cwd(), '$MANIFEST');
-    const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    m.version = '$VERSION';
-    m.background = { service_worker: 'background.js' };
-    delete m.browser_specific_settings;
-    fs.writeFileSync(manifestPath, JSON.stringify(m, null, 2));
-} catch (e) {
-    console.error('ERROR: Failed to modify manifest:', e.message);
-    process.exit(1);
-}
-" || { echo "Error: Manifest modification failed for Chrome"; exit 1; }
-    elif command -v python3 &>/dev/null; then
-        python3 -c "
-import json
-try:
-    with open('$MANIFEST', 'r') as f:
-        m = json.load(f)
-    m['version'] = '$VERSION'
-    m['background'] = {'service_worker': 'background.js'}
-    m.pop('browser_specific_settings', None)
-    with open('$MANIFEST', 'w') as f:
-        json.dump(m, f, indent=2)
-except Exception as e:
-    print(f'ERROR: Failed to modify manifest: {e}')
-    exit(1)
-" || { echo "Error: Manifest modification failed for Chrome"; exit 1; }
-    else
-        echo "Error: node or python3 is required to modify the manifest."
-        exit 1
+    # Chrome/Edge: remove Firefox manifest
+    if [ -f "$BUILD_DIR/manifest.firefox.json" ]; then
+        rm "$BUILD_DIR/manifest.firefox.json"
+        echo "Removed manifest.firefox.json for Chrome build."
     fi
 fi
 
-echo "Manifest configured for $BROWSER with version $VERSION."
+# Update version in manifest
+MANIFEST="build/manifest.json"
+
+# Update version in manifest
+if command -v sed &>/dev/null; then
+    sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$MANIFEST"
+    echo "Manifest updated with version $VERSION."
+else
+    echo "Error: sed is required to update manifest version."
+    exit 1
+fi
+
+echo "Manifest updated with version $VERSION."
 echo "Verifying manifest was created..."
 if [ ! -f "$BUILD_DIR/manifest.json" ]; then
     echo "Error: Manifest file not found at $BUILD_DIR/manifest.json"

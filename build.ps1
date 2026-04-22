@@ -75,39 +75,40 @@ if ($Browser -eq "firefox") {
     }
 }
 
-# Read the manifest and modify for the target browser
-$manifestPath = Join-Path $buildDir "manifest.json"
-
-try {
-    $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
-    
-    # Update version
-    $manifest.version = $Version
-
-    if ($Browser -eq "firefox") {
-        # Firefox needs background.scripts instead of service_worker
-        $manifest.background = @{ scripts = @("background.js") }
-
-        # Ensure browser_specific_settings exists
-        if (-not $manifest.browser_specific_settings) {
-            $manifest | Add-Member -NotePropertyName "browser_specific_settings" -NotePropertyValue @{
-                gecko = @{
-                    id = "yt-watch-history"
-                    strict_min_version = "109.0"
-                }
-            }
-        }
+# Swap manifest files based on browser
+if ($Browser -eq "firefox") {
+    # Use manifest.firefox.json as the main manifest
+    $firefoxManifestPath = Join-Path $buildDir "manifest.firefox.json"
+    $chromeManifestPath = Join-Path $buildDir "manifest.json"
+    if (Test-Path $firefoxManifestPath) {
+        Remove-Item -Path $chromeManifestPath -Force
+        Rename-Item -Path $firefoxManifestPath -NewName "manifest.json"
+        Write-Host "Using Firefox manifest."
     }
     else {
-        # Chrome/Edge needs service_worker, remove browser_specific_settings
-        $manifest.background = @{ service_worker = "background.js" }
-        $manifest.PSObject.Properties.Remove("browser_specific_settings")
+        Write-Host "Error: manifest.firefox.json not found." -ForegroundColor Red
+        exit 1
     }
+}
+else {
+    # Chrome/Edge: remove Firefox manifest
+    $firefoxManifestPath = Join-Path $buildDir "manifest.firefox.json"
+    if (Test-Path $firefoxManifestPath) {
+        Remove-Item -Path $firefoxManifestPath -Force
+        Write-Host "Removed manifest.firefox.json for Chrome build."
+    }
+}
 
-    # Write the updated manifest
-    $manifest | ConvertTo-Json -Depth 10 | Set-Content $manifestPath -Encoding UTF8
-    
-    Write-Host "Manifest configured for $Browser with version $Version."
+# Read the manifest and update version
+$manifestPath = Join-Path $buildDir "manifest.json"
+
+# Update version in manifest using string replacement to preserve formatting
+try {
+    $manifestContent = Get-Content $manifestPath -Raw
+    $replacement = '"version": "' + $Version + '"'
+    $updatedContent = $manifestContent -replace '"version":\s*"[^"]*"', $replacement
+    $updatedContent | Set-Content $manifestPath -Encoding UTF8
+    Write-Host "Manifest updated with version $Version."
 }
 catch {
     Write-Host "ERROR: Failed to modify manifest: $_" -ForegroundColor Red
