@@ -8,9 +8,12 @@
   <style>
     body {
       width: 400px;
-      min-height: 200px;
+      height: 560px;
       padding: 0;
       margin: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .popup-header {
@@ -73,18 +76,11 @@
       font-size: 16px;
     }
 
-    .popup-stats {
+    .popup-main {
+      flex: 1;
       display: flex;
-      gap: 12px;
-      padding: 10px 16px;
-      background: var(--bg-secondary);
-      font-size: 12px;
-      color: var(--text-secondary);
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .popup-stats strong {
-      color: var(--text-primary);
+      flex-direction: column;
+      min-height: 0;
     }
 
     .popup-section-label {
@@ -97,12 +93,151 @@
     }
 
     #history-list {
+      flex: 1;
+      min-height: 0;
       padding: 0 16px 12px;
+      overflow-y: auto;
     }
 
     #show-more-btn {
-      margin: 8px 16px 16px;
+      margin: 8px 16px 10px;
       width: calc(100% - 32px);
+      flex-shrink: 0;
+    }
+
+    .stats-bar {
+      display: flex;
+      padding: 8px 0;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+
+    .stats-col {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+    }
+
+    .stats-col:first-child {
+      justify-content: flex-start;
+    }
+
+    .stats-col:last-child {
+      justify-content: flex-end;
+    }
+
+    .popup-stats {
+      display: flex;
+      gap: 0;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .popup-stat-col {
+      display: none;
+    }
+
+    .stat-text {
+      font-size: 12px;
+      color: var(--text-primary);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .stat-text strong {
+      color: var(--text-primary);
+    }
+
+    .popup-stat-label {
+      font-size: 10px;
+      letter-spacing: 0.45px;
+      text-transform: uppercase;
+      color: var(--text-disabled);
+      line-height: 1.2;
+    }
+
+    .popup-stat-value {
+      margin-top: 2px;
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .popup-stats strong {
+      color: var(--text-primary);
+    }
+
+    .ghost-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+      flex-shrink: 0;
+    }
+
+    .ghost-info {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 50%;
+      font-size: 10px;
+      color: var(--text-secondary);
+      cursor: help;
+      user-select: none;
+      line-height: 1;
+    }
+
+    .ghost-tooltip {
+      position: absolute;
+      left: calc(100% + 6px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(15, 15, 15, 0.95);
+      color: #fff;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 400;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+      z-index: 20;
+    }
+
+    .ghost-info:hover .ghost-tooltip,
+    .ghost-info:focus-visible .ghost-tooltip {
+      opacity: 1;
+    }
+
+    .stats-bar .toggle {
+      width: 34px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .stats-bar .toggle-slider {
+      width: 34px;
+      height: 18px;
+    }
+
+    .stats-bar .toggle-slider::before {
+      width: 14px;
+      height: 14px;
+      left: 2px;
+      top: 2px;
+    }
+
+    .stats-bar .toggle input:checked + .toggle-slider::before {
+      transform: translateX(16px);
     }
   </style>
 </head>
@@ -127,16 +262,39 @@
     </a>
   </div>
 
-  <!-- Quick Stats -->
-  <div class="popup-stats">
-    <span><strong id="stat-count">0</strong> videos tracked</span>
-    <span><strong id="stat-limit">50</strong> limit</span>
+  <!-- Stats Bar: Ghost Mode (left) + Stats (right) -->
+  <div class="stats-bar">
+    <!-- Left column: Ghost Mode -->
+    <div class="stats-col">
+      <div class="ghost-control">
+        <span>Ghost Mode</span>
+        <span class="ghost-info" tabindex="0" role="img" aria-label="Pauses tracking until browser restart">ⓘ
+          <span class="ghost-tooltip">Pauses tracking until browser restart</span>
+        </span>
+        <label class="toggle" aria-label="Ghost Mode">
+          <input type="checkbox" id="ghostModeToggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Middle column: empty -->
+    <div class="stats-col"></div>
+
+    <!-- Right column: Stats -->
+    <div class="stats-col">
+      <div class="popup-stats">
+        <span class="stat-text"><strong id="stat-count">0</strong>/<strong id="stat-limit">50</strong> videos tracked</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Recent Videos -->
-  <div class="popup-section-label">Recent</div>
-  <div id="history-list"></div>
-  <button id="show-more-btn" class="btn btn-sm hidden" style="width: calc(100% - 32px); margin: 8px 16px 16px;">Show More</button>
+  <div class="popup-main">
+    <!-- Recent Videos -->
+    <div class="popup-section-label">Recent</div>
+    <div id="history-list"></div>
+    <button id="show-more-btn" class="btn btn-sm hidden" style="width: calc(100% - 32px); margin: 8px 16px 10px;">Show More</button>
+  </div>
 
   <script src="popup.js"></script>
 </body>

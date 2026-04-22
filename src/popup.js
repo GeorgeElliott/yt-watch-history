@@ -6,6 +6,25 @@ const listContainer = document.getElementById('history-list');
 const showMoreBtn = document.getElementById('show-more-btn');
 const statCount = document.getElementById('stat-count');
 const statLimit = document.getElementById('stat-limit');
+const ghostModeToggle = document.getElementById('ghostModeToggle');
+
+const setGhostModeBadge = (enabled) => {
+  if (enabled) {
+    chrome.action.setBadgeText({ text: 'OFF' });
+    chrome.action.setBadgeBackgroundColor({ color: '#d93025' });
+    return;
+  }
+
+  chrome.action.setBadgeText({ text: '' });
+};
+
+const syncGhostModeToggle = () => {
+  if (!ghostModeToggle) return;
+
+  chrome.storage.local.get({ ghostModeActive: false }, (data) => {
+    ghostModeToggle.checked = Boolean(data.ghostModeActive);
+  });
+};
 
 const renderNextBatch = () => {
   const nextBatch = allHistory.slice(currentIndex, currentIndex + ITEMS_PER_PAGE);
@@ -171,4 +190,21 @@ document.addEventListener('click', () => {
   document.querySelectorAll('.video-menu.open').forEach(m => m.classList.remove('open'));
 });
 
-init();
+document.addEventListener('DOMContentLoaded', () => {
+  syncGhostModeToggle();
+  init();
+});
+
+if (ghostModeToggle) {
+  ghostModeToggle.addEventListener('change', () => {
+    const enabled = ghostModeToggle.checked;
+    chrome.storage.local.set({ ghostModeActive: enabled }, () => {
+      setGhostModeBadge(enabled);
+    });
+  });
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes.ghostModeActive || !ghostModeToggle) return;
+  ghostModeToggle.checked = Boolean(changes.ghostModeActive.newValue);
+});

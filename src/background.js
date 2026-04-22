@@ -11,3 +11,16 @@ chrome.runtime.onMessage.addListener((message, sender) => {
     });
   }
 });
+
+const resetGhostModeState = () => {
+  chrome.storage.local.set({ ghostModeActive: false });
+  chrome.action.setBadgeText({ text: '' });
+};
+
+chrome.runtime.onStartup.addListener(() => {
+  resetGhostModeState();
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  resetGhostModeState();
+});

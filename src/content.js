@@ -104,7 +104,7 @@ const getChannelUrl = () => {
   return '';
 };
 
-const _doSaveProgress = () => {
+const _doSaveProgressInternal = () => {
   const video = document.querySelector('video');
   const videoId = new URLSearchParams(window.location.search).get('v');
 
@@ -156,6 +156,13 @@ const _doSaveProgress = () => {
   });
 };
 
+const _doSaveProgress = () => {
+  chrome.storage.local.get({ ghostModeActive: false }, (data) => {
+    if (data.ghostModeActive) return;
+    _doSaveProgressInternal();
+  });
+};
+
 const saveProgress = () => {
   if (!isWatchPage()) return;
   const video = document.querySelector('video');
@@ -171,6 +178,11 @@ const saveProgressImmediate = () => {
 // ─── Resume Badges (all pages) ──────────────────────────────
 
 const BADGE_ATTR = 'data-ytwh-badge';
+
+const clearThumbnailBadges = () => {
+  document.querySelectorAll('.ytwh-resume-badge, .ytwh-watched-badge').forEach(badge => badge.remove());
+  document.querySelectorAll(`[${BADGE_ATTR}]`).forEach(renderer => renderer.removeAttribute(BADGE_ATTR));
+};
 
 const injectBadgeStyles = () => {
   if (document.getElementById('ytwh-badge-css')) return;
@@ -218,7 +230,12 @@ const formatTime = (seconds) => {
 };
 
 const tagThumbnails = () => {
-  chrome.storage.local.get({ history: [], resumeBadges: true }, (data) => {
+  chrome.storage.local.get({ history: [], resumeBadges: true, ghostModeActive: false }, (data) => {
+    if (data.ghostModeActive) {
+      clearThumbnailBadges();
+      return;
+    }
+
     if (!data.resumeBadges) return;
 
     const historyMap = new Map(data.history.map(v => [v.id, v]));
@@ -353,6 +370,17 @@ const debouncedTagThumbnails = () => {
   clearTimeout(badgeTimer);
   badgeTimer = setTimeout(tagThumbnails, 500);
 };
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes.ghostModeActive) return;
+
+  if (changes.ghostModeActive.newValue) {
+    clearThumbnailBadges();
+    return;
+  }
+
+  debouncedTagThumbnails();
+});
 
 let lastUrl = location.href;
 const observer = new MutationObserver(() => {

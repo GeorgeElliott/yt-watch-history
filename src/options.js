@@ -4,6 +4,17 @@ const redirectToggle = document.getElementById('redirect-toggle');
 const subsRedirectToggle = document.getElementById('subs-redirect-toggle');
 const hideShortsToggle = document.getElementById('hide-shorts-toggle');
 const hideWatchedDefaultToggle = document.getElementById('hide-watched-default-toggle');
+const ghostModeOptions = document.getElementById('ghostModeOptions');
+
+const setGhostModeBadge = (enabled) => {
+  if (enabled) {
+    chrome.action.setBadgeText({ text: 'OFF' });
+    chrome.action.setBadgeBackgroundColor({ color: '#d93025' });
+    return;
+  }
+
+  chrome.action.setBadgeText({ text: '' });
+};
 
 const showToast = (message) => {
   const toast = document.getElementById('toast');
@@ -13,13 +24,16 @@ const showToast = (message) => {
 };
 
 // Load current settings
-chrome.storage.local.get({ limit: 100, resumeBadges: true, historyRedirect: false, subsRedirect: false, hideShorts: false, hideWatchedDefault: false }, (data) => {
+chrome.storage.local.get({ limit: 100, resumeBadges: true, historyRedirect: false, subsRedirect: false, hideShorts: false, hideWatchedDefault: false, ghostModeActive: false }, (data) => {
   limitInput.value = data.limit;
   badgeToggle.checked = data.resumeBadges;
   redirectToggle.checked = data.historyRedirect;
   subsRedirectToggle.checked = data.subsRedirect;
   hideShortsToggle.checked = data.hideShorts;
   hideWatchedDefaultToggle.checked = data.hideWatchedDefault;
+  if (ghostModeOptions) {
+    ghostModeOptions.checked = Boolean(data.ghostModeActive);
+  }
 });
 
 // Toggle resume badges
@@ -56,6 +70,21 @@ hideWatchedDefaultToggle.onchange = () => {
     showToast(hideWatchedDefaultToggle.checked ? 'Watched videos hidden in search by default' : 'Watched videos shown in search');
   });
 };
+
+if (ghostModeOptions) {
+  ghostModeOptions.onchange = () => {
+    const enabled = ghostModeOptions.checked;
+    chrome.storage.local.set({ ghostModeActive: enabled }, () => {
+      setGhostModeBadge(enabled);
+      showToast(enabled ? 'Ghost Mode enabled' : 'Ghost Mode disabled');
+    });
+  };
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes.ghostModeActive || !ghostModeOptions) return;
+  ghostModeOptions.checked = Boolean(changes.ghostModeActive.newValue);
+});
 
 // Save limit
 document.getElementById('save-limit').onclick = () => {
