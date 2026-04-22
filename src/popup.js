@@ -137,7 +137,10 @@ const renderNextBatch = () => {
   });
 
   currentIndex += ITEMS_PER_PAGE;
-  showMoreBtn.classList.toggle('hidden', currentIndex >= allHistory.length);
+  // Only hide button if all items are loaded
+  if (currentIndex >= allHistory.length) {
+    showMoreBtn.classList.add('hidden');
+  }
 };
 
 const init = () => {
@@ -168,11 +171,33 @@ const init = () => {
       showMoreBtn.classList.add('hidden');
     } else {
       renderNextBatch();
+      showMoreBtn.classList.add('hidden');
+      setupScrollListener();
     }
   });
 };
 
-showMoreBtn.onclick = renderNextBatch;
+const setupScrollListener = () => {
+  listContainer.addEventListener('scroll', () => {
+    // Show button when scrolling near bottom
+    const scrollTop = listContainer.scrollTop;
+    const scrollHeight = listContainer.scrollHeight;
+    const clientHeight = listContainer.clientHeight;
+    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+
+    if (distanceFromBottom < 100 && currentIndex < allHistory.length) {
+      showMoreBtn.classList.remove('hidden');
+    } else if (currentIndex >= allHistory.length) {
+      showMoreBtn.classList.add('hidden');
+    }
+  }, { passive: true });
+};
+
+showMoreBtn.onclick = () => {
+  renderNextBatch();
+  // Hide button after clicking
+  showMoreBtn.classList.add('hidden');
+};
 
 // Navigation links open as chrome extension pages
 document.getElementById('open-history').onclick = (e) => {
