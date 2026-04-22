@@ -44,9 +44,11 @@ _Works on Microsoft Edge ._
 
 #### Firefox Add-ons
 
-🔜 **Coming soon to Firefox Add-ons (AMO)**
+Install from Mozilla Firefox Add-ons:
 
-_Firefox listing coming soon. For now, use the build script to package for Firefox or load from ZIP._
+[WatchHistory for YouTube™ on Mozilla Firefox Add-ons](https://addons.mozilla.org/en-GB/firefox/addon/watchhistory-for-youtube/)
+
+_Works on Firefox browser._
 
 ---
 
