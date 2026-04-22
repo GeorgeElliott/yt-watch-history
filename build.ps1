@@ -104,10 +104,11 @@ $manifestPath = Join-Path $buildDir "manifest.json"
 
 # Update version in manifest using string replacement to preserve formatting
 try {
-    $manifestContent = Get-Content $manifestPath -Raw
+    $manifestContent = Get-Content $manifestPath -Raw -Encoding UTF8
     $replacement = '"version": "' + $Version + '"'
     $updatedContent = $manifestContent -replace '"version":\s*"[^"]*"', $replacement
-    $updatedContent | Set-Content $manifestPath -Encoding UTF8
+    # Write without BOM using System.IO.File
+    [System.IO.File]::WriteAllText($manifestPath, $updatedContent, [System.Text.Encoding]::UTF8)
     Write-Host "Manifest updated with version $Version."
 }
 catch {
@@ -121,12 +122,32 @@ if (-not (Test-Path $manifestPath)) {
     exit 1
 }
 
-# Create the zip
+# Create the zip using .NET to ensure proper path handling
 try {
-    Compress-Archive -Path "$buildDir\*" -DestinationPath $zipPath -Force -ErrorAction Stop
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    
+    # Remove existing zip if it exists
+    if (Test-Path $zipPath) {
+        Remove-Item $zipPath -Force
+    }
+    
+    # Create zip with proper forward slashes in paths
+    $zip = [System.IO.Compression.ZipFile]::Open($zipPath, 'Create')
+    $buildItems = Get-ChildItem -Path $buildDir -Recurse
+    
+    foreach ($item in $buildItems) {
+        if (-not $item.PSIsContainer) {
+            $relativePath = $item.FullName.Substring($buildDir.Length + 1)
+            # Normalize path to use forward slashes
+            $zipEntryName = $relativePath -replace '\\', '/'
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $item.FullName, $zipEntryName) | Out-Null
+        }
+    }
+    
+    $zip.Dispose()
 }
 catch {
-    Write-Host "ERROR: Compress-Archive failed: $_" -ForegroundColor Red
+    Write-Host "ERROR: Failed to create zip: $_" -ForegroundColor Red
     exit 1
 }
 

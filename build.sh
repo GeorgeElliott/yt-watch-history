@@ -95,9 +95,9 @@ fi
 # Update version in manifest
 MANIFEST="build/manifest.json"
 
-# Update version in manifest
+# Update version in manifest with UTF-8 locale to preserve special characters
 if command -v sed &>/dev/null; then
-    sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$MANIFEST"
+    LC_ALL=C.UTF-8 sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$MANIFEST"
     echo "Manifest updated with version $VERSION."
 else
     echo "Error: sed is required to update manifest version."

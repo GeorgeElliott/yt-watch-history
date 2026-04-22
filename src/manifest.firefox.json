@@ -22,7 +22,8 @@
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
-      "48": "icons/icon48.png"
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
     }
   },
   "options_page": "options.html",
@@ -44,8 +45,8 @@
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "watchhistoryforyoutube@georgeelliott.developer",
-      "strict_min_version": "140.0",
+      "id": "watchhistoryfoyoutube@georgeelliott.dev",
+      "strict_min_version": "142.0",
       "data_collection_permissions": {
         "required": [
           "none"
