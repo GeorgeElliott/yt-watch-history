@@ -246,4 +246,5 @@ Contributions welcome! Feel free to:
 
 - [GitHub Repository](https://github.com/GeorgeElliott/yt-watch-history)
 - [MIT License](LICENSE)
+- [BuyMeACoffee](https://buymeacoffee.com/gurgywurgy)
 
