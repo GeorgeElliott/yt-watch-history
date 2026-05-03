@@ -146,8 +146,9 @@ const renderNextBatch = () => {
 const init = () => {
   chrome.storage.local.get({ history: [], limit: 100 }, (data) => {
     allHistory = data.history;
+    const maxLimit = data.limit;
     statCount.textContent = data.history.length;
-    statLimit.textContent = data.limit;
+    statLimit.textContent = maxLimit;
     listContainer.replaceChildren();
     currentIndex = 0;
 
@@ -232,6 +233,12 @@ if (ghostModeToggle) {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !changes.ghostModeActive || !ghostModeToggle) return;
   ghostModeToggle.checked = Boolean(changes.ghostModeActive.newValue);
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  if (changes.limit && statLimit) statLimit.textContent = changes.limit.newValue;
+  if (changes.history && statCount) statCount.textContent = changes.history.newValue.length;
 });
 
 const applyStoredTheme = () => {

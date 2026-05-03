@@ -214,7 +214,7 @@ loadMoreBtn.onclick = renderBatch;
 let searchTimeout;
 searchInput.oninput = () => {
   clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(applyFilters, 250);
+  searchTimeout = setTimeout(applyFilters, 300);
 };
 
 sortSelect.onchange = applyFilters;

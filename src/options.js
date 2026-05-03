@@ -24,9 +24,33 @@ const showToast = (message) => {
   setTimeout(() => toast.classList.remove('show'), 2000);
 };
 
+const performanceWarning = document.getElementById('performanceWarning');
+const welcomeCard = document.getElementById('welcomeCard');
+const dismissWelcome = document.getElementById('dismissWelcome');
+
+// Check if this is first-time setup
+chrome.storage.local.get({ firstTimeSetupComplete: false }, (data) => {
+  if (!data.firstTimeSetupComplete && welcomeCard) {
+    welcomeCard.style.display = 'block';
+  }
+});
+
+if (dismissWelcome) {
+  dismissWelcome.onclick = () => {
+    chrome.storage.local.set({ firstTimeSetupComplete: true });
+    if (welcomeCard) welcomeCard.style.display = 'none';
+  };
+}
+
+limitInput.oninput = () => {
+  const val = parseInt(limitInput.value) || 0;
+  if (performanceWarning) performanceWarning.style.display = val > 2000 ? 'block' : 'none';
+};
+
 // Load current settings
-chrome.storage.local.get({ limit: 100, resumeBadges: true, historyRedirect: false, subsRedirect: false, hideShorts: false, hideWatchedDefault: false, ghostModeActive: false, pickupShelf: true }, (data) => {
+chrome.storage.local.get({ limit: 500, resumeBadges: true, historyRedirect: true, subsRedirect: true, hideShorts: false, hideWatchedDefault: false, ghostModeActive: false, pickupShelf: true }, (data) => {
   limitInput.value = data.limit;
+  if (performanceWarning) performanceWarning.style.display = data.limit > 2000 ? 'block' : 'none';
   badgeToggle.checked = data.resumeBadges;
   redirectToggle.checked = data.historyRedirect;
   subsRedirectToggle.checked = data.subsRedirect;
@@ -95,13 +119,49 @@ chrome.storage.onChanged.addListener((changes, area) => {
   ghostModeOptions.checked = Boolean(changes.ghostModeActive.newValue);
 });
 
-// Save limit
-document.getElementById('save-limit').onclick = () => {
-  let val = Math.min(Math.max(parseInt(limitInput.value) || 100, 50), 1000);
-  limitInput.value = val;
-  chrome.storage.local.set({ limit: val }, () => {
-    showToast(`History limit set to ${val}`);
+// Save limit with pruning confirmation
+const pruneModal = document.getElementById('pruneModal');
+const pruneModalMessage = document.getElementById('pruneModalMessage');
+const pruneCancel = document.getElementById('pruneCancel');
+const pruneConfirm = document.getElementById('pruneConfirm');
+
+const validateHistoryLimit = (newLimit) => {
+  chrome.storage.local.get({ history: [], limit: 100 }, (data) => {
+    const currentCount = data.history.length;
+    if (newLimit < currentCount) {
+      const diffCount = currentCount - newLimit;
+      pruneModalMessage.textContent =
+        `Setting a lower limit will permanently delete your oldest ${diffCount} video${diffCount !== 1 ? 's' : ''}. Are you sure?`;
+      pruneModal.style.display = 'flex';
+
+      pruneConfirm.onclick = () => {
+        pruneModal.style.display = 'none';
+        const pruned = data.history
+          .slice()
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .slice(0, newLimit);
+        chrome.storage.local.set({ history: pruned, limit: newLimit }, () => {
+          showToast(`Limit set to ${newLimit} — ${diffCount} old video${diffCount !== 1 ? 's' : ''} removed`);
+        });
+      };
+
+      pruneCancel.onclick = () => {
+        pruneModal.style.display = 'none';
+        limitInput.value = data.limit;
+        if (performanceWarning) performanceWarning.style.display = data.limit > 2000 ? 'block' : 'none';
+      };
+    } else {
+      chrome.storage.local.set({ limit: newLimit }, () => {
+        showToast(`History limit set to ${newLimit}`);
+      });
+    }
   });
+};
+
+document.getElementById('save-limit').onclick = () => {
+  const val = Math.min(Math.max(parseInt(limitInput.value) || 100, 50), 5000);
+  limitInput.value = val;
+  validateHistoryLimit(val);
 };
 
 // Clear all
@@ -149,7 +209,7 @@ importFile.onchange = (e) => {
 
       const VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
       const MAX_TITLE_LEN = 300;
-      const maxEntries = Math.min(data.history.length, 500);
+      const maxEntries = Math.min(data.history.length, 5000);
 
       const validated = data.history.slice(0, maxEntries).filter(v => {
         if (typeof v.id !== 'string' || !VIDEO_ID_RE.test(v.id)) return false;
@@ -166,7 +226,7 @@ importFile.onchange = (e) => {
       }));
 
       const limit = Number.isFinite(data.limit)
-        ? Math.min(Math.max(Math.floor(data.limit), 50), 1000)
+        ? Math.min(Math.max(Math.floor(data.limit), 50), 5000)
         : 100;
 
       chrome.storage.local.set({

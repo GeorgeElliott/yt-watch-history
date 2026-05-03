@@ -65,6 +65,13 @@
   </div>
 
   <div class="options-container">
+    <!-- Welcome Card (First Time Setup) -->
+    <div id="welcomeCard" style="display:none; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:20px; margin-bottom:20px; box-shadow:var(--shadow-card);">
+      <div style="font-size:15px; font-weight:700; margin-bottom:12px; color:var(--text-primary);">Welcome to WatchHistory for YouTube™</div>
+      <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:16px;">Welcome to your personal YouTube archive! Thanks for installing. We are excited to help you track your watch progress. We have pre-selected the best settings for you, but feel free to adjust your history limits and preferences below so everything is perfectly tailored to your watching habits.</div>
+      <button id="dismissWelcome" class="btn btn-sm btn-primary" style="align-self:flex-start;">Dismiss</button>
+    </div>
+
     <!-- Storage Settings -->
     <div class="panel">
       <div class="panel-title">Storage</div>
@@ -72,13 +79,17 @@
       <div class="panel-row">
         <div>
           <label>History limit</label>
-          <div class="help-text">Between 50 and 1000 videos. Oldest entries are removed when the limit is reached.</div>
+          <div class="help-text">Between 50 and 5000 videos. Oldest entries are removed when the limit is reached.</div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
-          <input type="number" id="limit-input" class="input" min="50" max="1000"
+          <input type="number" id="limit-input" class="input" min="50" max="5000"
             style="width: 80px; text-align: center;">
           <button id="save-limit" class="btn btn-sm btn-primary">Save</button>
         </div>
+      </div>
+      <div id="performanceWarning" class="help-text" style="display:none; color:#f5a623; margin-top:6px;">
+        ⚠️ Storing over 2,000 videos may slow down performance on some devices. Consider reducing the limit if you
+        experience lag.
       </div>
     </div>
 
@@ -109,7 +120,8 @@
       <div class="panel-row">
         <div>
           <label>Redirect Home & Shorts to Subscriptions</label>
-          <div class="help-text">Skip recommendations - redirect the YouTube home page and Shorts to your subscriptions feed.</div>
+          <div class="help-text">Skip recommendations - redirect the YouTube home page and Shorts to your subscriptions
+            feed.</div>
         </div>
         <label class="toggle">
           <input type="checkbox" id="subs-redirect-toggle">
@@ -151,7 +163,9 @@
     <!-- Ghost Mode -->
     <div class="panel">
       <div class="panel-title">Ghost Mode (Incognito)</div>
-      <div class="panel-description">When enabled, the extension will stop tracking watch progress and history. Note: This setting is session-based and will automatically turn off when you restart your browser for your privacy and convenience.</div>
+      <div class="panel-description">When enabled, the extension will stop tracking watch progress and history. Note:
+        This setting is session-based and will automatically turn off when you restart your browser for your privacy and
+        convenience.</div>
       <div class="panel-row">
         <div>
           <label>Enable Ghost Mode</label>
@@ -210,6 +224,21 @@
 
   <!-- Toast -->
   <div id="toast" class="toast"></div>
+
+  <!-- Confirm Pruning Modal -->
+  <div id="pruneModal"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+    <div
+      style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:24px; max-width:380px; width:90%; box-shadow:var(--shadow-elevated);">
+      <div style="font-size:15px; font-weight:700; margin-bottom:10px;">Reduce history limit?</div>
+      <div id="pruneModalMessage"
+        style="font-size:13px; color:var(--text-secondary); margin-bottom:20px; line-height:1.5;"></div>
+      <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <button id="pruneCancel" class="btn btn-sm">Cancel</button>
+        <button id="pruneConfirm" class="btn btn-sm btn-danger">Confirm</button>
+      </div>
+    </div>
+  </div>
 
   <script src="options.js"></script>
 </body>
