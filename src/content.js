@@ -363,6 +363,302 @@ const applyHideShorts = () => {
   });
 };
 
+// ─── Subscriptions Pickup Shelf ──────────────────────────────
+
+const PICKUP_SHELF_ID = 'ytwh-pickup-shelf';
+const PICKUP_SHELF_CSS_ID = 'ytwh-shelf-css';
+
+const injectPickupShelfStyles = () => {
+  if (document.getElementById(PICKUP_SHELF_CSS_ID)) return;
+  const style = document.createElement('style');
+  style.id = PICKUP_SHELF_CSS_ID;
+  
+  // Detect YouTube theme and use appropriate fallback colors
+  const isDarkMode = document.documentElement.hasAttribute('dark');
+  const textColor = isDarkMode ? '#f1f1f1' : '#0f0f0f';
+  const textSecondary = isDarkMode ? '#aaaaaa' : '#606060';
+  const chipBg = isDarkMode ? '#232323' : '#f9f9f9';
+  const chipBgHover = isDarkMode ? '#2a2a2a' : '#ececec';
+  const chipBorder = isDarkMode ? '#333' : '#e5e5e5';
+  const chipBorderHover = isDarkMode ? '#444' : '#d3d3d3';
+  const scrollTrack = isDarkMode ? '#1a1a1a' : '#e0e0e0';
+  const scrollThumb = isDarkMode ? '#555' : '#bdbdbd';
+  
+  style.textContent = `
+    #ytwh-pickup-shelf {
+      --shelf-text: var(--yt-spec-text-primary, ${textColor});
+      --shelf-text-secondary: var(--yt-spec-text-secondary, ${textSecondary});
+      --shelf-chip-bg: var(--yt-spec-badge-chip-background, ${chipBg});
+      --shelf-chip-hover: var(--yt-spec-10-percent-layer, ${chipBgHover});
+      --shelf-chip-border: var(--yt-spec-outline, ${chipBorder});
+      --shelf-chip-border-hover: var(--yt-spec-outline, ${chipBorderHover});
+      --shelf-scrollbar-track: var(--yt-spec-general-background-b, ${scrollTrack});
+      --shelf-scrollbar-thumb: var(--yt-spec-10-percent-layer, ${scrollThumb});
+      --shelf-link-hover: var(--yt-spec-call-to-action, #065fd4);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 24px 16px;
+      box-sizing: border-box;
+      font-family: 'Roboto', Arial, sans-serif;
+      background: transparent;
+    }
+    #ytwh-shelf-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .whyt-shelf-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--shelf-text);
+      line-height: 1.4;
+      letter-spacing: -0.5px;
+    }
+    .whyt-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--shelf-chip-border);
+      background: var(--shelf-chip-bg);
+      color: var(--shelf-text);
+      font-family: 'Roboto', Arial, sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: capitalize;
+    }
+    .whyt-chip:hover {
+      background: var(--shelf-chip-hover);
+      border-color: var(--shelf-chip-border-hover);
+    }
+    #ytwh-shelf-videos {
+      display: flex;
+      flex-direction: row;
+      gap: 8px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      width: 100%;
+      max-width: 100%;
+      padding-bottom: 8px;
+      box-sizing: border-box;
+      scrollbar-color: var(--shelf-scrollbar-thumb) var(--shelf-scrollbar-track);
+      scrollbar-width: thin;
+    }
+    #ytwh-shelf-videos::-webkit-scrollbar {
+      height: 8px;
+      background: var(--shelf-scrollbar-track);
+    }
+    #ytwh-shelf-videos::-webkit-scrollbar-thumb {
+      background: var(--shelf-scrollbar-thumb);
+      border-radius: 4px;
+    }
+    .ytwh-video-card {
+      flex: 0 0 auto;
+      width: 210px;
+      min-width: 210px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      transition: transform var(--transition);
+    }
+    .ytwh-video-card:hover {
+      transform: translateY(-3px);
+    }
+    .ytwh-thumb-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #000;
+      flex-shrink: 0;
+      transition: transform var(--transition);
+    }
+    .ytwh-video-card:hover .ytwh-thumb-wrap {
+      transform: scale(1.03);
+    }
+    .ytwh-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .ytwh-time-badge {
+      position: absolute;
+      bottom: 4px;
+      right: 6px;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Roboto', Arial, sans-serif;
+      pointer-events: none;
+    }
+    .ytwh-time-badge.watched {
+      background: rgba(76,175,80,0.9);
+    }
+    .ytwh-video-info {
+      padding: 6px 0 0;
+    }
+    .ytwh-video-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--shelf-text);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.4;
+      margin-bottom: 2px;
+    }
+    .ytwh-video-channel {
+      font-size: 12px;
+      color: var(--shelf-text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .ytwh-video-channel:hover {
+      color: var(--shelf-link-hover);
+      text-decoration: underline;
+    }
+  `;
+  document.head.appendChild(style);
+};
+
+const buildShelfVideoCard = (video) => {
+  const url = video.live
+    ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}`
+    : `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}&t=${video.time}s`;
+  const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/mqdefault.jpg`;
+  const m = Math.floor(video.time / 60);
+  const s = video.time % 60;
+  const timeBadgeText = video.live ? '\uD83D\uDD34 Live' : video.watched ? '\u2713 Watched' : `${m}m ${s}s`;
+
+  const card = document.createElement('a');
+  card.className = 'ytwh-video-card';
+  card.href = url;
+  card.target = '_blank';
+  card.rel = 'noopener noreferrer';
+  card.addEventListener('click', (e) => e.stopPropagation());
+
+  const thumbWrap = document.createElement('div');
+  thumbWrap.className = 'ytwh-thumb-wrap';
+  const img = document.createElement('img');
+  img.src = thumbUrl;
+  img.alt = '';
+  img.loading = 'lazy';
+  const badge = document.createElement('span');
+  badge.className = video.watched ? 'ytwh-time-badge watched' : 'ytwh-time-badge';
+  badge.textContent = timeBadgeText;
+  thumbWrap.appendChild(img);
+  thumbWrap.appendChild(badge);
+
+  const info = document.createElement('div');
+  info.className = 'ytwh-video-info';
+  const titleEl = document.createElement('div');
+  titleEl.className = 'ytwh-video-title';
+  titleEl.textContent = video.title;
+  info.appendChild(titleEl);
+  if (video.channel) {
+    const channelEl = document.createElement('a');
+    channelEl.className = 'ytwh-video-channel';
+    channelEl.textContent = video.channel;
+    const isSafeChannelUrl = typeof video.channelUrl === 'string' &&
+      (video.channelUrl.startsWith('https://www.youtube.com/') || video.channelUrl.startsWith('/'));
+    channelEl.href = isSafeChannelUrl ? video.channelUrl : '#';
+    channelEl.target = '_blank';
+    channelEl.rel = 'noopener noreferrer';
+    channelEl.addEventListener('click', (e) => e.stopPropagation());
+    info.appendChild(channelEl);
+  }
+
+  card.appendChild(thumbWrap);
+  card.appendChild(info);
+  return card;
+};
+
+const createViewAllChip = () => {
+  const btn = document.createElement('button');
+  btn.className = 'whyt-chip';
+  btn.textContent = 'View All History';
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    chrome.runtime.sendMessage({ type: 'open-history-tab' });
+  });
+  return btn;
+};
+
+const updateShelfState = () => {
+  if (location.pathname !== '/feed/subscriptions') {
+    document.getElementById(PICKUP_SHELF_ID)?.remove();
+    return;
+  }
+  chrome.storage.local.get({ pickupShelf: false, ghostModeActive: false, history: [] }, (data) => {
+    if (!data.pickupShelf || data.ghostModeActive || data.history.length === 0) {
+      document.getElementById(PICKUP_SHELF_ID)?.remove();
+      return;
+    }
+    if (!document.getElementById(PICKUP_SHELF_ID)) injectPickupShelf();
+  });
+};
+
+const injectPickupShelf = () => {
+  if (location.pathname !== '/feed/subscriptions') return;
+
+  chrome.storage.local.get({ pickupShelf: false, ghostModeActive: false, history: [] }, (data) => {
+    if (!data.pickupShelf || data.ghostModeActive || data.history.length === 0) return;
+    if (document.getElementById(PICKUP_SHELF_ID)) return;
+
+    const feedContainer =
+      document.querySelector('ytd-section-list-renderer #contents') ||
+      document.querySelector('ytd-rich-grid-renderer')?.parentElement ||
+      document.querySelector('#primary #contents');
+
+    if (!feedContainer) {
+      setTimeout(injectPickupShelf, 800);
+      return;
+    }
+
+    injectPickupShelfStyles();
+
+    const shelf = document.createElement('div');
+    shelf.id = PICKUP_SHELF_ID;
+
+    // ── Header row ──
+    const header = document.createElement('div');
+    header.id = 'ytwh-shelf-header';
+
+    const title = document.createElement('span');
+    title.className = 'whyt-shelf-title';
+    title.textContent = 'Continue Watching';
+
+    header.appendChild(title);
+    header.appendChild(createViewAllChip());
+
+    // ── Video strip ──
+    const videosRow = document.createElement('div');
+    videosRow.id = 'ytwh-shelf-videos';
+
+    const resumable = data.history.filter(v => !v.watched && v.time >= 5);
+    const toShow = resumable.length > 0 ? resumable.slice(0, 15) : data.history.slice(0, 15);
+    toShow.forEach(video => videosRow.appendChild(buildShelfVideoCard(video)));
+
+    shelf.appendChild(header);
+    shelf.appendChild(videosRow);
+    feedContainer.prepend(shelf);
+  });
+};
+
 // ─── Observers & Timers ─────────────────────────────────────
 
 let badgeTimer = null;
@@ -372,14 +668,20 @@ const debouncedTagThumbnails = () => {
 };
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== 'local' || !changes.ghostModeActive) return;
+  if (area !== 'local') return;
 
-  if (changes.ghostModeActive.newValue) {
-    clearThumbnailBadges();
-    return;
+  if (changes.ghostModeActive) {
+    if (changes.ghostModeActive.newValue) {
+      clearThumbnailBadges();
+    } else {
+      debouncedTagThumbnails();
+    }
+    updateShelfState();
   }
 
-  debouncedTagThumbnails();
+  if ('pickupShelf' in changes || 'history' in changes) {
+    updateShelfState();
+  }
 });
 
 let lastUrl = location.href;
@@ -388,15 +690,27 @@ const observer = new MutationObserver(() => {
     lastUrl = location.href;
     checkRedirects();
     applyHideShorts();
+    updateShelfState();
     setTimeout(resumeVideo, 1000);
   }
   debouncedTagThumbnails();
 });
 observer.observe(document.body, { childList: true, subtree: true });
 
+// ─── YouTube Theme Sync ──────────────────────────────────────────
+const syncYouTubeTheme = () => {
+  const theme = document.documentElement.hasAttribute('dark') ? 'dark' : 'light';
+  chrome.storage.local.set({ youtubeTheme: theme });
+};
+
+const themeObserver = new MutationObserver(syncYouTubeTheme);
+themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['dark'] });
+syncYouTubeTheme();
+
 // Initial triggers
 checkRedirects();
 applyHideShorts();
+updateShelfState();
 injectBadgeStyles();
 setTimeout(resumeVideo, 1500);
 setInterval(saveProgress, 10000);

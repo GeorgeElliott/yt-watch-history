@@ -4,6 +4,7 @@ const redirectToggle = document.getElementById('redirect-toggle');
 const subsRedirectToggle = document.getElementById('subs-redirect-toggle');
 const hideShortsToggle = document.getElementById('hide-shorts-toggle');
 const hideWatchedDefaultToggle = document.getElementById('hide-watched-default-toggle');
+const pickupShelfToggle = document.getElementById('pickup-shelf-toggle');
 const ghostModeOptions = document.getElementById('ghostModeOptions');
 
 const setGhostModeBadge = (enabled) => {
@@ -24,13 +25,14 @@ const showToast = (message) => {
 };
 
 // Load current settings
-chrome.storage.local.get({ limit: 100, resumeBadges: true, historyRedirect: false, subsRedirect: false, hideShorts: false, hideWatchedDefault: false, ghostModeActive: false }, (data) => {
+chrome.storage.local.get({ limit: 100, resumeBadges: true, historyRedirect: false, subsRedirect: false, hideShorts: false, hideWatchedDefault: false, ghostModeActive: false, pickupShelf: true }, (data) => {
   limitInput.value = data.limit;
   badgeToggle.checked = data.resumeBadges;
   redirectToggle.checked = data.historyRedirect;
   subsRedirectToggle.checked = data.subsRedirect;
   hideShortsToggle.checked = data.hideShorts;
   hideWatchedDefaultToggle.checked = data.hideWatchedDefault;
+  pickupShelfToggle.checked = data.pickupShelf;
   if (ghostModeOptions) {
     ghostModeOptions.checked = Boolean(data.ghostModeActive);
   }
@@ -68,6 +70,13 @@ hideShortsToggle.onchange = () => {
 hideWatchedDefaultToggle.onchange = () => {
   chrome.storage.local.set({ hideWatchedDefault: hideWatchedDefaultToggle.checked }, () => {
     showToast(hideWatchedDefaultToggle.checked ? 'Watched videos hidden in search by default' : 'Watched videos shown in search');
+  });
+};
+
+// Toggle pickup shelf
+pickupShelfToggle.onchange = () => {
+  chrome.storage.local.set({ pickupShelf: pickupShelfToggle.checked }, () => {
+    showToast(pickupShelfToggle.checked ? 'Subscriptions pickup shelf enabled' : 'Subscriptions pickup shelf disabled');
   });
 };
 
@@ -178,3 +187,16 @@ importFile.onchange = (e) => {
 // Load version from manifest
 const manifest = chrome.runtime.getManifest();
 document.getElementById('version-number').textContent = manifest.version;
+
+const applyStoredTheme = () => {
+  chrome.storage.local.get({ youtubeTheme: '' }, (data) => {
+    if (data.youtubeTheme) document.documentElement.dataset.theme = data.youtubeTheme;
+  });
+};
+applyStoredTheme();
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.youtubeTheme) {
+    document.documentElement.dataset.theme = changes.youtubeTheme.newValue;
+  }
+});

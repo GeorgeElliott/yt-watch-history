@@ -57,6 +57,43 @@
   }
 }
 
+/* Explicit overrides driven by YouTube theme detection (data-theme attribute set by JS) */
+:root[data-theme="dark"] {
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #1a1a1a;
+  --bg-card: #1e1e1e;
+  --bg-hover: #272727;
+  --bg-input: #121212;
+
+  --text-primary: #f1f1f1;
+  --text-secondary: #aaaaaa;
+  --text-disabled: #717171;
+
+  --border-color: #303030;
+  --border-light: #3f3f3f;
+
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f8f8;
+  --bg-card: #ffffff;
+  --bg-hover: #f2f2f2;
+  --bg-input: #ffffff;
+
+  --text-primary: #0f0f0f;
+  --text-secondary: #606060;
+  --text-disabled: #909090;
+
+  --border-color: #e5e5e5;
+  --border-light: #eeeeee;
+
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
 /* ---- Reset & Base ---- */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -390,6 +427,23 @@ a {
   opacity: 1;
 }
 
+/* ---- Popup video cards ---- */
+.popup-video-card {
+  transition: transform var(--transition);
+}
+
+.popup-video-card:hover {
+  transform: translateY(-3px);
+}
+
+.popup-video-card:hover .popup-thumb-wrap {
+  transform: scale(1.03);
+}
+
+.popup-thumb-wrap {
+  transition: transform var(--transition);
+}
+
 .video-card .delete-btn:hover {
   background: var(--accent);
   transform: scale(1.1);
@@ -417,7 +471,8 @@ a {
   border-bottom: none;
 }
 
-.video-list-item .thumb-container {
+.video-list-item .thumb-container,
+.video-list-item .popup-thumb-wrap {
   width: 100px;
   height: 56px;
   border-radius: var(--radius-sm);
@@ -425,7 +480,8 @@ a {
   background: #000;
 }
 
-.video-list-item .thumb-container img {
+.video-list-item .thumb-container img,
+.video-list-item .popup-thumb-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;

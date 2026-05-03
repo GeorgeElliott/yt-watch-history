@@ -238,4 +238,17 @@ document.getElementById('clear-all').onclick = () => {
   }
 };
 
+const applyStoredTheme = () => {
+  chrome.storage.local.get({ youtubeTheme: '' }, (data) => {
+    if (data.youtubeTheme) document.documentElement.dataset.theme = data.youtubeTheme;
+  });
+};
+applyStoredTheme();
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.youtubeTheme) {
+    document.documentElement.dataset.theme = changes.youtubeTheme.newValue;
+  }
+});
+
 loadHistory();

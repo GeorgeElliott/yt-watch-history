@@ -41,14 +41,14 @@ const renderNextBatch = () => {
         : `${Math.floor(video.time / 60)}m ${video.time % 60}s`;
 
     const div = document.createElement('div');
-    div.className = 'video-list-item';
+    div.className = 'video-list-item popup-video-card';
 
     const thumbLink = document.createElement('a');
     thumbLink.href = url;
     thumbLink.target = '_blank';
     thumbLink.rel = 'noopener noreferrer';
     const thumbContainer = document.createElement('div');
-    thumbContainer.className = 'thumb-container';
+    thumbContainer.className = 'popup-thumb-wrap';
     const img = document.createElement('img');
     img.src = thumbUrl;
     img.alt = '';
@@ -232,4 +232,17 @@ if (ghostModeToggle) {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !changes.ghostModeActive || !ghostModeToggle) return;
   ghostModeToggle.checked = Boolean(changes.ghostModeActive.newValue);
+});
+
+const applyStoredTheme = () => {
+  chrome.storage.local.get({ youtubeTheme: '' }, (data) => {
+    if (data.youtubeTheme) document.documentElement.dataset.theme = data.youtubeTheme;
+  });
+};
+applyStoredTheme();
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.youtubeTheme) {
+    document.documentElement.dataset.theme = changes.youtubeTheme.newValue;
+  }
 });

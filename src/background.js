@@ -10,6 +10,10 @@ chrome.runtime.onMessage.addListener((message, sender) => {
       url: chrome.runtime.getURL('history.html')
     });
   }
+
+  if (message.type === 'open-history-tab') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('history.html') });
+  }
 });
 
 const resetGhostModeState = () => {
