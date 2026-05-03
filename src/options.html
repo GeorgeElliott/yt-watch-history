@@ -184,14 +184,26 @@
       <div class="panel-description">Manage your locally stored watch history.</div>
       <div class="panel-row">
         <div>
-          <label>Export history</label>
+          <label>Backup reminder</label>
+          <div class="help-text">Get a reminder banner on YouTube to export your history.</div>
+        </div>
+        <select id="backup-reminder-select" class="input" style="width:auto; padding:6px 10px;">
+          <option value="never">Never</option>
+          <option value="daily">Daily</option>
+          <option value="weekly" selected>Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+      <div class="panel-row" id="export-section">
+        <div>
+          <label>Export history/Take Backup</label>
           <div class="help-text">Download your history as a JSON file.</div>
         </div>
         <button id="export-btn" class="btn btn-sm">Export</button>
       </div>
       <div class="panel-row">
         <div>
-          <label>Import history</label>
+          <label>Import history/Restore Backup</label>
           <div class="help-text">Restore from a previously exported JSON file.</div>
         </div>
         <div>

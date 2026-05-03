@@ -682,6 +682,14 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if ('pickupShelf' in changes || 'history' in changes) {
     updateShelfState();
   }
+
+  if ('showBackupReminder' in changes) {
+    if (changes.showBackupReminder.newValue) {
+      injectBackupBanner();
+    } else {
+      removeBackupBanner();
+    }
+  }
 });
 
 let lastUrl = location.href;
@@ -696,6 +704,115 @@ const observer = new MutationObserver(() => {
   debouncedTagThumbnails();
 });
 observer.observe(document.body, { childList: true, subtree: true });
+
+// ─── Backup Reminder Banner ──────────────────────────────────
+
+const BACKUP_BANNER_ID = 'ytwh-backup-banner';
+const BACKUP_BANNER_CSS_ID = 'ytwh-backup-banner-css';
+
+const injectBackupBannerStyles = () => {
+  if (document.getElementById(BACKUP_BANNER_CSS_ID)) return;
+  const style = document.createElement('style');
+  style.id = BACKUP_BANNER_CSS_ID;
+  
+  // Detect YouTube theme
+  const isDarkMode = document.documentElement.hasAttribute('dark');
+  const bgColor = isDarkMode ? '#1f1f1f' : '#fff';
+  const borderColor = isDarkMode ? '#333' : '#e0e0e0';
+  const textColor = isDarkMode ? '#f1f1f1' : '#0f0f0f';
+  const subTextColor = isDarkMode ? '#aaaaaa' : '#606060';
+  const chipBg = isDarkMode ? '#232323' : '#f9f9f9';
+  const chipBgHover = isDarkMode ? '#2a2a2a' : '#ececec';
+  const chipBorder = isDarkMode ? '#333' : '#e5e5e5';
+  const chipBorderHover = isDarkMode ? '#444' : '#d3d3d3';
+  
+  style.textContent = `
+    #ytwh-backup-banner {
+      position: fixed; top: 56px; left: 50%; transform: translateX(-50%);
+      z-index: 9999; display: flex; align-items: center; gap: 12px;
+      background: ${bgColor}; border: 1px solid ${borderColor};
+      border-radius: 8px; padding: 12px 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      font-family: 'Roboto', Arial, sans-serif; font-size: 13px;
+      color: ${textColor}; max-width: 480px; width: max-content;
+    }
+    #ytwh-backup-banner-msg {
+      color: ${subTextColor};
+      flex: 1;
+    }
+    .ytwh-backup-btn {
+      display: inline-flex; align-items: center; padding: 8px 16px;
+      border-radius: 20px; border: 1px solid ${chipBorder};
+      background: ${chipBg}; color: ${textColor};
+      font-family: 'Roboto', Arial, sans-serif; font-size: 14px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+    .ytwh-backup-btn:hover {
+      background: ${chipBgHover};
+      border-color: ${chipBorderHover};
+    }
+    .ytwh-backup-btn.dismiss {
+      background: transparent;
+      color: ${subTextColor};
+    }
+    .ytwh-backup-btn.dismiss:hover {
+      background: ${chipBg};
+      color: ${textColor};
+    }
+  `;
+  document.head.appendChild(style);
+};
+
+const removeBackupBanner = () => {
+  document.getElementById(BACKUP_BANNER_ID)?.remove();
+};
+
+const injectBackupBanner = () => {
+
+  if (document.getElementById(BACKUP_BANNER_ID)) {
+    return;
+  }
+
+  injectBackupBannerStyles();
+
+  const banner = document.createElement('div');
+  banner.id = BACKUP_BANNER_ID;
+
+  const msg = document.createElement('span');
+  msg.id = 'ytwh-backup-banner-msg';
+  msg.textContent = 'Time to back up your watch history.';
+
+  const backupBtn = document.createElement('button');
+  backupBtn.className = 'ytwh-backup-btn';
+  backupBtn.textContent = 'Back up now';
+  backupBtn.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'open-options-export' });
+    removeBackupBanner();
+  });
+
+  const dismissBtn = document.createElement('button');
+  dismissBtn.className = 'ytwh-backup-btn dismiss';
+  dismissBtn.textContent = 'Dismiss';
+  dismissBtn.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'dismiss-backup-reminder' });
+    removeBackupBanner();
+  });
+
+  banner.appendChild(msg);
+  banner.appendChild(backupBtn);
+  banner.appendChild(dismissBtn);
+  document.body.appendChild(banner);
+
+};
+
+const checkBackupReminder = () => {
+  chrome.storage.local.get({ showBackupReminder: false }, (data) => {
+    if (data.showBackupReminder) {
+      injectBackupBanner();
+    }
+  });
+};
 
 // ─── YouTube Theme Sync ──────────────────────────────────────────
 const syncYouTubeTheme = () => {
@@ -715,6 +832,7 @@ injectBadgeStyles();
 setTimeout(resumeVideo, 1500);
 setInterval(saveProgress, 10000);
 setTimeout(tagThumbnails, 2000);
+checkBackupReminder();
 
 // Save progress on tab close, navigation, or visibility change
 window.addEventListener('beforeunload', saveProgressImmediate);

@@ -4,18 +4,32 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name (e.g., v1.2.3)'
+        required: true
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Extract version from tag
-        id: version
+      - name: Determine tag
+        id: tag
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag_name }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+          VERSION=${TAG#v}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -27,14 +41,14 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           echo "Working directory: $(pwd)"
-          bash build.sh chrome "${{ steps.version.outputs.version }}"
+          bash build.sh chrome "${{ steps.tag.outputs.version }}"
 
       - name: Build Firefox Package
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
           echo "Working directory: $(pwd)"
-          bash build.sh firefox "${{ steps.version.outputs.version }}"
+          bash build.sh firefox "${{ steps.tag.outputs.version }}"
 
       - name: Verify build artifacts
         shell: bash
@@ -46,14 +60,15 @@ jobs:
           echo ""
           echo "Contents of dist directory:"
           ls -lh dist/ || echo "dist directory not found!"
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          name: WatchHistory for YouTube ${{ github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: WatchHistory for YouTube ${{ steps.tag.outputs.tag }}
           files: |
-            dist/yt-watch-history-chrome-v${{ steps.version.outputs.version }}.zip
-            dist/yt-watch-history-firefox-v${{ steps.version.outputs.version }}.zip
+            dist/yt-watch-history-chrome-v${{ steps.tag.outputs.version }}.zip
+            dist/yt-watch-history-firefox-v${{ steps.tag.outputs.version }}.zip
           body: "Release notes coming soon..."
           draft: false
           prerelease: false

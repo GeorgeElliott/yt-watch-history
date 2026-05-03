@@ -47,8 +47,10 @@ limitInput.oninput = () => {
   if (performanceWarning) performanceWarning.style.display = val > 2000 ? 'block' : 'none';
 };
 
+const backupReminderSelect = document.getElementById('backup-reminder-select');
+
 // Load current settings
-chrome.storage.local.get({ limit: 500, resumeBadges: true, historyRedirect: true, subsRedirect: true, hideShorts: false, hideWatchedDefault: false, ghostModeActive: false, pickupShelf: true }, (data) => {
+chrome.storage.local.get({ limit: 500, resumeBadges: true, historyRedirect: true, subsRedirect: true, hideShorts: false, hideWatchedDefault: false, ghostModeActive: false, pickupShelf: true, backupReminderFrequency: 'weekly' }, (data) => {
   limitInput.value = data.limit;
   if (performanceWarning) performanceWarning.style.display = data.limit > 2000 ? 'block' : 'none';
   badgeToggle.checked = data.resumeBadges;
@@ -60,7 +62,22 @@ chrome.storage.local.get({ limit: 500, resumeBadges: true, historyRedirect: true
   if (ghostModeOptions) {
     ghostModeOptions.checked = Boolean(data.ghostModeActive);
   }
+  if (backupReminderSelect) backupReminderSelect.value = data.backupReminderFrequency;
 });
+
+if (backupReminderSelect) {
+  backupReminderSelect.onchange = () => {
+    chrome.storage.local.set({ backupReminderFrequency: backupReminderSelect.value }, () => {
+      showToast(`Backup reminder set to ${backupReminderSelect.value}`);
+    });
+  };
+}
+
+// Scroll to export section if navigated via #export hash
+if (location.hash === '#export') {
+  const exportSection = document.getElementById('export-section');
+  if (exportSection) setTimeout(() => exportSection.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+}
 
 // Toggle resume badges
 badgeToggle.onchange = () => {
@@ -183,6 +200,8 @@ document.getElementById('export-btn').onclick = () => {
     a.download = `yt-history-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    // Reset backup reminder after successful export
+    chrome.storage.local.set({ showBackupReminder: false, lastBackupTimestamp: Date.now() });
     showToast('History exported');
   });
 };
