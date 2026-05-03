@@ -11,19 +11,21 @@ A lightweight browser extension that tracks your YouTube watch history locally a
 
 ## Features
 
-- 📺 **Track Videos** - Automatically saves the last 50-1000 YouTube videos you watch (configurable)
-- ▶️ **Resume Automatically** - Jump back to where you left off when you revisit a video
-- 🎯 **Auto-mark as Watched** - Videos are automatically tagged as "watched" when you reach 95% progress
-- 🔖 **Smart Badges** - See "Resume" or "Watched" tags on thumbnails across YouTube (toggleable)
-- 📋 **Video Actions Menu** - Long-press menu on each video offering: Mark as watched/Reset progress, Copy link, Remove from history
-- 🔄 **Smart Progress Tracking** - Saves progress when closing tabs, navigating away, or closing the browser
-- 👻 **Ghost Mode** - Pause all history and progress tracking for the current session with a single click
-- 🔍 **Advanced Search** - Find videos by title or channel name, with toggleable "hide watched" filter
-- 💾 **Local Storage** - All data stays on your device - nothing sent to external servers
-- 📥 **Import/Export** - Back up and restore your watch history as JSON
-- 🚫 **Hide Shorts** - Remove Shorts from all YouTube feeds including home, subscriptions and search
-- ⚙️ **Customizable Defaults** - Set default "hide watched" behavior in search, history limit (50-1000 videos)
-- 🎨 **Dark/Light Mode** - Automatically adapts to your system theme
+* 📺 **Track Videos** – Automatically saves your watch history (up to 5,000 videos, configurable).
+* 🚀 **Continue Watching** – A dedicated shelf on your Subscriptions page to jump back into your most recent videos.
+* ▶️ **Resume Automatically** – Jump back to exactly where you left off when you revisit a video.
+* 🎯 **Auto-mark as Watched** – Videos are automatically tagged as "watched" when you reach 95% progress.
+* 🔖 **Smart Badges** – See "Resume" or "Watched" tags directly on YouTube thumbnails (toggleable).
+* 📋 **Video Actions Menu** – Manage videos with ease: Mark as watched/reset, copy links, or remove from history.
+* 🔄 **Smart Progress Tracking** – Seamlessly saves progress when closing tabs, navigating away, or closing the browser.
+* 👻 **Ghost Mode** – Pause all history and progress tracking for the current session with a single click.
+* 🔍 **Advanced Search** – Find videos by title or channel, with a toggleable "hide watched" filter.
+* 💾 **Local-Only Storage** – All your data stays on your device; zero external server tracking.
+* 📥 **Import/Export** – Easily back up and restore your watch history as a JSON file.
+* 🚫 **Hide Shorts** – Remove Shorts from all YouTube feeds including home, subscriptions, and search.
+* ⚙️ **Customizable Defaults** – Set your preferred "hide watched" behavior and configure history limits (up to 5,000 videos).
+* 🎨 **Automatic Theming** – Dashboards and popups automatically adapt to your system’s light or dark mode.
+
 ## Installation
 
 ### From Chrome Web Store
