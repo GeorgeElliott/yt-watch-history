@@ -1,6 +1,6 @@
 # Privacy Policy for WatchHistory for YouTube™
 
-**Last Updated:** April 9, 2026
+**Last Updated:** May 4, 2026
 
 WatchHistory for YouTube™ (the "Extension") is committed to protecting your privacy. This Privacy Policy explains how we handle user data. **Our core principle is simple: Your data stays on your device.**
 
@@ -16,6 +16,7 @@ To provide the core features of the Extension (local watch history and auto-resu
 - **Local Only** — All data is stored locally on your device using the `chrome.storage.local` API.
 - **No Transmission** — Your watch history, video titles, and timestamps are never transmitted to an external server, cloud service, or any third party.
 - **Encryption** — Data at rest is handled by the browser's secure internal storage mechanisms.
+- **Local Backups** — You may choose to export your data to a local file for safekeeping. You are responsible for the security and storage of these exported files. We are not responsible for any data loss resulting from the mismanagement of your local device, browser cache clearing, or failure to perform regular backups.
 
 ## 3. Information Sharing and Disclosure
 
