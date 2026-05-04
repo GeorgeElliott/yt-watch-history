@@ -1,10 +1,10 @@
 /**
  * Background service worker. Handles:
- *   • Message routing (navigation, banner dismissals)
- *   • IndexedDB proxy for content scripts
- *   • Hourly count sync (writes videoCount to storage for popup)
- *   • Backup reminder alarm
- *   • Auto-migration of old local storage data on startup
+ *   - Message routing (navigation, banner dismissals)
+ *   - IndexedDB proxy for content scripts
+ *   - Hourly count sync (writes videoCount to storage for popup)
+ *   - Backup reminder alarm
+ *   - Auto-migration of old local storage data on startup
  */
 
 'use strict';
