@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <link rel="stylesheet" href="theme.css">
-  <script src="webextension-polyfill.js"></script>
+  <script src="libraries/webextension-polyfill.js"></script>
   <style>
     body {
       width: 400px;
@@ -292,7 +292,7 @@
     <!-- Right column: Stats -->
     <div class="stats-col">
       <div class="popup-stats">
-        <span class="stat-text"><strong id="stat-count">0</strong>/<strong id="stat-limit">50</strong> videos tracked</span>
+        <span class="stat-text">Total Archived: <strong id="stat-count">0</strong></span>
       </div>
     </div>
   </div>
@@ -304,6 +304,7 @@
     <button id="show-more-btn" class="btn btn-sm hidden" style="width: calc(100% - 32px); margin: 8px 16px 10px;">Show More</button>
   </div>
 
+  <script src="db.js"></script>
   <script src="popup.js"></script>
 </body>
 

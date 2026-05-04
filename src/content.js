@@ -12,31 +12,33 @@ const isLiveStream = () => {
   return badge != null && getComputedStyle(badge).display !== 'none';
 };
 
-// ─── Resume & Save (watch pages only) ───────────────────────
+//  Resume & Save (watch pages only) 
 
 const resumeVideo = () => {
   if (!isWatchPage()) return;
 
-  const video = document.querySelector('video');
+  const video   = document.querySelector('video');
   const videoId = new URLSearchParams(window.location.search).get('v');
 
-  if (video && videoId) {
-    // If this is a livestream, jump to the live edge
-    if (isLiveStream()) {
-      video.currentTime = video.duration;
-      log('Livestream detected — jumped to live');
-      return;
-    }
+  if (!video || !videoId) return;
 
-    chrome.storage.local.get({ history: [] }, (data) => {
-      const savedVideo = data.history.find(item => item.id === videoId);
-      // Auto-jump if we are at the very start of the video
-      if (savedVideo && video.currentTime < 5) {
-        video.currentTime = savedVideo.time;
-        log(`Resumed at ${savedVideo.time}s`);
-      }
-    });
+  // If this is a livestream, jump to the live edge immediately.
+  if (isLiveStream()) {
+    video.currentTime = video.duration;
+    log('Livestream detected — jumped to live');
+    return;
   }
+
+  // Ask the background service worker to look up the saved position
+  // in IndexedDB. Content scripts cannot access extension IDB directly.
+  chrome.runtime.sendMessage({ type: 'idb-get-video', videoId }, (response) => {
+    const savedVideo = response && response.video;
+    // Only auto-jump if the user hasn't already seeked past the start.
+    if (savedVideo && video.currentTime < 5) {
+      video.currentTime = savedVideo.time;
+      log(`Resumed at ${savedVideo.time}s`);
+    }
+  });
 };
 
 const getChannelName = () => {
@@ -105,54 +107,55 @@ const getChannelUrl = () => {
 };
 
 const _doSaveProgressInternal = () => {
-  const video = document.querySelector('video');
+  const video   = document.querySelector('video');
   const videoId = new URLSearchParams(window.location.search).get('v');
 
   if (!video || !videoId) return;
 
-  const isLive = isLiveStream();
-  const duration = video.duration || 0;
+  const isLive      = isLiveStream();
+  const duration    = video.duration || 0;
   const currentTime = Math.floor(video.currentTime);
-  const progress = duration > 0 ? video.currentTime / duration : 0;
+  const progress    = duration > 0 ? video.currentTime / duration : 0;
 
-  chrome.storage.local.get({ history: [], limit: 100 }, (data) => {
-    // Clean title: remove notification counts like (1) and the " - YouTube" suffix
+  // Fetch the existing record first so we can preserve the previous
+  // 'watched' flag and merge it correctly with the new progress.
+  chrome.runtime.sendMessage({ type: 'idb-get-video', videoId }, (response) => {
+    const existing = response && response.video;
+
+    // Clean title: remove notification counts like (1) and the " - YouTube" suffix.
     const cleanTitle = document.title
       .replace(/^\(\d+\)\s/, '')
       .replace(' - YouTube', '');
 
-    const existing = data.history.find(item => item.id === videoId);
-    let history = data.history.filter(item => item.id !== videoId);
-
-    // Determine watched status
-    const wasWatched = existing?.watched || false;
+    const wasWatched = existing ? existing.watched : false;
     let watched;
     if (!isLive && progress >= 0.95) {
-      watched = true;
+      watched = true;                         // Reached the end — mark watched
     } else if (wasWatched && progress < 0.1) {
-      watched = false; // Reset on re-watch from beginning
+      watched = false;                        // Re-watching from the beginning
     } else {
-      watched = wasWatched;
+      watched = wasWatched;                   // No change
     }
 
-    history.unshift({
-      id: videoId,
-      title: cleanTitle,
-      channel: getChannelName(),
+    const record = {
+      videoId,
+      title:      cleanTitle,
+      channel:    getChannelName(),
       channelUrl: getChannelUrl(),
-      time: isLive ? 0 : currentTime,
-      duration: isLive ? 0 : Math.floor(duration),
+      time:       isLive ? 0 : currentTime,
+      duration:   isLive ? 0 : Math.floor(duration),
       watched,
-      live: isLive || undefined,
-      timestamp: Date.now()
-    });
+      live:       isLive ? true : undefined,
+      timestamp:  Date.now()
+    };
 
-    // Trim history based on user-defined limit
-    if (history.length > data.limit) {
-      history = history.slice(0, data.limit);
-    }
+    // Send the updated record to the background proxy for IDB storage.
+    // Fire-and-forget — we don't need to wait for confirmation.
+    chrome.runtime.sendMessage({ type: 'idb-save-video', video: record });
 
-    chrome.storage.local.set({ history });
+    // Invalidate the in-memory history cache so the next badge or
+    // shelf render reflects the freshly saved data.
+    invalidateHistoryCache();
   });
 };
 
@@ -175,7 +178,50 @@ const saveProgressImmediate = () => {
   _doSaveProgress();
 };
 
-// ─── Resume Badges (all pages) ──────────────────────────────
+//  History Cache (for badges & shelf) 
+// Content scripts cannot open the extension's IndexedDB, so we
+// request all videos from background.js via messaging and cache
+// the result for a short window. This avoids a message round-trip
+// on every mutation-observer callback while keeping data fresh.
+
+/** @type {Object[]|null} */
+let _historyCache     = null;
+/** @type {number} */
+let _historyCacheTime = 0;
+
+// How long (ms) the cache is considered fresh before re-fetching.
+const CACHE_TTL_MS = 30000; // 30 seconds
+
+/**
+ * getHistoryCache()
+ * Returns the cached video array, re-fetching from the background
+ * if the cache is stale or empty.
+ * @returns {Promise<Object[]>}
+ */
+const getHistoryCache = () => {
+  if (_historyCache && (Date.now() - _historyCacheTime) < CACHE_TTL_MS) {
+    return Promise.resolve(_historyCache);
+  }
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: 'idb-get-all-videos' }, (response) => {
+      _historyCache     = (response && response.videos) || [];
+      _historyCacheTime = Date.now();
+      resolve(_historyCache);
+    });
+  });
+};
+
+/**
+ * invalidateHistoryCache()
+ * Forces the next getHistoryCache() call to re-fetch from IDB.
+ * Called after saving a new video record so badges update promptly.
+ */
+const invalidateHistoryCache = () => {
+  _historyCache     = null;
+  _historyCacheTime = 0;
+};
+
+//  Resume Badges (all pages) 
 
 const BADGE_ATTR = 'data-ytwh-badge';
 
@@ -230,89 +276,88 @@ const formatTime = (seconds) => {
 };
 
 const tagThumbnails = () => {
-  chrome.storage.local.get({ history: [], resumeBadges: true, ghostModeActive: false }, (data) => {
-    if (data.ghostModeActive) {
+  chrome.storage.local.get({ resumeBadges: true, ghostModeActive: false }, (settings) => {
+    if (settings.ghostModeActive) {
       clearThumbnailBadges();
       return;
     }
 
-    if (!data.resumeBadges) return;
+    if (!settings.resumeBadges) return;
 
-    const historyMap = new Map(data.history.map(v => [v.id, v]));
+    // Use the short-lived in-memory cache to avoid hammering the
+    // background service worker on every mutation-observer fire.
+    getHistoryCache().then((videos) => {
+      // Build a Map keyed by videoId for O(1) lookups during DOM iteration.
+      const historyMap = new Map(videos.map((v) => [v.videoId, v]));
 
-    // Target video renderer elements — covers all page layouts including channel pages, subscriptions, and recommendations
-    const renderers = document.querySelectorAll([
-      'ytd-rich-item-renderer',
-      'ytd-video-renderer',
-      'ytd-grid-video-renderer',
-      'ytd-compact-video-renderer',
-      'ytd-reel-item-renderer',
-      'ytd-rich-grid-media',
-      'ytd-rich-shelf-renderer',
-      'ytd-section-list-renderer',
-      'ytd-video-list-item-renderer',
-      'yt-lockup-view-model'
-    ].join(', '));
+      // Target video renderer elements — covers all page layouts including
+      // channel pages, subscriptions, and recommendations.
+      const renderers = document.querySelectorAll([
+        'ytd-rich-item-renderer',
+        'ytd-video-renderer',
+        'ytd-grid-video-renderer',
+        'ytd-compact-video-renderer',
+        'ytd-reel-item-renderer',
+        'ytd-rich-grid-media',
+        'ytd-rich-shelf-renderer',
+        'ytd-section-list-renderer',
+        'ytd-video-list-item-renderer',
+        'yt-lockup-view-model'
+      ].join(', '));
 
-    renderers.forEach(renderer => {
-      if (renderer.hasAttribute(BADGE_ATTR)) return;
+      renderers.forEach((renderer) => {
+        if (renderer.hasAttribute(BADGE_ATTR)) return;
 
-      // Find the first watch link to extract the video ID
-      const link = renderer.querySelector('a[href*="/watch"]');
-      if (!link) return; // Don't mark — link may not be loaded yet
+        // Find the first watch link to extract the video ID.
+        const link = renderer.querySelector('a[href*="/watch"]');
+        if (!link) return; // Don't mark — link may not be loaded yet
 
-      renderer.setAttribute(BADGE_ATTR, '');
+        renderer.setAttribute(BADGE_ATTR, '');
 
-      try {
-        const url = new URL(link.getAttribute('href'), location.origin);
-        const videoId = url.searchParams.get('v');
-        if (!videoId) return;
+        try {
+          const url     = new URL(link.getAttribute('href'), location.origin);
+          const videoId = url.searchParams.get('v');
+          if (!videoId) return;
 
-        const saved = historyMap.get(videoId);
-        if (!saved) return;
-        if (!saved.watched && saved.time < 5) return;
+          const saved = historyMap.get(videoId);
+          if (!saved) return;
+          if (!saved.watched && saved.time < 5) return;
 
-        // Place badge on the thumbnail element specifically
-        // Try to find the thumbnail container - could be various custom elements
-        let thumbnail = renderer.querySelector('yt-thumbnail-view-model');
-        
-        // If not found, try other selectors
-        if (!thumbnail) {
-          thumbnail = renderer.querySelector('[class*="Thumbnail"], #thumbnail, ytd-thumbnail');
-        }
-        
-        if (!thumbnail) return;
+          // Place badge on the thumbnail element specifically.
+          let thumbnail = renderer.querySelector('yt-thumbnail-view-model');
+          if (!thumbnail) {
+            thumbnail = renderer.querySelector('[class*="Thumbnail"], #thumbnail, ytd-thumbnail');
+          }
+          if (!thumbnail) return;
 
-        // Find the image container within the thumbnail
-        const imageContainer = thumbnail.querySelector('[class*="ThumbnailImage"], .ytThumbnailViewModelImage');
-        const appendTarget = imageContainer || thumbnail;
+          const imageContainer = thumbnail.querySelector('[class*="ThumbnailImage"], .ytThumbnailViewModelImage');
+          const appendTarget   = imageContainer || thumbnail;
 
-        const style = getComputedStyle(appendTarget);
-        if (style.position === 'static') appendTarget.style.position = 'relative';
-        
-        // For custom elements, ensure display is not 'contents'
-        const display = style.display;
-        if (display === 'contents' || display === 'inline') {
-          appendTarget.style.display = 'block';
-        }
+          const style = getComputedStyle(appendTarget);
+          if (style.position === 'static') appendTarget.style.position = 'relative';
+          const display = style.display;
+          if (display === 'contents' || display === 'inline') {
+            appendTarget.style.display = 'block';
+          }
 
-        if (saved.watched) {
-          const badge = document.createElement('span');
-          badge.className = 'ytwh-watched-badge';
-          badge.textContent = 'Watched';
-          appendTarget.appendChild(badge);
-        } else if (saved.time >= 5) {
-          const badge = document.createElement('span');
-          badge.className = 'ytwh-resume-badge';
-          badge.textContent = `Resume ${formatTime(saved.time)}`;
-          appendTarget.appendChild(badge);
-        }
-      } catch { /* ignore malformed hrefs */ }
+          if (saved.watched) {
+            const badge     = document.createElement('span');
+            badge.className = 'ytwh-watched-badge';
+            badge.textContent = 'Watched';
+            appendTarget.appendChild(badge);
+          } else if (saved.time >= 5) {
+            const badge     = document.createElement('span');
+            badge.className = 'ytwh-resume-badge';
+            badge.textContent = `Resume ${formatTime(saved.time)}`;
+            appendTarget.appendChild(badge);
+          }
+        } catch { /* ignore malformed hrefs */ }
+      });
     });
   });
 };
 
-// ─── Redirects ───────────────────────────────────────────────
+//  Redirects 
 
 const checkRedirects = () => {
   const path = location.pathname;
@@ -335,7 +380,7 @@ const checkRedirects = () => {
   }
 };
 
-// ─── Hide Shorts on Subscriptions ───────────────────────────
+//  Hide Shorts on Subscriptions 
 
 const HIDE_SHORTS_ID = 'whyt-hide-shorts-css';
 
@@ -363,7 +408,7 @@ const applyHideShorts = () => {
   });
 };
 
-// ─── Subscriptions Pickup Shelf ──────────────────────────────
+//  Subscriptions Pickup Shelf 
 
 const PICKUP_SHELF_ID = 'ytwh-pickup-shelf';
 const PICKUP_SHELF_CSS_ID = 'ytwh-shelf-css';
@@ -536,9 +581,9 @@ const injectPickupShelfStyles = () => {
 
 const buildShelfVideoCard = (video) => {
   const url = video.live
-    ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}`
-    : `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}&t=${video.time}s`;
-  const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/mqdefault.jpg`;
+    ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`
+    : `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&t=${video.time}s`;
+  const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/mqdefault.jpg`;
   const m = Math.floor(video.time / 60);
   const s = video.time % 60;
   const timeBadgeText = video.live ? '\uD83D\uDD34 Live' : video.watched ? '\u2713 Watched' : `${m}m ${s}s`;
@@ -603,63 +648,79 @@ const updateShelfState = () => {
     document.getElementById(PICKUP_SHELF_ID)?.remove();
     return;
   }
-  chrome.storage.local.get({ pickupShelf: false, ghostModeActive: false, history: [] }, (data) => {
-    if (!data.pickupShelf || data.ghostModeActive || data.history.length === 0) {
+
+  chrome.storage.local.get({ pickupShelf: false, ghostModeActive: false }, (data) => {
+    if (!data.pickupShelf || data.ghostModeActive) {
       document.getElementById(PICKUP_SHELF_ID)?.remove();
       return;
     }
-    if (!document.getElementById(PICKUP_SHELF_ID)) injectPickupShelf();
+
+    // Only inject if we actually have history to show.
+    getHistoryCache().then((history) => {
+      if (history.length === 0) {
+        document.getElementById(PICKUP_SHELF_ID)?.remove();
+        return;
+      }
+      if (!document.getElementById(PICKUP_SHELF_ID)) injectPickupShelf();
+    });
   });
 };
 
 const injectPickupShelf = () => {
   if (location.pathname !== '/feed/subscriptions') return;
 
-  chrome.storage.local.get({ pickupShelf: false, ghostModeActive: false, history: [] }, (data) => {
-    if (!data.pickupShelf || data.ghostModeActive || data.history.length === 0) return;
+  chrome.storage.local.get({ pickupShelf: false, ghostModeActive: false }, (data) => {
+    if (!data.pickupShelf || data.ghostModeActive) return;
     if (document.getElementById(PICKUP_SHELF_ID)) return;
 
-    const feedContainer =
-      document.querySelector('ytd-section-list-renderer #contents') ||
-      document.querySelector('ytd-rich-grid-renderer')?.parentElement ||
-      document.querySelector('#primary #contents');
+    // Fetch history via the in-memory cache, then inject.
+    getHistoryCache().then((history) => {
+      if (history.length === 0) return;
+      if (document.getElementById(PICKUP_SHELF_ID)) return;
 
-    if (!feedContainer) {
-      setTimeout(injectPickupShelf, 800);
-      return;
-    }
+      const feedContainer =
+        document.querySelector('ytd-section-list-renderer #contents') ||
+        document.querySelector('ytd-rich-grid-renderer')?.parentElement ||
+        document.querySelector('#primary #contents');
 
-    injectPickupShelfStyles();
+      if (!feedContainer) {
+        setTimeout(injectPickupShelf, 800);
+        return;
+      }
 
-    const shelf = document.createElement('div');
-    shelf.id = PICKUP_SHELF_ID;
+      injectPickupShelfStyles();
 
-    // ── Header row ──
-    const header = document.createElement('div');
-    header.id = 'ytwh-shelf-header';
+      const shelf = document.createElement('div');
+      shelf.id = PICKUP_SHELF_ID;
 
-    const title = document.createElement('span');
-    title.className = 'whyt-shelf-title';
-    title.textContent = 'Continue Watching';
+      //  Header row 
+      const header = document.createElement('div');
+      header.id = 'ytwh-shelf-header';
 
-    header.appendChild(title);
-    header.appendChild(createViewAllChip());
+      const title = document.createElement('span');
+      title.className = 'whyt-shelf-title';
+      title.textContent = 'Continue Watching';
 
-    // ── Video strip ──
-    const videosRow = document.createElement('div');
-    videosRow.id = 'ytwh-shelf-videos';
+      header.appendChild(title);
+      header.appendChild(createViewAllChip());
 
-    const resumable = data.history.filter(v => !v.watched && v.time >= 5);
-    const toShow = resumable.length > 0 ? resumable.slice(0, 15) : data.history.slice(0, 15);
-    toShow.forEach(video => videosRow.appendChild(buildShelfVideoCard(video)));
+      //  Video strip 
+      const videosRow = document.createElement('div');
+      videosRow.id = 'ytwh-shelf-videos';
 
-    shelf.appendChild(header);
-    shelf.appendChild(videosRow);
-    feedContainer.prepend(shelf);
+      // Prioritise unwatched/in-progress videos; fall back to recents.
+      const resumable = history.filter((v) => !v.watched && v.time >= 5);
+      const toShow    = resumable.length > 0 ? resumable.slice(0, 15) : history.slice(0, 15);
+      toShow.forEach((video) => videosRow.appendChild(buildShelfVideoCard(video)));
+
+      shelf.appendChild(header);
+      shelf.appendChild(videosRow);
+      feedContainer.prepend(shelf);
+    });
   });
 };
 
-// ─── Observers & Timers ─────────────────────────────────────
+//  Observers & Timers 
 
 let badgeTimer = null;
 const debouncedTagThumbnails = () => {
@@ -679,7 +740,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
     updateShelfState();
   }
 
-  if ('pickupShelf' in changes || 'history' in changes) {
+  // Shelf visibility toggles; history changes are handled by cache
+  // invalidation inside _doSaveProgressInternal rather than here,
+  // since history now lives in IndexedDB (not chrome.storage.local).
+  if ('pickupShelf' in changes) {
     updateShelfState();
   }
 
@@ -705,7 +769,7 @@ const observer = new MutationObserver(() => {
 });
 observer.observe(document.body, { childList: true, subtree: true });
 
-// ─── Backup Reminder Banner ──────────────────────────────────
+//  Backup Reminder Banner 
 
 const BACKUP_BANNER_ID = 'ytwh-backup-banner';
 const BACKUP_BANNER_CSS_ID = 'ytwh-backup-banner-css';
@@ -814,7 +878,7 @@ const checkBackupReminder = () => {
   });
 };
 
-// ─── YouTube Theme Sync ──────────────────────────────────────────
+//  YouTube Theme Sync 
 const syncYouTubeTheme = () => {
   const theme = document.documentElement.hasAttribute('dark') ? 'dark' : 'light';
   chrome.storage.local.set({ youtubeTheme: theme });

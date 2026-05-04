@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <title>WatchHistory for YouTube™ - Options</title>
   <link rel="stylesheet" href="theme.css">
-  <script src="webextension-polyfill.js"></script>
+  <script src="libraries/webextension-polyfill.js"></script>
   <style>
     .options-container {
       max-width: 640px;
@@ -70,27 +70,6 @@
       <div style="font-size:15px; font-weight:700; margin-bottom:12px; color:var(--text-primary);">Welcome to WatchHistory for YouTube™</div>
       <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:16px;">Welcome to your personal YouTube archive! Thanks for installing. We are excited to help you track your watch progress. We have pre-selected the best settings for you, but feel free to adjust your history limits and preferences below so everything is perfectly tailored to your watching habits.</div>
       <button id="dismissWelcome" class="btn btn-sm btn-primary" style="align-self:flex-start;">Dismiss</button>
-    </div>
-
-    <!-- Storage Settings -->
-    <div class="panel">
-      <div class="panel-title">Storage</div>
-      <div class="panel-description">Control how many videos are kept in your local history.</div>
-      <div class="panel-row">
-        <div>
-          <label>History limit</label>
-          <div class="help-text">Between 50 and 5000 videos. Oldest entries are removed when the limit is reached.</div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <input type="number" id="limit-input" class="input" min="50" max="5000"
-            style="width: 80px; text-align: center;">
-          <button id="save-limit" class="btn btn-sm btn-primary">Save</button>
-        </div>
-      </div>
-      <div id="performanceWarning" class="help-text" style="display:none; color:#f5a623; margin-top:6px;">
-        ⚠️ Storing over 2,000 videos may slow down performance on some devices. Consider reducing the limit if you
-        experience lag.
-      </div>
     </div>
 
     <!-- Display Settings -->
@@ -243,21 +222,7 @@
   <!-- Toast -->
   <div id="toast" class="toast"></div>
 
-  <!-- Confirm Pruning Modal -->
-  <div id="pruneModal"
-    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
-    <div
-      style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:24px; max-width:380px; width:90%; box-shadow:var(--shadow-elevated);">
-      <div style="font-size:15px; font-weight:700; margin-bottom:10px;">Reduce history limit?</div>
-      <div id="pruneModalMessage"
-        style="font-size:13px; color:var(--text-secondary); margin-bottom:20px; line-height:1.5;"></div>
-      <div style="display:flex; gap:10px; justify-content:flex-end;">
-        <button id="pruneCancel" class="btn btn-sm">Cancel</button>
-        <button id="pruneConfirm" class="btn btn-sm btn-danger">Confirm</button>
-      </div>
-    </div>
-  </div>
-
+  <script src="db.js"></script>
   <script src="options.js"></script>
 </body>
 

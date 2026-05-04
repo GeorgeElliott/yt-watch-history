@@ -1,16 +1,15 @@
-const container = document.getElementById('history-container');
-const searchInput = document.getElementById('search-input');
-const sortSelect = document.getElementById('sort-select');
+const container        = document.getElementById('history-container');
+const searchInput      = document.getElementById('search-input');
+const sortSelect       = document.getElementById('sort-select');
 const hideWatchedToggle = document.getElementById('hide-watched-toggle');
-const loadMoreBtn = document.getElementById('load-more-btn');
-const statTotal = document.getElementById('stat-total');
-const statLimit = document.getElementById('stat-limit');
+const loadMoreBtn      = document.getElementById('load-more-btn');
+const statTotal        = document.getElementById('stat-total');
 
-let allHistory = [];
+let allHistory     = [];
 let filteredHistory = [];
-let currentIndex = 0;
-let hideWatched = false;
-const PAGE_SIZE = 24;
+let currentIndex   = 0;
+let hideWatched    = false;
+const PAGE_SIZE    = 24;
 
 const showToast = (message) => {
   const toast = document.getElementById('toast');
@@ -77,9 +76,9 @@ const renderBatch = () => {
 
   batch.forEach(video => {
     const url = video.live
-      ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}`
-      : `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}&t=${video.time}s`;
-    const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/mqdefault.jpg`;
+      ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`
+      : `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&t=${video.time}s`;
+    const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/mqdefault.jpg`;
     const date = new Date(video.timestamp).toLocaleDateString();
     const timeBadge = video.live ? '\u{1F534} Livestream' : video.watched ? '\u2713 Watched' : formatTime(video.time);
 
@@ -104,24 +103,23 @@ const renderBatch = () => {
     watchedItem.className = 'card-menu-item';
     watchedItem.textContent = video.watched ? '\u21A9 Reset progress' : '\u2713 Mark as watched';
     watchedItem.onclick = () => {
-      chrome.storage.local.get({ history: [] }, (d) => {
-        const entry = d.history.find(v => v.id === video.id);
-        if (entry) {
-          entry.watched = !entry.watched;
-          if (!entry.watched) entry.time = 0;
-        }
-        chrome.storage.local.set({ history: d.history }, () => {
-          showToast(entry?.watched ? 'Marked as watched' : 'Progress reset');
+      // Read the latest record from IDB, toggle the watched flag, then save.
+      db_getVideoById(video.videoId).then((entry) => {
+        if (!entry) return;
+        entry.watched = !entry.watched;
+        if (!entry.watched) entry.time = 0;
+        db_saveVideo(entry).then(() => {
+          showToast(entry.watched ? 'Marked as watched' : 'Progress reset');
           loadHistory();
         });
-      });
+      }).catch(console.error);
     };
 
     const copyItem = document.createElement('button');
     copyItem.className = 'card-menu-item';
     copyItem.textContent = '\uD83D\uDD17 Copy link';
     copyItem.onclick = () => {
-      navigator.clipboard.writeText(`https://www.youtube.com/watch?v=${video.id}`);
+      navigator.clipboard.writeText(`https://www.youtube.com/watch?v=${video.videoId}`);
       cardMenu.classList.remove('open');
       showToast('Link copied');
     };
@@ -130,13 +128,10 @@ const renderBatch = () => {
     removeItem.className = 'card-menu-item danger';
     removeItem.textContent = '\uD83D\uDDD1 Remove from history';
     removeItem.onclick = () => {
-      chrome.storage.local.get({ history: [] }, (d) => {
-        const filtered = d.history.filter(v => v.id !== video.id);
-        chrome.storage.local.set({ history: filtered }, () => {
-          showToast('Video removed');
-          loadHistory();
-        });
-      });
+      db_deleteVideo(video.videoId).then(() => {
+        showToast('Video removed');
+        loadHistory();
+      }).catch(console.error);
     };
 
     cardMenu.appendChild(watchedItem);
@@ -145,15 +140,15 @@ const renderBatch = () => {
     menuWrap.appendChild(menuBtn);
     menuWrap.appendChild(cardMenu);
 
-    const thumbLink = document.createElement('a');
-    thumbLink.href = url;
-    thumbLink.target = '_blank';
-    thumbLink.rel = 'noopener noreferrer';
-    thumbLink.className = 'thumb-link';
-    const thumbImg = document.createElement('img');
-    thumbImg.src = thumbUrl;
-    thumbImg.className = 'thumb-img';
-    thumbImg.alt = '';
+    const thumbLink      = document.createElement('a');
+    thumbLink.href        = url;
+    thumbLink.target      = '_blank';
+    thumbLink.rel         = 'noopener noreferrer';
+    thumbLink.className   = 'thumb-link';
+    const thumbImg        = document.createElement('img');
+    thumbImg.src          = thumbUrl;
+    thumbImg.className    = 'thumb-img';
+    thumbImg.alt          = '';
     const timeBadgeEl = document.createElement('span');
     timeBadgeEl.className = video.watched ? 'time-badge watched-badge' : 'time-badge';
     timeBadgeEl.textContent = timeBadge;
@@ -194,18 +189,24 @@ const renderBatch = () => {
 };
 
 const loadHistory = () => {
-  chrome.storage.local.get({ history: [], limit: 100, hideWatchedDefault: false }, (data) => {
-    allHistory = data.history;
-    statTotal.textContent = data.history.length;
-    statLimit.textContent = data.limit;
-    // Set hide watched toggle to default on first load
+  // Fetch all records from IndexedDB for client-side filtering/sorting.
+  // db_getAllVideos() returns them newest-first; applyFilters() may re-sort.
+  db_getAllVideos().then((videos) => {
+    allHistory = videos;
+    statTotal.textContent = videos.length.toLocaleString();
+
+    // On the very first load, apply the user's "hide watched" default.
     if (!loadHistory._initialized) {
-      hideWatched = data.hideWatchedDefault;
-      hideWatchedToggle.checked = hideWatched;
-      loadHistory._initialized = true;
+      chrome.storage.local.get({ hideWatchedDefault: false }, (prefs) => {
+        hideWatched = prefs.hideWatchedDefault;
+        hideWatchedToggle.checked = hideWatched;
+        loadHistory._initialized = true;
+        applyFilters();
+      });
+    } else {
+      applyFilters();
     }
-    applyFilters();
-  });
+  }).catch(console.error);
 };
 
 // Event listeners
@@ -231,10 +232,12 @@ document.addEventListener('click', () => {
 
 document.getElementById('clear-all').onclick = () => {
   if (confirm('Permanently delete your entire local history?')) {
-    chrome.storage.local.set({ history: [] }, () => {
+    db_clearAllVideos().then(() => {
+      // Keep the videoCount in sync so the popup stat updates promptly.
+      chrome.storage.local.set({ videoCount: 0 });
       showToast('History cleared');
       loadHistory();
-    });
+    }).catch(console.error);
   }
 };
 
@@ -251,4 +254,5 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
+// db.js must be loaded before history.js (see history.html <script> tags).
 loadHistory();
