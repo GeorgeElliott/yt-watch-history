@@ -13,7 +13,9 @@ To provide the core features of the Extension (local watch history and auto-resu
 
 ## 2. Data Storage and Security
 
-- **Local Only** — All data is stored locally on your device using the `chrome.storage.local` API.
+- **Local-First Architecture** — We use a hybrid approach to ensure maximum performance and data security.
+    - **Settings & Preferences**: Stored locally using the chrome.storage.local API for fast, persistent access.  
+    - **Watch History**: Stored locally using the browser's native IndexedDB API, which allows for high-capacity, high-performance data archival.
 - **No Transmission** — Your watch history, video titles, and timestamps are never transmitted to an external server, cloud service, or any third party.
 - **Encryption** — Data at rest is handled by the browser's secure internal storage mechanisms.
 - **Local Backups** — You may choose to export your data to a local file for safekeeping. You are responsible for the security and storage of these exported files. We are not responsible for any data loss resulting from the mismanagement of your local device, browser cache clearing, or failure to perform regular backups.
