@@ -1,30 +1,46 @@
 # WatchHistory for YouTube™
 
-A lightweight browser extension that tracks your YouTube watch history locally and resumes videos where you left off.
+**Reclaim your privacy without losing your progress.**
 
-**Perfect for:**
+WatchHistory for YouTube™ is a lightweight, privacy-focused browser extension that tracks your watch history and video progress locally. Even if you have disabled YouTube's official "Watch History" or are not signed in, this extension provides the seamless "Continue Watching" experience you deserve.
 
-- Privacy-conscious users who disabled watch history but still want to resume videos
-- Users who aren't signed in to YouTube but still want history and resume functionality
-- Anyone frustrated by YouTube losing progress on long streams, podcasts, or tutorials
-- Users who want a fast, local search across their 50-1,000 most recent videos without YouTube's clutter
+---
 
-## Features
+## Why Choose WatchHistory?
 
-* 📺 **Track Videos** – Automatically saves your watch history (up to 5,000 videos, configurable).
-* 🚀 **Continue Watching** – A dedicated shelf on your Subscriptions page to jump back into your most recent videos.
-* ▶️ **Resume Automatically** – Jump back to exactly where you left off when you revisit a video.
-* 🎯 **Auto-mark as Watched** – Videos are automatically tagged as "watched" when you reach 95% progress.
-* 🔖 **Smart Badges** – See "Resume" or "Watched" tags directly on YouTube thumbnails (toggleable).
-* 📋 **Video Actions Menu** – Manage videos with ease: Mark as watched/reset, copy links, or remove from history.
-* 🔄 **Smart Progress Tracking** – Seamlessly saves progress when closing tabs, navigating away, or closing the browser.
-* 👻 **Ghost Mode** – Pause all history and progress tracking for the current session with a single click.
-* 🔍 **Advanced Search** – Find videos by title or channel, with a toggleable "hide watched" filter.
-* 💾 **Local-Only Storage** – All your data stays on your device; zero external server tracking.
-* 📥 **Import/Export** – Easily back up and restore your watch history as a JSON file.
-* 🚫 **Hide Shorts** – Remove Shorts from all YouTube feeds including home, subscriptions, and search.
-* ⚙️ **Customizable Defaults** – Set your preferred "hide watched" behavior and configure history limits (up to 5,000 videos).
-* 🎨 **Automatic Theming** – Dashboards and popups automatically adapt to your system’s light or dark mode.
+* **Privacy-First:** Your data never leaves your device. No cloud syncing, no tracking, and no external servers. 
+* **Enable Features with History Disabled:** Get "Resume" and "Watch History" functionality even if you have YouTube's official history tracking turned off or are logged out.
+* **Limitless Archive:** Move beyond arbitrary limits. Store as much history as your device allows, thanks to our high-performance **IndexedDB** engine.
+* **Offline Reliability:** Perfect for users who value data sovereignty and want a reliable way to track progress without Google’s cloud dependency.
+
+---
+
+## Key Features
+
+* 📺 **Unlimited History Tracking** – Automatically saves your watch history using high-performance local indexing.
+* 🚀 **Continue Watching** – A dedicated shelf on your YouTube Subscriptions page to jump back into your most recent videos.
+* ▶️ **Automatic Resume** – Revisit a video and pick up exactly where you left off.
+* 🎯 **Smart Progress Tracking** – Videos are automatically tagged as "watched" when you reach 95% progress.
+* 🔖 **Smart Badges** – "Resume" or "Watched" tags appear directly on YouTube thumbnails (toggleable).
+* 📋 **Video Management** – Easily mark videos as watched/reset, copy links, or remove them from your history.
+* 👻 **Ghost Mode** – Pause all tracking for the current session with a single click.
+* 🔍 **Advanced Search** – Find videos instantly by title or channel, with a toggleable "hide watched" filter.
+* 💾 **Local-First Architecture** – All data is stored locally via **IndexedDB**. Your history is yours alone.
+* 📥 **Import/Export** – Seamlessly back up and restore your watch history as a JSON file.
+* 🛡️ **Backup Reminders** – Proactive, non-intrusive reminders ensure you keep a safe, offline copy of your archive.
+* 🚫 **Hide Shorts** – Clean up your YouTube experience by removing Shorts from home, subscriptions, and search feeds.
+* 🎨 **System Theming** – Dashboards and popups automatically adapt to your system’s light or dark mode.
+
+---
+
+## 🔒 Privacy Guarantee
+**Your data stays on your device.** We use native browser storage technologies—**IndexedDB** for your video history and **`chrome.storage`** for your settings—to ensure maximum performance and privacy. We do not use analytics, tracking pixels, or external cloud services.
+
+---
+
+## Technical Architecture
+* **Storage Engine:** We leverage **IndexedDB** for the primary video history archive, ensuring high-speed search performance and the removal of legacy storage caps.
+* **Configuration:** User settings and preferences are managed via **`chrome.storage.local`** for fast, optimized access during page loads.
 
 ## Installation
 
