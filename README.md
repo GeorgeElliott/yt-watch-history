@@ -127,7 +127,7 @@ Load the package locally for testing via `chrome://extensions` (Chrome/Edge) or 
 ## Usage
 
 ### Popup (Click the extension icon)
-- See your 5 most recent videos
+- See your most recent videos
 - Quick stats (total videos, current limit)
 - Links to full History, Options, and YouTube
 

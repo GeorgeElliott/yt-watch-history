@@ -445,8 +445,8 @@ const injectPickupShelfStyles = () => {
       padding: 16px 24px 16px;
       box-sizing: border-box;
       font-family: 'Roboto', Arial, sans-serif;
-      background: transparent;
-    }
+      background: transparent;      width: 100%;
+      overflow: hidden;    }
     #ytwh-shelf-header {
       display: flex;
       align-items: center;
@@ -486,7 +486,6 @@ const injectPickupShelfStyles = () => {
       overflow-x: auto;
       overflow-y: hidden;
       width: 100%;
-      max-width: 100%;
       padding-bottom: 8px;
       box-sizing: border-box;
       scrollbar-color: var(--shelf-scrollbar-thumb) var(--shelf-scrollbar-track);
@@ -644,12 +643,22 @@ const createViewAllChip = () => {
 };
 
 const updateShelfState = () => {
-  if (location.pathname !== '/feed/subscriptions') {
+  const path = location.pathname;
+  const isHome = path === '/';
+  const isSubs = path === '/feed/subscriptions';
+
+  if (!isHome && !isSubs) {
     document.getElementById(PICKUP_SHELF_ID)?.remove();
     return;
   }
 
-  chrome.storage.local.get({ pickupShelf: false, ghostModeActive: false }, (data) => {
+  chrome.storage.local.get({ pickupShelf: false, ghostModeActive: false, subsRedirect: false }, (data) => {
+    // Redirect gatekeeper: homepage with redirect active — don't inject the shelf.
+    if (isHome && data.subsRedirect) {
+      document.getElementById(PICKUP_SHELF_ID)?.remove();
+      return;
+    }
+
     if (!data.pickupShelf || data.ghostModeActive) {
       document.getElementById(PICKUP_SHELF_ID)?.remove();
       return;
@@ -667,10 +676,13 @@ const updateShelfState = () => {
 };
 
 const injectPickupShelf = () => {
-  if (location.pathname !== '/feed/subscriptions') return;
+  const path = location.pathname;
+  if (path !== '/' && path !== '/feed/subscriptions') return;
 
-  chrome.storage.local.get({ pickupShelf: false, ghostModeActive: false }, (data) => {
+  chrome.storage.local.get({ pickupShelf: false, ghostModeActive: false, subsRedirect: false }, (data) => {
     if (!data.pickupShelf || data.ghostModeActive) return;
+    // Redirect gatekeeper: if redirect is active on homepage, stop here.
+    if (path === '/' && data.subsRedirect) return;
     if (document.getElementById(PICKUP_SHELF_ID)) return;
 
     // Fetch history via the in-memory cache, then inject.
@@ -678,9 +690,10 @@ const injectPickupShelf = () => {
       if (history.length === 0) return;
       if (document.getElementById(PICKUP_SHELF_ID)) return;
 
+      // Works on both homepage and subscriptions page
       const feedContainer =
+        document.querySelector('ytd-rich-grid-renderer #contents') ||
         document.querySelector('ytd-section-list-renderer #contents') ||
-        document.querySelector('ytd-rich-grid-renderer')?.parentElement ||
         document.querySelector('#primary #contents');
 
       if (!feedContainer) {
@@ -887,6 +900,23 @@ const syncYouTubeTheme = () => {
 const themeObserver = new MutationObserver(syncYouTubeTheme);
 themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['dark'] });
 syncYouTubeTheme();
+
+//  Force Page Reload on Home/Subscriptions Navigation 
+// Instead of relying on SPA navigation which has timing issues with shelf injection,
+// intercept clicks on the home and subscriptions sidebar links and do a full page reload.
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('a[href="/"], a[href="/feed/subscriptions"]');
+  if (link) {
+    const href = link.getAttribute('href');
+    // Only proceed if we're actually navigating to a different page
+    if (location.pathname !== href) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.location.href = `https://www.youtube.com${href}`;
+      return false;
+    }
+  }
+}, true);
 
 // Initial triggers
 checkRedirects();
