@@ -921,7 +921,13 @@ document.addEventListener('click', (e) => {
 // Initial triggers
 checkRedirects();
 applyHideShorts();
-updateShelfState();
+// Only load the shelf if we're not redirecting from home to subscriptions
+chrome.storage.local.get({ subsRedirect: false }, (data) => {
+  const isHome = location.pathname === '/';
+  if (!(isHome && data.subsRedirect)) {
+    updateShelfState();
+  }
+});
 injectBadgeStyles();
 setTimeout(resumeVideo, 1500);
 setInterval(saveProgress, 10000);
