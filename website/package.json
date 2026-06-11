@@ -1,0 +1,21 @@
+{
+  "name": "watchhistory-website",
+  "description": "Promotional website for WatchHistory for YouTube™",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "serve": "python3 -m http.server 8000",
+    "serve:node": "npx http-server .",
+    "build": "echo 'Static site - no build needed'"
+  },
+  "keywords": [
+    "youtube",
+    "watchhistory",
+    "browser-extension",
+    "privacy",
+    "resume-video",
+    "local-storage"
+  ],
+  "author": "George Elliott",
+  "license": "MIT"
+}

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 280">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0D47A1"/>
+      <stop offset="100%" stop-color="#1E88E5"/>
+    </linearGradient>
+  </defs>
+  <rect width="440" height="280" fill="url(#bg)"/>
+
+  <!-- Logo -->
+  <g transform="translate(170, 40)">
+    <rect width="100" height="100" rx="20" fill="#1565C0" stroke="#FFFFFF" stroke-width="3" stroke-opacity="0.7"/>
+    <text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="27" fill="#FFFFFF" letter-spacing="2">WHYT</text>
+  </g>
+
+  <!-- Title -->
+  <text x="220" y="180" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="22" fill="#FFFFFF">WatchHistory for YouTube™</text>
+
+  <!-- Subtitle -->
+  <text x="220" y="210" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="400" font-size="13" fill="#BBDEFB">Track videos locally. Resume where you left off.</text>
+
+  <!-- Features row -->
+  <text x="220" y="235" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="500" font-size="11" fill="#90CAF9">📺 Auto-Track  •  ▶️ Auto-Resume  •  🔖 Resume Badges  •  🚫 Hide Shorts</text>
+
+  <!-- Bottom tagline -->
+  <text x="220" y="250" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="400" font-size="11" fill="#64B5F6">Works when signed out or with watch history disabled</text>
+</svg>

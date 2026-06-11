@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="WatchHistory for YouTube™ - Track your YouTube history locally, resume videos where you left off. Privacy-focused browser extension with no cloud sync.">
+  <meta name="keywords" content="YouTube, watch history, privacy, browser extension, resume video, local storage">
+  <meta name="author" content="George Elliott">
+  <meta name="og:title" content="WatchHistory for YouTube™">
+  <meta name="og:description" content="Reclaim your privacy without losing your progress. Track YouTube videos locally and resume where you left off.">
+  <meta name="og:image" content="/assets/images/promo.png">
+  <meta name="og:url" content="https://ytwatchhistory.dev">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>WatchHistory for YouTube™ - Local Privacy-Focused Watch History</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
+  <link rel="canonical" href="https://ytwatchhistory.dev">
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="header-container">
+      <a href="/" class="logo">
+        <img src="assets/icons/icon.svg" alt="WatchHistory Logo">
+        <span>WatchHistory for YouTube™</span>
+      </a>
+      <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav id="nav-menu" class="nav-menu">
+        <a href="#features">Features</a>
+        <a href="#screenshots">Screenshots</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#contact">Contact</a>
+        <a href="https://github.com/GeorgeElliott/yt-watch-history" target="_blank" rel="noopener noreferrer" class="cta-btn">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Reclaim Your Privacy</h1>
+      <p>Track your YouTube history locally. Resume videos where you left off—with complete privacy and no cloud sync.</p>
+      <p class="hero-sub">Works even when signed out or with YouTube watch history disabled.</p>
+
+      <div class="hero-cta">
+        <a href="#screenshots" class="cta-btn">See It In Action</a>
+        <a href="https://github.com/GeorgeElliott/yt-watch-history" target="_blank" rel="noopener noreferrer" class="cta-btn ghost-btn">
+          <img src="assets/icons/github.svg" alt="" width="18" height="18" style="vertical-align:middle;margin-right:6px;">
+          View on GitHub
+        </a>
+      </div>
+
+      <div class="hero-badges">
+        <p class="badges-label">Available for</p>
+        <div class="download-badge-container">
+          <a href="https://chromewebstore.google.com/detail/watchhistory-for-youtube/bjfbnpccgejpbeofaepnjommafgdknap?authuser=0&hl=en" class="badge badge-chrome" target="_blank" rel="noopener noreferrer" data-store="chrome">
+            <img src="assets/icons/chrome.svg" alt="Chrome" width="22" height="22">
+            Chrome
+          </a>
+          <a href="https://microsoftedge.microsoft.com/addons/detail/watchhistory-for-youtube%E2%84%A2/dddoogddjkbiknfieibadpibibmmkpnj" class="badge badge-edge" target="_blank" rel="noopener noreferrer" data-store="edge">
+            <img src="assets/icons/edge.svg" alt="Edge" width="22" height="22">
+            Edge
+          </a>
+          <a href="https://addons.mozilla.org/en-GB/firefox/addon/watchhistory-for-youtube/" class="badge badge-firefox" target="_blank" rel="noopener noreferrer" data-store="firefox">
+            <img src="assets/icons/firefox.svg" alt="Firefox" width="22" height="22">
+            Firefox
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="hero-image">
+      <img src="assets/icons/promo-small.svg" alt="WatchHistory for YouTube — track videos locally, resume where you left off">
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <div class="features-container">
+      <h2 class="section-title">Powerful Features</h2>
+      <div class="features-grid">
+        <div class="feature-card" data-animate="fade">
+          <div class="feature-icon">📺</div>
+          <h3>Unlimited History</h3>
+          <p>Automatically save your entire watch history locally with high-performance IndexedDB storage. No arbitrary limits.</p>
+        </div>
+        <div class="feature-card" data-animate="fade">
+          <div class="feature-icon">▶️</div>
+          <h3>Auto-Resume</h3>
+          <p>Pick up exactly where you left off. Every video is tracked to the second, resuming automatically on your next visit.</p>
+        </div>
+        <div class="feature-card" data-animate="fade">
+          <div class="feature-icon">🔖</div>
+          <h3>Smart Badges</h3>
+          <p>"Resume" and "Watched" tags appear directly on YouTube thumbnails. Easily toggleable in settings.</p>
+        </div>
+        <div class="feature-card" data-animate="fade">
+          <div class="feature-icon">🚫</div>
+          <h3>Hide Shorts</h3>
+          <p>Clean up your YouTube experience by removing Shorts from home, subscriptions, and search feeds.</p>
+        </div>
+        <div class="feature-card" data-animate="fade">
+          <div class="feature-icon">🔍</div>
+          <h3>Advanced Search</h3>
+          <p>Find videos instantly by title or channel. Toggle "hide watched" to focus on what you haven't seen yet.</p>
+        </div>
+        <div class="feature-card" data-animate="fade">
+          <div class="feature-icon">🎯</div>
+          <h3>Smart Tracking</h3>
+          <p>Videos are automatically tagged as "watched" when you reach 95% progress. No manual marking required.</p>
+        </div>
+        <div class="feature-card" data-animate="fade">
+          <div class="feature-icon">👻</div>
+          <h3>Ghost Mode</h3>
+          <p>Pause all tracking for the current session with a single click. Perfect for private browsing moments.</p>
+        </div>
+        <div class="feature-card" data-animate="fade">
+          <div class="feature-icon">📥</div>
+          <h3>Import/Export</h3>
+          <p>Back up and restore your watch history as JSON. Keep your data safe and portable.</p>
+        </div>
+        <div class="feature-card" data-animate="fade">
+          <div class="feature-icon">🎨</div>
+          <h3>System Theming</h3>
+          <p>All dashboards automatically adapt to your system's light or dark mode preference.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Privacy Section -->
+  <section class="privacy" id="privacy">
+    <div class="privacy-container">
+      <h2>🔒 Your Data. Your Device. Always.</h2>
+      <p style="text-align: center; color: var(--text-secondary); margin-bottom: 2rem;">
+        WatchHistory uses native browser storage technologies to ensure maximum privacy and performance. No cloud sync. No tracking. No external servers.
+      </p>
+      
+      <div class="privacy-grid">
+        <div class="privacy-item">
+          <strong>IndexedDB</strong>
+          <p>Video history archive with high-speed search performance and unlimited storage capacity.</p>
+        </div>
+        <div class="privacy-item">
+          <strong>chrome.storage</strong>
+          <p>User settings managed locally for fast, optimized access during page loads.</p>
+        </div>
+        <div class="privacy-item">
+          <strong>No Analytics</strong>
+          <p>We don't track your usage, analyze your data, or use tracking pixels. Ever.</p>
+        </div>
+        <div class="privacy-item">
+          <strong>Open Source</strong>
+          <p>Fully auditable code on GitHub. See exactly what we do with your data.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshots Section -->
+  <section class="screenshots" id="screenshots">
+    <div class="screenshots-container">
+      <h2 class="section-title">See It In Action</h2>
+      <div class="screenshots-grid">
+        <div class="screenshot-item" data-animate="fade">
+          <img src="assets/images/video-finder.png" alt="Video search and finder interface">
+          <p>Advanced search &amp; filters</p>
+        </div>
+        <div class="screenshot-item" data-animate="fade">
+          <img src="assets/images/resume-suggestions.png" alt="Resume badge on YouTube thumbnails">
+          <p>Resume badges on thumbnails</p>
+        </div>
+        <div class="screenshot-item" data-animate="fade">
+          <img src="assets/images/tagged-videos.png" alt="Watched and resume tags on video grid">
+          <p>Watched &amp; resume tags in-feed</p>
+        </div>
+        <div class="screenshot-item" data-animate="fade">
+          <img src="assets/images/video-menu-demo.png" alt="Right-click context menu on a video">
+          <p>Quick-action context menu</p>
+        </div>
+        <div class="screenshot-item" data-animate="fade">
+          <img src="assets/images/options-demo.png" alt="Extension options and settings page">
+          <p>Fully configurable settings</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="contact" id="contact">
+    <div class="contact-container">
+      <h2>Get in Touch</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 2rem;">Have feedback, suggestions, or found an issue? Reach out!</p>
+      
+      <div class="email-wrapper">
+        <button id="reveal-email-btn" class="email-button">Reveal Email</button>
+        <div id="email-display" class="email-display"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-section">
+        <h4>Product</h4>
+        <a href="#features">Features</a>
+        <a href="#screenshots">Screenshots</a>
+        <a href="#privacy">Privacy</a>
+      </div>
+      <div class="footer-section">
+        <h4>Resources</h4>
+        <a href="https://github.com/GeorgeElliott/yt-watch-history" target="_blank">GitHub</a>
+        <a href="https://github.com/GeorgeElliott/yt-watch-history/issues" target="_blank">Issues</a>
+        <a href="https://github.com/GeorgeElliott/yt-watch-history/releases" target="_blank">Releases</a>
+      </div>
+      <div class="footer-section">
+        <h4>Legal</h4>
+        <a href="PRIVACY.md">Privacy Policy</a>
+        <a href="LICENSE">License</a>
+        <a href="sitemap.xml">Sitemap</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 <a href="https://github.com/GeorgeElliott">George Elliott</a>. All rights reserved. | WatchHistory for YouTube™ is not affiliated with Google or YouTube.</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# robots.txt for WatchHistory for YouTube™
+# https://ytwatchhistory.com
+
+User-agent: *
+Allow: /
+
+Sitemap: https://ytwatchhistory.com/sitemap.xml
