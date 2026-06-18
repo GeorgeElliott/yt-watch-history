@@ -5,12 +5,12 @@
 // Email obfuscation using ROT13-like encoding
 const EmailObfuscator = (() => {
   const baseEmail = 'georgeelliottdeveloper@gmail.com';
-  
+
   // Simple character shift for obfuscation
   const obfuscate = (email) => {
     return btoa(email);
   };
-  
+
   const deobfuscate = (encoded) => {
     try {
       return atob(encoded);
@@ -19,7 +19,7 @@ const EmailObfuscator = (() => {
       return baseEmail;
     }
   };
-  
+
   return {
     getObfuscated: () => obfuscate(baseEmail),
     getOriginal: () => baseEmail,
@@ -28,10 +28,10 @@ const EmailObfuscator = (() => {
       const button = document.getElementById('reveal-email-btn');
       const display = document.getElementById('email-display');
       const obfuscated = obfuscate(baseEmail);
-      
+
       if (button && display) {
         let isRevealed = false;
-        
+
         button.addEventListener('click', () => {
           isRevealed = !isRevealed;
           if (isRevealed) {
@@ -49,7 +49,7 @@ const EmailObfuscator = (() => {
             button.style.background = 'linear-gradient(135deg, #1E88E5 0%, #42A5F5 100%)';
           }
         });
-        
+
         // Show obfuscated version by default
         display.textContent = obfuscated;
       }
@@ -121,14 +121,14 @@ const MobileMenu = (() => {
   const setupToggle = () => {
     const menuBtn = document.getElementById('mobile-menu-btn');
     const navMenu = document.getElementById('nav-menu');
-    
+
     if (menuBtn && navMenu) {
       // Toggle menu on button click
       menuBtn.addEventListener('click', () => {
         menuBtn.classList.toggle('active');
         navMenu.classList.toggle('active');
       });
-      
+
       // Close menu when a link is clicked
       navMenu.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', () => {
@@ -136,7 +136,7 @@ const MobileMenu = (() => {
           navMenu.classList.remove('active');
         });
       });
-      
+
       // Close menu when clicking outside
       document.addEventListener('click', (e) => {
         if (!menuBtn.contains(e.target) && !navMenu.contains(e.target)) {
@@ -156,7 +156,7 @@ const MobileMenu = (() => {
 const LazyAnimations = (() => {
   const setupObserver = () => {
     const elements = document.querySelectorAll('[data-animate="fade"]');
-    
+
     if ('IntersectionObserver' in window) {
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -181,6 +181,20 @@ const LazyAnimations = (() => {
     init: setupObserver
   };
 })();
+
+const backToTop = document.getElementById('backToTop');
+
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 400) {
+    backToTop.classList.add('visible');
+  } else {
+    backToTop.classList.remove('visible');
+  }
+});
+
+backToTop.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 
 // Initialize everything on DOM ready
 document.addEventListener('DOMContentLoaded', () => {

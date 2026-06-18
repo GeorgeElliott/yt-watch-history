@@ -509,6 +509,37 @@ header {
   min-height: 24px;
 }
 
+/* About Section */
+.about {
+  background: linear-gradient(135deg, rgba(13, 71, 161, 0.1) 0%, rgba(30, 136, 229, 0.1) 100%);
+  padding: 6rem 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.about-container {
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.about h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.about p {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  line-height: 1.9;
+  max-width: 750px;
+  margin: 0 auto 2rem;
+}
+
+
 /* Footer */
 footer {
   background: rgba(15, 20, 25, 0.95);
@@ -604,8 +635,47 @@ footer {
   color: var(--secondary);
 }
 
+/* Back to Top Button */
+.back-to-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.back-to-top::before {
+  content: "↑";
+  font-size: 1.1rem;
+}
+
+.back-to-top.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.back-to-top:hover {
+  box-shadow: 0 10px 25px rgba(30, 136, 229, 0.4);
+  transform: translateY(-2px);
+}
 /* Responsive */
 @media (max-width: 768px) {
+
   /* Header fixes */
   .header-container {
     padding: 0 1rem;
@@ -660,6 +730,10 @@ footer {
     padding: 5rem 1.5rem 2rem;
     min-height: auto;
     gap: 2rem;
+  }
+
+  .hero-image {
+    order: -1;
   }
 
   .hero-content h1 {
@@ -781,6 +855,14 @@ footer {
     text-align: center;
     gap: 0.25rem;
   }
+
+  .about {
+    padding: 3rem 1.5rem;
+  }
+
+  .about h2 {
+    font-size: 1.75rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -863,6 +945,29 @@ footer {
   .privacy-item {
     padding: 1rem;
   }
+
+  .about {
+    padding: 2.5rem 1rem;
+  }
+
+  .about h2 {
+    font-size: 1.5rem;
+  }
+
+  .about p {
+    font-size: 0.95rem;
+  }
+
+  .back-to-top {
+    bottom: 1.25rem;
+    right: 1.25rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .back-to-top::before {
+    font-size: 1rem;
+  }
 }
 
 @media (prefers-color-scheme: light) {
@@ -891,6 +996,7 @@ footer {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
