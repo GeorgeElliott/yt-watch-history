@@ -13,6 +13,7 @@ const hideShortsToggle         = document.getElementById('hide-shorts-toggle');
 const hideWatchedDefaultToggle = document.getElementById('hide-watched-default-toggle');
 const pickupShelfToggle        = document.getElementById('pickup-shelf-toggle');
 const ghostModeOptions         = document.getElementById('ghostModeOptions');
+const watchedThresholdInput    = document.getElementById('watched-threshold-input');
 
 // Helpers
 
@@ -62,7 +63,8 @@ chrome.storage.local.get(
     hideWatchedDefault:      false,
     ghostModeActive:         false,
     pickupShelf:             true,
-    backupReminderFrequency: 'weekly'
+    backupReminderFrequency: 'weekly',
+    watchedThreshold: 95,
   },
   (data) => {
     badgeToggle.checked              = data.resumeBadges;
@@ -76,6 +78,9 @@ chrome.storage.local.get(
     }
     if (backupReminderSelect) {
       backupReminderSelect.value = data.backupReminderFrequency;
+    }
+    if (watchedThresholdInput) {
+      watchedThresholdInput.value = data.watchedThreshold;
     }
   }
 );
@@ -153,6 +158,18 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !changes.ghostModeActive || !ghostModeOptions) return;
   ghostModeOptions.checked = Boolean(changes.ghostModeActive.newValue);
 });
+
+if (watchedThresholdInput) {
+  watchedThresholdInput.onchange = () => {
+    let value = parseInt(watchedThresholdInput.value, 10);
+    if (isNaN(value) || value < 1)  value = 1;
+    if (value > 100)                value = 100;
+    watchedThresholdInput.value = value; // clamp display too
+    chrome.storage.local.set({ watchedThreshold: value }, () => {
+      showToast(`Watched threshold set to ${value}%`);
+    });
+  };
+}
 
 // Clear all
 document.getElementById('clear-btn').onclick = () => {

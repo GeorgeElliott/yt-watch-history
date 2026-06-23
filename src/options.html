@@ -66,9 +66,14 @@
 
   <div class="options-container">
     <!-- Welcome Card (First Time Setup) -->
-    <div id="welcomeCard" style="display:none; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:20px; margin-bottom:20px; box-shadow:var(--shadow-card);">
-      <div style="font-size:15px; font-weight:700; margin-bottom:12px; color:var(--text-primary);">Welcome to WatchHistory for YouTube™</div>
-      <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:16px;">Welcome to your personal YouTube archive! Thanks for installing. We are excited to help you track your watch progress. We have pre-selected the best settings for you, but feel free to adjust your history limits and preferences below so everything is perfectly tailored to your watching habits.</div>
+    <div id="welcomeCard"
+      style="display:none; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:20px; margin-bottom:20px; box-shadow:var(--shadow-card);">
+      <div style="font-size:15px; font-weight:700; margin-bottom:12px; color:var(--text-primary);">Welcome to
+        WatchHistory for YouTube™</div>
+      <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:16px;">Welcome to your
+        personal YouTube archive! Thanks for installing. We are excited to help you track your watch progress. We have
+        pre-selected the best settings for you, but feel free to adjust your history limits and preferences below so
+        everything is perfectly tailored to your watching habits.</div>
       <button id="dismissWelcome" class="btn btn-sm btn-primary" style="align-self:flex-start;">Dismiss</button>
     </div>
 
@@ -138,7 +143,22 @@
         </label>
       </div>
     </div>
-
+    <div class="panel">
+      <div class="panel-title">Watch Settings</div>
+      <div class="panel-description">Control how you interact with videos</div>
+      <div class="panel-row">
+        <div>
+          <label>Watched threshold</label>
+          <div class="help-text">How far through a video (%) must be watched before it counts as watched. Default: 95%.
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <input type="number" id="watched-threshold-input" class="input" min="1" max="100" value="95"
+            style="width:64px; text-align:center; padding:6px 8px;">
+          <span style="font-size:13px; color:var(--text-secondary);">%</span>
+        </div>
+      </div>
+    </div>
     <!-- Ghost Mode -->
     <div class="panel">
       <div class="panel-title">Ghost Mode (Incognito)</div>

@@ -106,7 +106,7 @@ const getChannelUrl = () => {
   return '';
 };
 
-const _doSaveProgressInternal = () => {
+const _doSaveProgressInternal = (watchedThreshold = 95) => {
   const video   = document.querySelector('video');
   const videoId = new URLSearchParams(window.location.search).get('v');
 
@@ -129,7 +129,7 @@ const _doSaveProgressInternal = () => {
 
     const wasWatched = existing ? existing.watched : false;
     let watched;
-    if (!isLive && progress >= 0.95) {
+    if (!isLive && progress >= watchedThreshold / 100) {
       watched = true;                         // Reached the end — mark watched
     } else if (wasWatched && progress < 0.1) {
       watched = false;                        // Re-watching from the beginning
@@ -160,9 +160,9 @@ const _doSaveProgressInternal = () => {
 };
 
 const _doSaveProgress = () => {
-  chrome.storage.local.get({ ghostModeActive: false }, (data) => {
+  chrome.storage.local.get({ ghostModeActive: false, watchedThreshold: 95 }, (data) => {
     if (data.ghostModeActive) return;
-    _doSaveProgressInternal();
+    _doSaveProgressInternal(data.watchedThreshold);
   });
 };
 
