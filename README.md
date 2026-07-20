@@ -20,8 +20,11 @@ WatchHistory for YouTube™ is a lightweight, privacy-focused browser extension 
 * 📺 **Unlimited History Tracking** – Automatically saves your watch history using high-performance local indexing.
 * 🚀 **Continue Watching** – A dedicated shelf on your YouTube Subscriptions page to jump back into your most recent videos.
 * ▶️ **Automatic Resume** – Revisit a video and pick up exactly where you left off.
-* 🎯 **Smart Progress Tracking** – Videos are automatically tagged as "watched" when you reach 95% progress.
+* 🎯 **Smart Progress Tracking** – Videos are automatically tagged as "watched" once you reach your watch threshold (default 95%, fully **customizable** in Options).
 * 🔖 **Smart Badges** – "Resume" or "Watched" tags appear directly on YouTube thumbnails (toggleable).
+* 🖱️ **Mark as Watched from Any Feed** – Hover a thumbnail on Home, Subscriptions, or Search and use the built-in menu to mark it watched (or reset progress) without opening the video.
+* 🔁 **Rewatch Tracking** – Keeps a count of how many times you've fully watched each video, so your stats reflect genuine rewatches.
+* 📊 **Stats Dashboard** – A dedicated Stats page with total watch time, videos watched, current/longest watch streaks, your top 5 most-watched videos and channels, favorite channel, and your longest/shortest watched videos.
 * 📋 **Video Management** – Easily mark videos as watched/reset, copy links, or remove them from your history.
 * 👻 **Ghost Mode** – Pause all tracking for the current session with a single click.
 * 🔍 **Advanced Search** – Find videos instantly by title or channel, with a toggleable "hide watched" filter.
@@ -143,10 +146,21 @@ Load the package locally for testing via `chrome://extensions` (Chrome/Edge) or 
 - Click a thumbnail to resume watching
 - Batch delete via **Clear All** button
 
+### Stats Page
+- Overview cards: videos archived, videos watched, total watch time, and total watches (including rewatches)
+- Insights: unique channels, average completion rate, livestreams watched, current/longest watch streak, most active day, favorite channel, and videos watched this week
+- **Top 5 Most Watched** videos and **Top 5 Channels**
+- **Longest** and **Shortest** video watched (only counts videos genuinely watched through, so a video you merely toggled "watched" without watching doesn't skew the results)
+
+### On YouTube (Subscriptions, Home & Search)
+- **Resume/Watched badges** on thumbnails
+- **Hover menu** (⋮) on every thumbnail to mark a video as watched or reset its progress directly from the feed — no need to open the video first
+
 ### Options Page
 - 📊 Set history limit (50-1000 videos)
 - 🔖 Toggle **resume badges** on YouTube thumbnails
 - 👁️ Toggle **watched badges** on thumbnails
+- 🎚️ **Watched threshold** – customize the % of a video that must be watched before it's marked "Watched" (default 95%)
 - 🔀 **Redirect YouTube history** to your local history page
 - 🏠 **Redirect Home & Shorts** to your subscriptions feed
 - 🚫 **Hide Shorts** from all YouTube feeds
@@ -158,20 +172,21 @@ Load the package locally for testing via `chrome://extensions` (Chrome/Edge) or 
 ## How It Works
 
 1. **Content Script** (`content.js`) runs on all YouTube watch pages
-2. Every 10 seconds, it saves your current video ID, timestamp, title, and channel to local storage (only while the tab is active and the video is playing)
+2. Every 10 seconds, it saves your current video ID, timestamp, title, and channel to local storage (only while the tab is active and the video is playing); very short videos (under 20s) are saved more frequently, and playback completion is captured immediately
 3. **Smart Progress Tracking** - Saves progress immediately when you:
    - Close the tab or browser window
    - Navigate away from the video
    - Use the back button
-4. **Auto-watched Detection** - Videos are automatically marked as "watched" when you reach 95% progress; resets to unwatched if you restart from the beginning
+4. **Auto-watched Detection** - Videos are automatically marked as "watched" once you reach your configured watch threshold (default 95%, adjustable in Options); resets to unwatched if you restart from the beginning
 5. When you revisit a video, it automatically jumps to your saved position (if within first 5 seconds)
 6. **Resume & Watched Badges** appear on video thumbnails across:
    - Home feed recommendations
    - Subscription feeds
    - Channel pages
    - Search results
-7. Livestreams are saved in your history and automatically resume at the live edge
-8. History is trimmed when it exceeds your configured limit
+7. **Mark as Watched from Feeds** - Every thumbnail also gets a hover menu so you can mark a video watched (or reset it) without opening it
+8. Livestreams are saved in your history and automatically resume at the live edge
+9. History is trimmed when it exceeds your configured limit
 
 **Note:** This is a rolling limit. To keep your browser fast, we only remember your most recent 1,000 videos. Older entries are deleted automatically.
 
@@ -180,12 +195,15 @@ Load the package locally for testing via `chrome://extensions` (Chrome/Edge) or 
 ```
 src/
   manifest.json       # Extension manifest (permissions, scripts, icons)
-  background.js       # Service worker for internal redirect handling
-  content.js          # YouTube page injection (auto-save, resume, badges, redirects)
+  background.js       # Service worker for IndexedDB proxying, redirects, and alarms
+  content.js          # YouTube page injection (auto-save, resume, badges, feed menu, redirects)
+  db.js               # Shared IndexedDB wrapper (used by background.js, popup, history, options, stats)
   popup.html          # Extension popup UI (recent videos, stats, nav)
   popup.js            # Popup logic (loads history, renders list, nav links)
   history.html        # Full history page UI (search bar, video grid, stats)
   history.js          # History logic (search, sort, pagination, delete)
+  stats.html          # Stats dashboard UI (overview cards, top videos/channels, streaks)
+  stats.js            # Stats logic (aggregates data from IndexedDB)
   options.html        # Settings page UI (toggles, import/export, clear)
   options.js          # Settings logic (limit, badges, redirects, import validation)
   theme.css           # Shared dark/light theme, components, toggle switches

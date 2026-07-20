@@ -10,6 +10,9 @@
  *   title, channel, channelUrl {string}
  *   time, duration {number}    — playback position and total length
  *   watched {boolean}          — true if ≥ 95% viewed
+ *   watchCount {number}        — how many times the video has been fully
+ *                                watched (incremented on each not-watched →
+ *                                watched transition)
  *   live {true|undefined}      — set for livestreams only
  *   timestamp {number}         — when last saved
  */

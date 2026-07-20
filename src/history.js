@@ -104,15 +104,30 @@ const renderBatch = () => {
     watchedItem.textContent = video.watched ? '\u21A9 Reset progress' : '\u2713 Mark as watched';
     watchedItem.onclick = () => {
       // Read the latest record from IDB, toggle the watched flag, then save.
-      db_getVideoById(video.videoId).then((entry) => {
-        if (!entry) return;
-        entry.watched = !entry.watched;
-        if (!entry.watched) entry.time = 0;
-        db_saveVideo(entry).then(() => {
-          showToast(entry.watched ? 'Marked as watched' : 'Progress reset');
-          loadHistory();
-        });
-      }).catch(console.error);
+      chrome.storage.local.get({ watchedThreshold: 95 }, ({ watchedThreshold }) => {
+        db_getVideoById(video.videoId).then((entry) => {
+          if (!entry) return;
+          const wasWatched = entry.watched;
+          // Backwards compatibility: a record already marked watched before
+          // this feature existed counts as one prior watch.
+          if (typeof entry.watchCount !== 'number') {
+            entry.watchCount = wasWatched ? 1 : 0;
+          }
+          entry.watched = !wasWatched;
+          // Only credit a watch when the saved progress actually meets the
+          // user's watch threshold — otherwise spamming "Reset progress"
+          // and "Mark as watched" could inflate the count without watching.
+          const progress = entry.duration > 0 ? entry.time / entry.duration : 0;
+          if (entry.watched && !wasWatched && progress >= watchedThreshold / 100) {
+            entry.watchCount += 1;
+          }
+          if (!entry.watched) entry.time = 0;
+          db_saveVideo(entry).then(() => {
+            showToast(entry.watched ? 'Marked as watched' : 'Progress reset');
+            loadHistory();
+          });
+        }).catch(console.error);
+      });
     };
 
     const copyItem = document.createElement('button');

@@ -168,6 +168,9 @@ const migrateIfNeeded = () => {
           time:       typeof v.time === 'number' ? v.time : 0,
           duration:   typeof v.duration === 'number' ? v.duration : 0,
           watched:    v.watched === true,
+          // Backwards compatibility: legacy records never tracked watch
+          // counts. Treat an already-watched video as one prior watch.
+          watchCount: typeof v.watchCount === 'number' ? v.watchCount : (v.watched === true ? 1 : 0),
           live:       v.live === true ? true : undefined,
           timestamp:  typeof v.timestamp === 'number' ? v.timestamp : Date.now()
         }));

@@ -258,6 +258,9 @@ importFile.onchange = (e) => {
           time:       Math.floor(v.time),
           duration:   Number.isFinite(v.duration) ? Math.floor(v.duration) : 0,
           watched:    v.watched === true,
+          // Backwards compatibility: older exports never tracked watch
+          // counts. Treat an already-watched video as one prior watch.
+          watchCount: typeof v.watchCount === 'number' ? v.watchCount : (v.watched === true ? 1 : 0),
           live:       v.live === true ? true : undefined,
           timestamp:  Math.floor(v.timestamp)
         }));

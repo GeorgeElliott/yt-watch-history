@@ -107,12 +107,27 @@ const renderBatch = (videos) => {
     watchedItem.className   = 'video-menu-item';
     watchedItem.textContent = video.watched ? '\u21A9 Reset progress' : '\u2713 Mark as watched';
     watchedItem.onclick = () => {
-      db_getVideoById(video.videoId).then((entry) => {
-        if (!entry) return;
-        entry.watched = !entry.watched;
-        if (!entry.watched) entry.time = 0;
-        db_saveVideo(entry).then(init);
-      }).catch(console.error);
+      chrome.storage.local.get({ watchedThreshold: 95 }, ({ watchedThreshold }) => {
+        db_getVideoById(video.videoId).then((entry) => {
+          if (!entry) return;
+          const wasWatched = entry.watched;
+          // Backwards compatibility: a record already marked watched before
+          // this feature existed counts as one prior watch.
+          if (typeof entry.watchCount !== 'number') {
+            entry.watchCount = wasWatched ? 1 : 0;
+          }
+          entry.watched = !wasWatched;
+          // Only credit a watch when the saved progress actually meets the
+          // user's watch threshold — otherwise spamming "Reset progress"
+          // and "Mark as watched" could inflate the count without watching.
+          const progress = entry.duration > 0 ? entry.time / entry.duration : 0;
+          if (entry.watched && !wasWatched && progress >= watchedThreshold / 100) {
+            entry.watchCount += 1;
+          }
+          if (!entry.watched) entry.time = 0;
+          db_saveVideo(entry).then(init);
+        }).catch(console.error);
+      });
     };
 
     // Copy link
@@ -241,6 +256,11 @@ const init = () => {
 document.getElementById('open-history').onclick = (e) => {
   e.preventDefault();
   chrome.tabs.create({ url: chrome.runtime.getURL('history.html') });
+};
+
+document.getElementById('open-stats').onclick = (e) => {
+  e.preventDefault();
+  chrome.tabs.create({ url: chrome.runtime.getURL('stats.html') });
 };
 
 document.getElementById('open-options').onclick = (e) => {
