@@ -33,6 +33,38 @@ const showToast = (message) => {
   setTimeout(() => toast.classList.remove('show'), 2000);
 };
 
+const downloadBackup = ({ videos, watchEvents }) => {
+  const payload = {
+    exportDate: new Date().toISOString(),
+    dbVersion: db_getVersion(),
+    count: videos.length,
+    history: videos,
+    watchEvents
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `yt-history-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  chrome.storage.local.set({ showBackupReminder: false, lastBackupTimestamp: Date.now() });
+  showToast(`Exported ${videos.length.toLocaleString()} videos`);
+};
+
+db_getStoredVersion().then((storedVersion) => {
+  if (!storedVersion || storedVersion >= db_getVersion()) return;
+  if (!confirm('A database update is available. Would you like to take a backup before the update?')) return;
+
+  db_getBackupData()
+    .then(downloadBackup)
+    .catch(() => showToast('Backup failed'));
+}).catch(() => {
+  // Version discovery is best-effort; normal database opening still proceeds.
+});
+
 // First-time setup
 const welcomeCard    = document.getElementById('welcomeCard');
 const dismissWelcome = document.getElementById('dismissWelcome');
@@ -186,26 +218,8 @@ document.getElementById('clear-btn').onclick = () => {
 
 // Export: downloads all videos as JSON
 document.getElementById('export-btn').onclick = () => {
-  db_getAllVideos()
-    .then((videos) => {
-      const payload = {
-        exportDate: new Date().toISOString(),
-        count: videos.length,
-        history: videos // kept for backward compatibility
-      };
-
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = `yt-history-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      // Reset backup reminder after export
-      chrome.storage.local.set({ showBackupReminder: false, lastBackupTimestamp: Date.now() });
-      showToast(`Exported ${videos.length.toLocaleString()} videos`);
-    })
+  Promise.all([db_getAllVideos(), db_getAllWatchEvents()])
+    .then(([videos, watchEvents]) => downloadBackup({ videos, watchEvents }))
     .catch(() => showToast('Export failed'));
 };
 
@@ -270,14 +284,43 @@ importFile.onchange = (e) => {
         return;
       }
 
-      // Import in one transaction
-      db_bulkImport(validated)
+      const importedEvents = Array.isArray(data.watchEvents)
+        ? data.watchEvents
+          .filter((watchEvent) =>
+            typeof watchEvent.videoId === 'string' &&
+            Number.isFinite(watchEvent.watchedAt) &&
+            watchEvent.watchedAt >= 0)
+          .map((watchEvent) => ({
+            ...(Number.isInteger(watchEvent.id) && watchEvent.id > 0
+              ? { id: watchEvent.id }
+              : {}),
+            videoId: watchEvent.videoId,
+            watchedAt: Math.floor(watchEvent.watchedAt),
+            ...(Number.isFinite(watchEvent.watchDurationSeconds)
+              ? { watchDurationSeconds: watchEvent.watchDurationSeconds }
+              : {})
+          }))
+        : validated
+          .filter((video) => video.watchCount > 0 || video.watched === true)
+          .flatMap((video) => Array.from({
+            length: Math.max(1, Math.floor(video.watchCount))
+          }, () => ({
+            videoId: video.videoId,
+            watchedAt: video.timestamp
+          })));
+
+      // Replace the database and import videos and watch events at the
+      // current extension DB version. The backup version is informational.
+      db_replaceDatabase(validated, importedEvents)
         .then((count) => {
           // Update the cached count
           chrome.storage.local.set({ videoCount: count });
           showToast(`Imported ${count.toLocaleString()} videos`);
         })
-        .catch(() => showToast('Import failed'));
+        .catch((error) => {
+          console.error('[YTWH] Import failed:', error);
+          showToast('Import failed');
+        });
 
     } catch {
       showToast('Failed to parse file');

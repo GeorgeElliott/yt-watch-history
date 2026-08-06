@@ -57,6 +57,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return;
   }
 
+  if (message.type === 'idb-record-watch-event') {
+    db_recordWatchEvent(message.watchEvent).catch(console.error);
+    return;
+  }
+
   if (message.type === 'idb-get-video') {
     db_getVideoById(message.videoId)
       .then((video) => sendResponse({ video }))

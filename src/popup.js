@@ -36,8 +36,8 @@ const syncGhostModeToggle = () => {
 // Render batch of videos to the list
 const renderBatch = (videos) => {
   videos.forEach((video) => {
-    // Build the URL (resume point for watched, live edge for streams)
-    const url = video.live
+    // Build the URL (resume point for unfinished videos, plain URL otherwise)
+    const url = video.live || video.watched
       ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`
       : `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&t=${video.time}s`;
     const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/mqdefault.jpg`;
@@ -121,11 +121,19 @@ const renderBatch = (videos) => {
           // user's watch threshold — otherwise spamming "Reset progress"
           // and "Mark as watched" could inflate the count without watching.
           const progress = entry.duration > 0 ? entry.time / entry.duration : 0;
-          if (entry.watched && !wasWatched && progress >= watchedThreshold / 100) {
+          const creditedWatch = entry.watched && !wasWatched && progress >= watchedThreshold / 100;
+          if (creditedWatch) {
             entry.watchCount += 1;
           }
           if (!entry.watched) entry.time = 0;
-          db_saveVideo(entry).then(init);
+          db_saveVideo(entry).then(() => {
+            if (creditedWatch) {
+              return db_recordWatchEvent({
+                videoId: entry.videoId,
+                watchedAt: Date.now()
+              });
+            }
+          }).then(init);
         }).catch(console.error);
       });
     };

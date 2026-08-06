@@ -538,7 +538,13 @@ if (!(globalThis.browser && globalThis.browser.runtime && globalThis.browser.run
 
   // The build process adds a UMD wrapper around this file, which makes the
   // `module` variable available.
-  module.exports = wrapAPIs(chrome);
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = wrapAPIs(chrome);
+  } else {
+    globalThis.browser = wrapAPIs(chrome);
+  }
 } else {
-  module.exports = globalThis.browser;
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = globalThis.browser;
+  }
 }

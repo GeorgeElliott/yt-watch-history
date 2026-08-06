@@ -20,6 +20,7 @@ const statFavoriteChannelSubEl = document.getElementById('stat-favorite-channel-
 const statWeekEl           = document.getElementById('stat-week');
 const topVideosContainer   = document.getElementById('top-videos');
 const topChannelsContainer = document.getElementById('top-channels');
+const topChannelsRewatchContainer = document.getElementById('top-channels-rewatches');
 const longestVideoContainer = document.getElementById('longest-video');
 const shortestVideoContainer = document.getElementById('shortest-video');
 
@@ -80,7 +81,7 @@ const renderEmptyState = (container, message) => {
 // Builds a shared thumbnail/title/channel row used by both the "Top
 // videos" and "Longest video" panels — only the trailing badge differs.
 const buildVideoRow = (video, rankLabel, badgeText) => {
-  const url = video.live
+  const url = video.live || video.watched
     ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`
     : `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&t=${video.time}s`;
   const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/mqdefault.jpg`;
@@ -150,30 +151,29 @@ const renderTopVideos = (videos) => {
   );
 };
 
-// Aggregates videos by channel name, returning entries sorted by
-// videos-watched-count descending. Shared by the "Top channels" panel
-// and the "Favorite channel" stat card.
-const computeChannelCounts = (videos) => {
+// Aggregates videos by channel name, returning entries sorted by count.
+// With includeRewatches enabled, each video's watchCount contributes.
+const computeChannelCounts = (videos, includeRewatches = false) => {
   const channelMap = new Map();
   videos.forEach((v) => {
     if (!v.channel) return;
     const entry = channelMap.get(v.channel) || { channel: v.channel, channelUrl: v.channelUrl || '', count: 0 };
-    entry.count += 1;
+    entry.count += includeRewatches ? getWatchCount(v) : 1;
     if (!entry.channelUrl && v.channelUrl) entry.channelUrl = v.channelUrl;
     channelMap.set(v.channel, entry);
   });
   return [...channelMap.values()].sort((a, b) => b.count - a.count);
 };
 
-const renderTopChannels = (channelCounts) => {
+const renderTopChannels = (container, channelCounts, countLabel) => {
   const top = channelCounts.slice(0, 5);
 
   if (top.length === 0) {
-    renderEmptyState(topChannelsContainer, 'No channel data yet');
+    renderEmptyState(container, 'No channel data yet');
     return;
   }
 
-  topChannelsContainer.replaceChildren(...top.map((entry, index) => {
+  container.replaceChildren(...top.map((entry, index) => {
     const row = document.createElement('div');
     row.className = 'stats-channel-row';
 
@@ -190,7 +190,7 @@ const renderTopChannels = (channelCounts) => {
 
     const badge = document.createElement('div');
     badge.className = 'stats-count-badge';
-    badge.textContent = entry.count === 1 ? '1 video' : `${entry.count} videos`;
+    badge.textContent = entry.count === 1 ? `1 ${countLabel}` : `${entry.count} ${countLabel}s`;
 
     row.appendChild(rank);
     row.appendChild(nameEl);
@@ -233,14 +233,20 @@ const renderShortestVideo = (videos) => {
   );
 };
 
-// Average how far through videos were watched, across videos with a
-// known duration (progress clamped to 100% in case of overshoot).
-const computeAverageCompletion = (videos) => {
-  const withDuration = videos.filter((v) => typeof v.duration === 'number' && v.duration > 0);
-  if (withDuration.length === 0) return null;
-  const avg = withDuration.reduce((sum, v) => sum + Math.min(1, v.time / v.duration), 0) / withDuration.length;
-  return Math.round(avg * 100);
-};
+// Counts completed watches using the full duration, then adds the current
+// saved position once so the latest partial watch is not double-counted.
+const computeTotalWatchSeconds = (videos) => videos.reduce((sum, video) => {
+  const time = typeof video.time === 'number' ? Math.max(0, video.time) : 0;
+  const duration = typeof video.duration === 'number' ? Math.max(0, video.duration) : 0;
+  const watchCount = Math.max(0, getWatchCount(video));
+  const completedBeforeCurrent = Math.max(0, watchCount - 1);
+  return sum + completedBeforeCurrent * duration + time;
+}, 0);
+
+const computeLiveWatchSeconds = (videos) => videos.reduce((sum, video) => {
+  if (!video.live || typeof video.time !== 'number') return sum;
+  return sum + Math.max(0, video.time);
+}, 0);
 
 // Longest run of consecutive calendar days with at least one saved
 // video, plus the current streak (only counts if it's still "alive",
@@ -295,11 +301,12 @@ const loadStats = () => {
   db_getAllVideos().then((videos) => {
     const totalVideos       = videos.length;
     const watchedVideos     = videos.filter((v) => v.watched).length;
-    const totalWatchSeconds = videos.reduce((sum, v) => sum + (typeof v.time === 'number' ? v.time : 0), 0);
+    const totalWatchSeconds = computeTotalWatchSeconds(videos);
     const totalWatchCount   = videos.reduce((sum, v) => sum + getWatchCount(v), 0);
     const channelCounts     = computeChannelCounts(videos);
+    const channelWatchCounts = computeChannelCounts(videos, true);
     const livestreamCount   = videos.filter((v) => v.live).length;
-    const avgCompletion     = computeAverageCompletion(videos);
+    const liveWatchSeconds  = computeLiveWatchSeconds(videos);
     const { current, longest } = computeStreaks(videos);
     const mostActiveDay     = computeMostActiveDay(videos);
     const videosThisWeek    = videos.filter((v) =>
@@ -310,7 +317,7 @@ const loadStats = () => {
     statTimeEl.textContent       = formatDuration(totalWatchSeconds);
     statRewatchesEl.textContent  = totalWatchCount.toLocaleString();
     statChannelsEl.textContent   = channelCounts.length.toLocaleString();
-    statCompletionEl.textContent = avgCompletion === null ? '—' : `${avgCompletion}%`;
+    statCompletionEl.textContent = formatDuration(liveWatchSeconds);
     statLivestreamsEl.textContent = livestreamCount.toLocaleString();
     statStreakCurrentEl.textContent = current === 1 ? '1 day' : `${current} days`;
     statStreakLongestEl.textContent = longest === 1 ? '1 day' : `${longest} days`;
@@ -338,7 +345,8 @@ const loadStats = () => {
     }
 
     renderTopVideos(videos);
-    renderTopChannels(channelCounts);
+    renderTopChannels(topChannelsContainer, channelCounts, 'video');
+    renderTopChannels(topChannelsRewatchContainer, channelWatchCounts, 'watch');
     renderLongestVideo(videos);
     renderShortestVideo(videos);
   }).catch(console.error);

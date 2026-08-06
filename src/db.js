@@ -15,15 +15,69 @@
  *                                watched transition)
  *   live {true|undefined}      — set for livestreams only
  *   timestamp {number}         — when last saved
+ *
+ * Watch events store schema:
+ *   id {number}                 — auto-increment primary key
+ *   videoId {string}            — references a videos.videoId record
+ *   watchedAt {number}          — when the watch was completed
+ *   watchDurationSeconds {number|undefined} — optional duration
  */
-
 'use strict';
 
 // Database config
 const DB_NAME       = 'ytwh';
-const DB_VERSION    = 1;
+const DB_VERSION    = 2;
 const STORE_VIDEOS  = 'videos';
+const STORE_EVENTS  = 'watchEvents';
 const IDX_TIMESTAMP = 'idx_timestamp'; // secondary index on timestamp for sorting
+const IDX_EVENT_VIDEO_ID = 'idx_video_id';
+const IDX_EVENT_WATCHED_AT = 'idx_watched_at';
+
+function db_getVersion() {
+  return DB_VERSION;
+}
+
+function db_getStoredVersion() {
+  if (typeof indexedDB.databases !== 'function') return Promise.resolve(null);
+
+  return indexedDB.databases().then((databases) => {
+    const database = databases.find((entry) => entry.name === DB_NAME);
+    return database ? database.version : 0;
+  });
+}
+
+function db_getBackupData() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME);
+
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+      const storeNames = [STORE_VIDEOS];
+      if (db.objectStoreNames.contains(STORE_EVENTS)) storeNames.push(STORE_EVENTS);
+
+      const tx = db.transaction(storeNames, 'readonly');
+      const videosRequest = tx.objectStore(STORE_VIDEOS).getAll();
+      const eventsRequest = storeNames.includes(STORE_EVENTS)
+        ? tx.objectStore(STORE_EVENTS).getAll()
+        : null;
+
+      tx.oncomplete = () => {
+        db.close();
+        resolve({
+          videos: videosRequest.result || [],
+          watchEvents: eventsRequest ? eventsRequest.result || [] : []
+        });
+      };
+      tx.onerror = (error) => {
+        db.close();
+        reject(error.target.error);
+      };
+    };
+
+    request.onerror = (event) => reject(event.target.error);
+    request.onblocked = () => reject(new Error('[YTWH] Backup read blocked by another tab'));
+  });
+}
 
 // Cache the open connection to avoid repeated open requests
 let _dbConnection = null;
@@ -54,6 +108,38 @@ function openDB() {
         // and sorting the entire store in JavaScript.
         store.createIndex(IDX_TIMESTAMP, 'timestamp', { unique: false });
       }
+
+      if (!db.objectStoreNames.contains(STORE_EVENTS)) {
+        const store = db.createObjectStore(STORE_EVENTS, {
+          keyPath: 'id',
+          autoIncrement: true
+        });
+        store.createIndex(IDX_EVENT_VIDEO_ID, 'videoId', { unique: false });
+        store.createIndex(IDX_EVENT_WATCHED_AT, 'watchedAt', { unique: false });
+      }
+
+      const transaction = event.target.transaction;
+      const videos = transaction.objectStore(STORE_VIDEOS).getAll();
+      if (event.oldVersion < 2) {
+        videos.onsuccess = () => {
+          const eventStore = transaction.objectStore(STORE_EVENTS);
+          eventStore.clear();
+
+          (videos.result || []).forEach((video) => {
+            const watchedAt = typeof video.timestamp === 'number'
+              ? video.timestamp
+              : Date.now();
+            transaction.objectStore(STORE_VIDEOS).put({
+              ...video,
+              watchCount: 1
+            });
+            eventStore.add({
+              videoId: video.videoId,
+              watchedAt
+            });
+          });
+        };
+      }
     };
 
     // Handle successful open
@@ -64,6 +150,12 @@ function openDB() {
       // database is deleted by another tab), clear the cache so
       // the next openDB() call re-opens it cleanly.
       _dbConnection.onclose = () => {
+        _dbConnection = null;
+      };
+
+      // Close cleanly when another extension page replaces or deletes the DB.
+      _dbConnection.onversionchange = () => {
+        _dbConnection.close();
         _dbConnection = null;
       };
 
@@ -97,6 +189,15 @@ function db_saveVideo(video) {
   }));
 }
 
+function db_recordWatchEvent(event) {
+  return openDB().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_EVENTS, 'readwrite');
+    tx.objectStore(STORE_EVENTS).add(event);
+    tx.oncomplete = ()  => resolve();
+    tx.onerror    = (e) => reject(e.target.error);
+  }));
+}
+
 /**
  * db_deleteVideo(videoId)
  * Permanently removes a single video record identified by its
@@ -125,8 +226,9 @@ function db_deleteVideo(videoId) {
  */
 function db_clearAllVideos() {
   return openDB().then((db) => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_VIDEOS, 'readwrite');
+    const tx = db.transaction([STORE_VIDEOS, STORE_EVENTS], 'readwrite');
     tx.objectStore(STORE_VIDEOS).clear();
+    tx.objectStore(STORE_EVENTS).clear();
     tx.oncomplete = ()  => resolve();
     tx.onerror    = (e) => reject(e.target.error);
   }));
@@ -144,20 +246,65 @@ function db_clearAllVideos() {
  * @param  {Object[]}      videos — Array of validated video records.
  * @returns {Promise<number>}       Resolves with the count imported.
  */
-function db_bulkImport(videos) {
+function db_bulkImport(videos, watchEvents = []) {
   return openDB().then((db) => new Promise((resolve, reject) => {
-    const tx    = db.transaction(STORE_VIDEOS, 'readwrite');
-    const store = tx.objectStore(STORE_VIDEOS);
+    const tx         = db.transaction([STORE_VIDEOS, STORE_EVENTS], 'readwrite');
+    const store      = tx.objectStore(STORE_VIDEOS);
+    const eventStore = tx.objectStore(STORE_EVENTS);
 
     // Wipe the store before writing to ensure a clean restore.
     store.clear();
+    eventStore.clear();
 
     // Queue every record in the same transaction for atomicity.
     videos.forEach((v) => store.put(v));
+    watchEvents.forEach((watchEvent) => {
+      eventStore.add(watchEvent);
+    });
 
     tx.oncomplete = ()  => resolve(videos.length);
     tx.onerror    = (e) => reject(e.target.error);
   }));
+}
+
+/**
+ * db_replaceDatabase(videos, watchEvents)
+ * Deletes and recreates the database at the current DB_VERSION, then imports
+ * the supplied records into the newly created stores.
+ *
+ * @returns {Promise<number>} Resolves with the count imported.
+ */
+function db_replaceDatabase(videos, watchEvents = []) {
+  if (_dbConnection) {
+    _dbConnection.close();
+    _dbConnection = null;
+  }
+
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DB_NAME);
+    let replacementStarted = false;
+
+    const replaceStores = () => {
+      if (replacementStarted) return;
+      replacementStarted = true;
+      db_bulkImport(videos, watchEvents).then(resolve).catch(reject);
+    };
+
+    request.onsuccess = () => {
+      // If deletion was blocked, the fallback may already have replaced the
+      // records in the existing database. Re-run the import after deletion
+      // completes so the final database is populated either way.
+      if (replacementStarted) {
+        db_bulkImport(videos, watchEvents).catch((error) => {
+          console.error('[YTWH] Post-delete import failed:', error);
+        });
+        return;
+      }
+      replaceStores();
+    };
+    request.onerror = (event) => reject(event.target.error);
+    request.onblocked = replaceStores;
+  });
 }
 
 // Read operations
@@ -247,6 +394,15 @@ function db_getAllVideos() {
     const req = tx.objectStore(STORE_VIDEOS).index(IDX_TIMESTAMP).getAll();
 
     req.onsuccess = ()  => resolve((req.result || []).reverse());
+    req.onerror   = (e) => reject(e.target.error);
+  }));
+}
+
+function db_getAllWatchEvents() {
+  return openDB().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_EVENTS, 'readonly');
+    const req = tx.objectStore(STORE_EVENTS).getAll();
+    req.onsuccess = ()  => resolve(req.result || []);
     req.onerror   = (e) => reject(e.target.error);
   }));
 }

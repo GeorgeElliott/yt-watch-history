@@ -5,6 +5,13 @@
 const DEBUG = false;
 const log = (...args) => { if (DEBUG) console.log('[WatchHistory for YouTube]', ...args); };
 
+let rewatchingVideoId = null;
+let completedVideoId = null;
+let resumeAppliedVideoId = null;
+let resumePendingVideoId = null;
+let liveTrackingVideoId = null;
+let liveLastSampleAt = 0;
+
 const isWatchPage = () => location.pathname === '/watch';
 
 const isLiveStream = () => {
@@ -21,10 +28,15 @@ const resumeVideo = () => {
   const videoId = new URLSearchParams(window.location.search).get('v');
 
   if (!video || !videoId) return;
+  if (resumeAppliedVideoId === videoId || resumePendingVideoId === videoId) return;
+
+  resumePendingVideoId = videoId;
 
   // If this is a livestream, jump to the live edge immediately.
   if (isLiveStream()) {
     video.currentTime = video.duration;
+    resumePendingVideoId = null;
+    resumeAppliedVideoId = videoId;
     log('Livestream detected — jumped to live');
     return;
   }
@@ -32,12 +44,18 @@ const resumeVideo = () => {
   // Ask the background service worker to look up the saved position
   // in IndexedDB. Content scripts cannot access extension IDB directly.
   chrome.runtime.sendMessage({ type: 'idb-get-video', videoId }, (response) => {
+    if (resumePendingVideoId === videoId) resumePendingVideoId = null;
+    if (new URLSearchParams(window.location.search).get('v') !== videoId) return;
+
     const savedVideo = response && response.video;
     // Only auto-jump if the user hasn't already seeked past the start.
     if (savedVideo && video.currentTime < 5) {
-      video.currentTime = savedVideo.time;
-      log(`Resumed at ${savedVideo.time}s`);
+      rewatchingVideoId = savedVideo.watched ? videoId : null;
+      const startTime = savedVideo.watched ? 0 : savedVideo.time;
+      video.currentTime = startTime;
+      log(`Resumed at ${startTime}s`);
     }
+    resumeAppliedVideoId = videoId;
   });
 };
 
@@ -116,6 +134,21 @@ const _doSaveProgressInternal = (watchedThreshold = 95) => {
   const duration    = video.duration || 0;
   const currentTime = Math.floor(video.currentTime);
   const progress    = duration > 0 ? video.currentTime / duration : 0;
+  const sampleAt    = Date.now();
+  let liveWatchDelta = 0;
+
+  if (isLive) {
+    if (liveTrackingVideoId === videoId && liveLastSampleAt > 0) {
+      // Save is called only while the player is active, so the elapsed wall
+      // time between samples represents the livestream watch interval.
+      liveWatchDelta = Math.min(30, Math.max(0, sampleAt - liveLastSampleAt) / 1000);
+    }
+    liveTrackingVideoId = videoId;
+    liveLastSampleAt = sampleAt;
+  } else if (liveTrackingVideoId !== videoId) {
+    liveTrackingVideoId = null;
+    liveLastSampleAt = 0;
+  }
 
   // Fetch the existing record first so we can preserve the previous
   // 'watched' flag and merge it correctly with the new progress.
@@ -128,10 +161,11 @@ const _doSaveProgressInternal = (watchedThreshold = 95) => {
       .replace(' - YouTube', '');
 
     const wasWatched = existing ? existing.watched : false;
+    const isRewatch = wasWatched && rewatchingVideoId === videoId;
     let watched;
     if (!isLive && progress >= watchedThreshold / 100) {
       watched = true;                         // Reached the end — mark watched
-    } else if (wasWatched && progress < 0.1) {
+    } else if (isRewatch || (wasWatched && progress < 0.1)) {
       watched = false;                        // Re-watching from the beginning
     } else {
       watched = wasWatched;                   // No change
@@ -143,24 +177,35 @@ const _doSaveProgressInternal = (watchedThreshold = 95) => {
     let watchCount = existing && typeof existing.watchCount === 'number'
       ? existing.watchCount
       : (wasWatched ? 1 : 0);
-    if (watched && !wasWatched) watchCount += 1; // Only on the not-watched → watched transition
+    if (watched && (!wasWatched || isRewatch)) watchCount += 1; // Only on the not-watched → watched transition
 
+    const watchedAt = Date.now();
+    const savedLiveTime = existing && existing.live && typeof existing.time === 'number'
+      ? Math.max(0, existing.time)
+      : 0;
     const record = {
       videoId,
       title:      cleanTitle,
       channel:    getChannelName(),
       channelUrl: getChannelUrl(),
-      time:       isLive ? 0 : currentTime,
+      time:       isLive ? savedLiveTime + liveWatchDelta : currentTime,
       duration:   isLive ? 0 : Math.floor(duration),
       watched,
       watchCount,
       live:       isLive ? true : undefined,
-      timestamp:  Date.now()
+      timestamp:  watchedAt
     };
 
     // Send the updated record to the background proxy for IDB storage.
     // Fire-and-forget — we don't need to wait for confirmation.
     chrome.runtime.sendMessage({ type: 'idb-save-video', video: record });
+    if (watched && (!wasWatched || isRewatch)) {
+      rewatchingVideoId = null;
+      chrome.runtime.sendMessage({
+        type: 'idb-record-watch-event',
+        watchEvent: { videoId, watchedAt }
+      });
+    }
 
     // Invalidate the in-memory history cache so the next badge or
     // shelf render reflects the freshly saved data.
@@ -220,10 +265,29 @@ const attachVideoLifecycleListeners = () => {
   if (!video || video.dataset.ytwhTracked) return;
   video.dataset.ytwhTracked = '1';
 
+  if (!video.paused && isLiveStream()) {
+    liveTrackingVideoId = new URLSearchParams(window.location.search).get('v');
+    liveLastSampleAt = Date.now();
+  }
+
   // Reached the end of playback — save immediately rather than waiting
   // for the next periodic tick. Critical for very short videos that
   // can start and finish between ticks.
-  video.addEventListener('ended', saveProgressImmediate);
+  video.addEventListener('ended', () => {
+    completedVideoId = new URLSearchParams(window.location.search).get('v');
+    saveProgressImmediate();
+  });
+  video.addEventListener('play', () => {
+    const videoId = new URLSearchParams(window.location.search).get('v');
+    if (isLiveStream()) {
+      liveTrackingVideoId = videoId;
+      liveLastSampleAt = Date.now();
+    }
+    if (videoId && completedVideoId === videoId) {
+      rewatchingVideoId = videoId;
+      completedVideoId = null;
+    }
+  });
 
   // Re-evaluate the polling rate whenever a new video's duration
   // becomes known (fires again on every src change, not just once).
@@ -512,7 +576,8 @@ const toggleWatchedForVideo = (renderer, link, videoId) => {
       // user's watch threshold — otherwise spamming "Reset progress" and
       // "Mark as watched" could inflate the count without watching anything.
       const progress = record.duration > 0 ? record.time / record.duration : 0;
-      if (nowWatched && !wasWatched && progress >= watchedThreshold / 100) {
+      const creditedWatch = nowWatched && !wasWatched && progress >= watchedThreshold / 100;
+      if (creditedWatch) {
         record.watchCount += 1;
       }
 
@@ -521,6 +586,12 @@ const toggleWatchedForVideo = (renderer, link, videoId) => {
       record.timestamp = Date.now();
 
       chrome.runtime.sendMessage({ type: 'idb-save-video', video: record });
+      if (creditedWatch) {
+        chrome.runtime.sendMessage({
+          type: 'idb-record-watch-event',
+          watchEvent: { videoId, watchedAt: record.timestamp }
+        });
+      }
       invalidateHistoryCache();
       updateThumbnailAfterToggle(renderer, nowWatched);
     });
@@ -890,7 +961,7 @@ const injectPickupShelfStyles = () => {
 };
 
 const buildShelfVideoCard = (video) => {
-  const url = video.live
+  const url = video.live || video.watched
     ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`
     : `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&t=${video.time}s`;
   const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/mqdefault.jpg`;
@@ -1084,6 +1155,8 @@ let lastUrl = location.href;
 const observer = new MutationObserver(() => {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
+    liveTrackingVideoId = null;
+    liveLastSampleAt = 0;
     checkRedirects();
     applyHideShorts();
     updateShelfState();

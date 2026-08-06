@@ -204,7 +204,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-value" id="stat-watched">0</div>
-        <div class="stat-label">Videos Watched</div>
+        <div class="stat-label">Videos Completed</div>
       </div>
       <div class="stat-card">
         <div class="stat-value" id="stat-time">0m</div>
@@ -224,7 +224,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-value" id="stat-completion">—</div>
-        <div class="stat-label">Avg. Completion</div>
+        <div class="stat-label">Live Watch Time</div>
       </div>
       <div class="stat-card">
         <div class="stat-value" id="stat-livestreams">0</div>
@@ -261,11 +261,18 @@
       <div id="top-videos"></div>
     </div>
 
-    <!-- Top 5 Channels -->
+    <!-- Top 5 Channels by Unique Videos -->
     <div class="panel">
-      <div class="panel-title">Top 5 Channels</div>
-      <div class="panel-description">Channels you've watched the most videos from.</div>
+      <div class="panel-title">Top 5 Channels by Unique Videos</div>
+      <div class="panel-description">Channels with the most distinct videos in your history.</div>
       <div id="top-channels"></div>
+    </div>
+
+    <!-- Top 5 Channels Including Rewatches -->
+    <div class="panel">
+      <div class="panel-title">Top 5 Channels Including Rewatches</div>
+      <div class="panel-description">Channels with the most total watches, including repeat views.</div>
+      <div id="top-channels-rewatches"></div>
     </div>
 
     <!-- Longest Video Watched -->
