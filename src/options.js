@@ -14,6 +14,15 @@ const hideWatchedDefaultToggle = document.getElementById('hide-watched-default-t
 const pickupShelfToggle        = document.getElementById('pickup-shelf-toggle');
 const ghostModeOptions         = document.getElementById('ghostModeOptions');
 const watchedThresholdInput    = document.getElementById('watched-threshold-input');
+const backgroundPlaybackToggle = document.getElementById('background-playback-toggle');
+const importStatusMenu         = document.getElementById('import-status-menu');
+const importStatus             = document.getElementById('import-status');
+const operationStatusTitle     = document.getElementById('operation-status-title');
+const operationProgress        = document.getElementById('operation-progress');
+const operationLog             = document.getElementById('operation-log');
+const exportButton             = document.getElementById('export-btn');
+const importButton             = document.getElementById('import-btn');
+let operationInProgress        = false;
 
 // Helpers
 
@@ -33,13 +42,58 @@ const showToast = (message) => {
   setTimeout(() => toast.classList.remove('show'), 2000);
 };
 
-const downloadBackup = ({ videos, watchEvents }) => {
+const setOperationStatus = (message, progress = null, logMessage = message) => {
+  if (importStatus) importStatus.textContent = message;
+  if (operationProgress && progress !== null) operationProgress.value = progress;
+  if (operationLog && logMessage) {
+    const item = document.createElement('li');
+    item.textContent = `${new Date().toLocaleTimeString()} - ${logMessage}`;
+    operationLog.prepend(item);
+    while (operationLog.children.length > 8) operationLog.lastElementChild.remove();
+  }
+  console.log(`[YTWH] ${message}`);
+  if (importStatusMenu) {
+    importStatusMenu.hidden = false;
+    importStatusMenu.open = true;
+  }
+};
+
+const setImportStatus = (message, progress = null) => {
+  setOperationStatus(message, progress);
+};
+
+const startOperation = (title) => {
+  operationInProgress = true;
+  if (exportButton) exportButton.disabled = true;
+  if (importButton) importButton.disabled = true;
+  if (operationStatusTitle) operationStatusTitle.textContent = title;
+  if (operationProgress) operationProgress.value = 0;
+  if (operationLog) operationLog.replaceChildren();
+  setOperationStatus('Starting...', 0, `${title} started`);
+};
+
+const failOperation = (message) => {
+  setOperationStatus(message, operationProgress ? operationProgress.value : null, message);
+  operationInProgress = false;
+  if (exportButton) exportButton.disabled = false;
+  if (importButton) importButton.disabled = false;
+};
+
+const completeOperation = (message) => {
+  setOperationStatus(message, 100, message);
+  operationInProgress = false;
+  if (exportButton) exportButton.disabled = false;
+  if (importButton) importButton.disabled = false;
+};
+
+const downloadBackup = ({ videos, watchEvents, watchSessions }) => {
   const payload = {
     exportDate: new Date().toISOString(),
     dbVersion: db_getVersion(),
     count: videos.length,
     history: videos,
-    watchEvents
+    watchEvents,
+    watchSessions
   };
 
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -51,6 +105,7 @@ const downloadBackup = ({ videos, watchEvents }) => {
   URL.revokeObjectURL(url);
 
   chrome.storage.local.set({ showBackupReminder: false, lastBackupTimestamp: Date.now() });
+  completeOperation(`Export complete: ${videos.length.toLocaleString()} videos saved.`);
   showToast(`Exported ${videos.length.toLocaleString()} videos`);
 };
 
@@ -97,6 +152,7 @@ chrome.storage.local.get(
     pickupShelf:             true,
     backupReminderFrequency: 'weekly',
     watchedThreshold: 95,
+    countBackgroundPlayback: false,
   },
   (data) => {
     badgeToggle.checked              = data.resumeBadges;
@@ -113,6 +169,9 @@ chrome.storage.local.get(
     }
     if (watchedThresholdInput) {
       watchedThresholdInput.value = data.watchedThreshold;
+    }
+    if (backgroundPlaybackToggle) {
+      backgroundPlaybackToggle.checked = Boolean(data.countBackgroundPlayback);
     }
   }
 );
@@ -203,6 +262,18 @@ if (watchedThresholdInput) {
   };
 }
 
+if (backgroundPlaybackToggle) {
+  backgroundPlaybackToggle.onchange = () => {
+    chrome.storage.local.set({ countBackgroundPlayback: backgroundPlaybackToggle.checked }, () => {
+      showToast(
+        backgroundPlaybackToggle.checked
+          ? 'Background YouTube playback enabled'
+          : 'Background YouTube playback disabled'
+      );
+    });
+  };
+}
+
 // Clear all
 document.getElementById('clear-btn').onclick = () => {
   if (confirm('Permanently delete your entire local history? This cannot be undone.')) {
@@ -218,15 +289,34 @@ document.getElementById('clear-btn').onclick = () => {
 
 // Export: downloads all videos as JSON
 document.getElementById('export-btn').onclick = () => {
-  Promise.all([db_getAllVideos(), db_getAllWatchEvents()])
-    .then(([videos, watchEvents]) => downloadBackup({ videos, watchEvents }))
-    .catch(() => showToast('Export failed'));
+  if (operationInProgress) return;
+  startOperation('Export status');
+  setOperationStatus('Reading videos...', 20);
+  db_getAllVideos()
+    .then((videos) => {
+      setOperationStatus('Reading watch events...', 45);
+      return db_getAllWatchEvents().then((watchEvents) => ({ videos, watchEvents }));
+    })
+    .then(({ videos, watchEvents }) => {
+      setOperationStatus('Reading watch sessions...', 65);
+      return db_getAllWatchSessions().then((watchSessions) => ({ videos, watchEvents, watchSessions }));
+    })
+    .then((backup) => {
+      setOperationStatus('Creating backup file...', 85);
+      downloadBackup(backup);
+    })
+    .catch((error) => {
+      console.error('[YTWH] Export failed:', error);
+      failOperation(`Export failed: ${error.message || 'Unknown database error'}`);
+      showToast('Export failed');
+    });
 };
 
 // Import: accepts JSON exports. Validates and accepts both videoId and legacy id format.
 const importFile = document.getElementById('import-file');
 
 document.getElementById('import-btn').onclick = () => {
+  if (operationInProgress) return;
   importFile.click();
 };
 
@@ -234,9 +324,22 @@ importFile.onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
+  startOperation('Import status');
+  setImportStatus(`Reading ${file.name}...`, 5);
+
   const reader = new FileReader();
+  reader.onerror = () => {
+    failOperation(`Import failed while reading ${file.name}.`);
+    showToast('Import failed');
+  };
+  reader.onprogress = (event) => {
+    if (event.lengthComputable) {
+      setImportStatus(`Reading ${file.name}...`, Math.max(5, Math.round((event.loaded / event.total) * 20)));
+    }
+  };
   reader.onload = (event) => {
     try {
+      setImportStatus('Validating backup data...', 35);
       const data = JSON.parse(event.target.result);
 
       // Accept both { history: [...] } wrapper and a bare array.
@@ -245,6 +348,7 @@ importFile.onchange = (e) => {
         : (Array.isArray(data) ? data : null);
 
       if (!rawHistory) {
+        failOperation('Import failed: invalid file format.');
         showToast('Invalid file format');
         return;
       }
@@ -276,30 +380,52 @@ importFile.onchange = (e) => {
           // counts. Treat an already-watched video as one prior watch.
           watchCount: typeof v.watchCount === 'number' ? v.watchCount : (v.watched === true ? 1 : 0),
           live:       v.live === true ? true : undefined,
+          liveReplay: v.liveReplay === true ? true : undefined,
           timestamp:  Math.floor(v.timestamp)
         }));
 
+      const importedVideoIds = new Set(validated.map((video) => video.videoId));
+      const importedSessions = Array.isArray(data.watchSessions)
+        ? data.watchSessions
+          .filter((session) =>
+            importedVideoIds.has(session.videoId) &&
+            Number.isFinite(session.watchedAt) &&
+            session.watchedAt >= 0 &&
+            Number.isFinite(session.seconds) &&
+            session.seconds > 0 &&
+            session.seconds <= 3600)
+          .map((session) => ({
+            videoId: session.videoId,
+            watchedAt: Math.floor(session.watchedAt),
+            seconds: Math.floor(session.seconds),
+            streamType: ['normal', 'live', 'liveReplay'].includes(session.streamType)
+              ? session.streamType
+              : 'normal'
+          }))
+        : [];
+
       if (validated.length === 0) {
+        failOperation('Import failed: no valid videos found.');
         showToast('No valid videos found in file');
         return;
       }
 
-      const importedEvents = Array.isArray(data.watchEvents)
+      const importedEventsFromBackup = Array.isArray(data.watchEvents)
         ? data.watchEvents
           .filter((watchEvent) =>
-            typeof watchEvent.videoId === 'string' &&
+            importedVideoIds.has(watchEvent.videoId) &&
             Number.isFinite(watchEvent.watchedAt) &&
             watchEvent.watchedAt >= 0)
           .map((watchEvent) => ({
-            ...(Number.isInteger(watchEvent.id) && watchEvent.id > 0
-              ? { id: watchEvent.id }
-              : {}),
             videoId: watchEvent.videoId,
             watchedAt: Math.floor(watchEvent.watchedAt),
             ...(Number.isFinite(watchEvent.watchDurationSeconds)
               ? { watchDurationSeconds: watchEvent.watchDurationSeconds }
               : {})
           }))
+        : [];
+      const importedEvents = importedEventsFromBackup.length > 0
+        ? importedEventsFromBackup
         : validated
           .filter((video) => video.watchCount > 0 || video.watched === true)
           .flatMap((video) => Array.from({
@@ -311,18 +437,37 @@ importFile.onchange = (e) => {
 
       // Replace the database and import videos and watch events at the
       // current extension DB version. The backup version is informational.
-      db_replaceDatabase(validated, importedEvents)
+      setImportStatus(`Replacing database with ${validated.length.toLocaleString()} videos...`, 60);
+      db_replaceDatabase(validated, importedEvents, importedSessions, ({ phase, completed, total, record }) => {
+        const phaseLabels = {
+          videos: 'videos',
+          events: 'watch events',
+          sessions: 'watch sessions'
+        };
+        const label = phaseLabels[phase] || phase;
+        const progress = phase === 'videos'
+          ? 60 + Math.round((completed / Math.max(1, total)) * 12)
+          : phase === 'events'
+            ? 72 + Math.round((completed / Math.max(1, total)) * 12)
+            : 84 + Math.round((completed / Math.max(1, total)) * 11);
+        const identifier = record.videoId || record.title || '';
+        setOperationStatus(`Importing ${label} ${completed.toLocaleString()} of ${total.toLocaleString()}...`, progress,
+          `Imported ${completed}/${total} ${label}: ${identifier}`);
+      })
         .then((count) => {
+          completeOperation(`Import complete: ${count.toLocaleString()} videos restored.`);
           // Update the cached count
           chrome.storage.local.set({ videoCount: count });
           showToast(`Imported ${count.toLocaleString()} videos`);
         })
         .catch((error) => {
           console.error('[YTWH] Import failed:', error);
+          failOperation(`Import failed: ${error.message || 'Unknown database error'}`);
           showToast('Import failed');
         });
 
     } catch {
+      failOperation('Import failed: invalid JSON or backup format.');
       showToast('Failed to parse file');
     }
   };

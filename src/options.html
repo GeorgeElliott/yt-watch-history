@@ -159,6 +159,16 @@
           <span style="font-size:13px; color:var(--text-secondary);">%</span>
         </div>
       </div>
+      <div class="panel-row">
+        <div>
+          <label>Count background YouTube playback</label>
+          <div class="help-text">When enabled, playing YouTube videos continue to count when this tab is hidden. This includes music, podcasts, livestreams, and regular videos.</div>
+        </div>
+        <label class="toggle" aria-label="Count background YouTube playback">
+          <input type="checkbox" id="background-playback-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </div>
     <!-- Ghost Mode -->
     <div class="panel">
@@ -217,6 +227,12 @@
           <button id="import-btn" class="btn btn-sm">Import</button>
         </div>
       </div>
+      <details id="import-status-menu" class="panel-row" hidden>
+        <summary id="operation-status-title">Import / Export status</summary>
+        <div id="import-status" class="help-text">Waiting to start</div>
+        <progress id="operation-progress" value="0" max="100" style="width:100%; margin-top:8px;"></progress>
+        <ol id="operation-log" class="help-text" style="margin:8px 0 0; padding-left:20px;"></ol>
+      </details>
       <div class="panel-row">
         <div>
           <label class="text-red">Clear all history</label>

@@ -14,6 +14,7 @@
  *                                watched (incremented on each not-watched →
  *                                watched transition)
  *   live {true|undefined}      — set for livestreams only
+ *   liveReplay {true|undefined} — set for completed livestream replays
  *   timestamp {number}         — when last saved
  *
  * Watch events store schema:
@@ -21,17 +22,27 @@
  *   videoId {string}            — references a videos.videoId record
  *   watchedAt {number}          — when the watch was completed
  *   watchDurationSeconds {number|undefined} — optional duration
+ *
+ * Watch sessions store schema:
+ *   id {number}           — auto-increment primary key
+ *   videoId {string}      — references a videos.videoId record
+ *   watchedAt {number}    — when the active interval ended
+ *   seconds {number}      — seconds watched in the active interval
+ *   streamType {string}   — normal, live, or liveReplay
  */
 'use strict';
 
 // Database config
 const DB_NAME       = 'ytwh';
-const DB_VERSION    = 2;
+const DB_VERSION    = 3;
 const STORE_VIDEOS  = 'videos';
 const STORE_EVENTS  = 'watchEvents';
+const STORE_SESSIONS = 'watchSessions';
 const IDX_TIMESTAMP = 'idx_timestamp'; // secondary index on timestamp for sorting
 const IDX_EVENT_VIDEO_ID = 'idx_video_id';
 const IDX_EVENT_WATCHED_AT = 'idx_watched_at';
+const IDX_SESSION_VIDEO_ID = 'idx_session_video_id';
+const IDX_SESSION_WATCHED_AT = 'idx_session_watched_at';
 
 function db_getVersion() {
   return DB_VERSION;
@@ -54,18 +65,23 @@ function db_getBackupData() {
       const db = event.target.result;
       const storeNames = [STORE_VIDEOS];
       if (db.objectStoreNames.contains(STORE_EVENTS)) storeNames.push(STORE_EVENTS);
+      if (db.objectStoreNames.contains(STORE_SESSIONS)) storeNames.push(STORE_SESSIONS);
 
       const tx = db.transaction(storeNames, 'readonly');
       const videosRequest = tx.objectStore(STORE_VIDEOS).getAll();
       const eventsRequest = storeNames.includes(STORE_EVENTS)
         ? tx.objectStore(STORE_EVENTS).getAll()
         : null;
+      const sessionsRequest = storeNames.includes(STORE_SESSIONS)
+        ? tx.objectStore(STORE_SESSIONS).getAll()
+        : null;
 
       tx.oncomplete = () => {
         db.close();
         resolve({
           videos: videosRequest.result || [],
-          watchEvents: eventsRequest ? eventsRequest.result || [] : []
+          watchEvents: eventsRequest ? eventsRequest.result || [] : [],
+          watchSessions: sessionsRequest ? sessionsRequest.result || [] : []
         });
       };
       tx.onerror = (error) => {
@@ -118,24 +134,53 @@ function openDB() {
         store.createIndex(IDX_EVENT_WATCHED_AT, 'watchedAt', { unique: false });
       }
 
+      if (!db.objectStoreNames.contains(STORE_SESSIONS)) {
+        const store = db.createObjectStore(STORE_SESSIONS, {
+          keyPath: 'id',
+          autoIncrement: true
+        });
+        store.createIndex(IDX_SESSION_VIDEO_ID, 'videoId', { unique: false });
+        store.createIndex(IDX_SESSION_WATCHED_AT, 'watchedAt', { unique: false });
+      }
+
       const transaction = event.target.transaction;
       const videos = transaction.objectStore(STORE_VIDEOS).getAll();
-      if (event.oldVersion < 2) {
+      if (event.oldVersion < 3) {
         videos.onsuccess = () => {
-          const eventStore = transaction.objectStore(STORE_EVENTS);
-          eventStore.clear();
+          if (event.oldVersion < 2) {
+            const eventStore = transaction.objectStore(STORE_EVENTS);
+            eventStore.clear();
 
-          (videos.result || []).forEach((video) => {
-            const watchedAt = typeof video.timestamp === 'number'
-              ? video.timestamp
-              : Date.now();
-            transaction.objectStore(STORE_VIDEOS).put({
-              ...video,
-              watchCount: 1
+            (videos.result || []).forEach((video) => {
+              const watchedAt = typeof video.timestamp === 'number'
+                ? video.timestamp
+                : Date.now();
+              transaction.objectStore(STORE_VIDEOS).put({
+                ...video,
+                watchCount: 1
+              });
+              eventStore.add({
+                videoId: video.videoId,
+                watchedAt
+              });
             });
-            eventStore.add({
+          }
+
+          if (event.oldVersion >= 3) return;
+          const sessionStore = transaction.objectStore(STORE_SESSIONS);
+          (videos.result || []).forEach((video) => {
+            const duration = typeof video.duration === 'number' ? Math.max(0, video.duration) : 0;
+            const time = typeof video.time === 'number' ? Math.max(0, video.time) : 0;
+            const watchCount = typeof video.watchCount === 'number'
+              ? Math.max(0, video.watchCount)
+              : (video.watched ? 1 : 0);
+            const seconds = Math.max(0, Math.floor(Math.max(0, watchCount - 1) * duration + time));
+            if (seconds <= 0) return;
+            sessionStore.add({
               videoId: video.videoId,
-              watchedAt
+              watchedAt: typeof video.timestamp === 'number' ? video.timestamp : Date.now(),
+              seconds,
+              streamType: video.live ? 'live' : video.liveReplay ? 'liveReplay' : 'normal'
             });
           });
         };
@@ -198,6 +243,15 @@ function db_recordWatchEvent(event) {
   }));
 }
 
+function db_recordWatchSession(session) {
+  return openDB().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_SESSIONS, 'readwrite');
+    tx.objectStore(STORE_SESSIONS).add(session);
+    tx.oncomplete = () => resolve();
+    tx.onerror = (e) => reject(e.target.error);
+  }));
+}
+
 /**
  * db_deleteVideo(videoId)
  * Permanently removes a single video record identified by its
@@ -209,8 +263,15 @@ function db_recordWatchEvent(event) {
  */
 function db_deleteVideo(videoId) {
   return openDB().then((db) => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_VIDEOS, 'readwrite');
+    const tx = db.transaction([STORE_VIDEOS, STORE_SESSIONS], 'readwrite');
     tx.objectStore(STORE_VIDEOS).delete(videoId);
+    const sessionIndex = tx.objectStore(STORE_SESSIONS).index(IDX_SESSION_VIDEO_ID);
+    sessionIndex.openCursor(IDBKeyRange.only(videoId)).onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (!cursor) return;
+      cursor.delete();
+      cursor.continue();
+    };
     tx.oncomplete = ()  => resolve();
     tx.onerror    = (e) => reject(e.target.error);
   }));
@@ -226,9 +287,10 @@ function db_deleteVideo(videoId) {
  */
 function db_clearAllVideos() {
   return openDB().then((db) => new Promise((resolve, reject) => {
-    const tx = db.transaction([STORE_VIDEOS, STORE_EVENTS], 'readwrite');
+    const tx = db.transaction([STORE_VIDEOS, STORE_EVENTS, STORE_SESSIONS], 'readwrite');
     tx.objectStore(STORE_VIDEOS).clear();
     tx.objectStore(STORE_EVENTS).clear();
+    tx.objectStore(STORE_SESSIONS).clear();
     tx.oncomplete = ()  => resolve();
     tx.onerror    = (e) => reject(e.target.error);
   }));
@@ -246,24 +308,70 @@ function db_clearAllVideos() {
  * @param  {Object[]}      videos — Array of validated video records.
  * @returns {Promise<number>}       Resolves with the count imported.
  */
-function db_bulkImport(videos, watchEvents = []) {
+function db_bulkImport(videos, watchEvents = [], watchSessions = [], onProgress = null) {
   return openDB().then((db) => new Promise((resolve, reject) => {
-    const tx         = db.transaction([STORE_VIDEOS, STORE_EVENTS], 'readwrite');
+    const tx         = db.transaction([STORE_VIDEOS, STORE_EVENTS, STORE_SESSIONS], 'readwrite');
     const store      = tx.objectStore(STORE_VIDEOS);
     const eventStore = tx.objectStore(STORE_EVENTS);
+    const sessionStore = tx.objectStore(STORE_SESSIONS);
 
     // Wipe the store before writing to ensure a clean restore.
     store.clear();
     eventStore.clear();
+    sessionStore.clear();
 
     // Queue every record in the same transaction for atomicity.
-    videos.forEach((v) => store.put(v));
-    watchEvents.forEach((watchEvent) => {
+    videos.forEach((v, index) => {
+      store.put(v);
+      if (typeof onProgress === 'function') {
+        onProgress({
+          phase: 'videos',
+          completed: index + 1,
+          total: videos.length,
+          record: v
+        });
+      }
+    });
+    watchEvents.forEach((watchEvent, index) => {
       eventStore.add(watchEvent);
+      if (typeof onProgress === 'function') {
+        onProgress({
+          phase: 'events',
+          completed: index + 1,
+          total: watchEvents.length,
+          record: watchEvent
+        });
+      }
+    });
+    const sessions = watchSessions.length > 0 ? watchSessions : videos.flatMap((video) => {
+      const duration = typeof video.duration === 'number' ? Math.max(0, video.duration) : 0;
+      const time = typeof video.time === 'number' ? Math.max(0, video.time) : 0;
+      const watchCount = typeof video.watchCount === 'number'
+        ? Math.max(0, video.watchCount)
+        : (video.watched ? 1 : 0);
+      const seconds = Math.max(0, Math.floor(Math.max(0, watchCount - 1) * duration + time));
+      return seconds > 0 ? [{
+        videoId: video.videoId,
+        watchedAt: typeof video.timestamp === 'number' ? video.timestamp : Date.now(),
+        seconds,
+        streamType: video.live ? 'live' : video.liveReplay ? 'liveReplay' : 'normal'
+      }] : [];
+    });
+    sessions.forEach((session, index) => {
+      sessionStore.add(session);
+      if (typeof onProgress === 'function') {
+        onProgress({
+          phase: 'sessions',
+          completed: index + 1,
+          total: sessions.length,
+          record: session
+        });
+      }
     });
 
     tx.oncomplete = ()  => resolve(videos.length);
     tx.onerror    = (e) => reject(e.target.error);
+    tx.onabort    = (e) => reject(e.target.error || new Error('Import transaction aborted'));
   }));
 }
 
@@ -274,37 +382,11 @@ function db_bulkImport(videos, watchEvents = []) {
  *
  * @returns {Promise<number>} Resolves with the count imported.
  */
-function db_replaceDatabase(videos, watchEvents = []) {
-  if (_dbConnection) {
-    _dbConnection.close();
-    _dbConnection = null;
-  }
-
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.deleteDatabase(DB_NAME);
-    let replacementStarted = false;
-
-    const replaceStores = () => {
-      if (replacementStarted) return;
-      replacementStarted = true;
-      db_bulkImport(videos, watchEvents).then(resolve).catch(reject);
-    };
-
-    request.onsuccess = () => {
-      // If deletion was blocked, the fallback may already have replaced the
-      // records in the existing database. Re-run the import after deletion
-      // completes so the final database is populated either way.
-      if (replacementStarted) {
-        db_bulkImport(videos, watchEvents).catch((error) => {
-          console.error('[YTWH] Post-delete import failed:', error);
-        });
-        return;
-      }
-      replaceStores();
-    };
-    request.onerror = (event) => reject(event.target.error);
-    request.onblocked = replaceStores;
-  });
+function db_replaceDatabase(videos, watchEvents = [], watchSessions = [], onProgress = null) {
+  // db_bulkImport clears every application store in one atomic transaction,
+  // so it replaces the database contents without waiting for other extension
+  // contexts to close connections for deleteDatabase().
+  return db_bulkImport(videos, watchEvents, watchSessions, onProgress);
 }
 
 // Read operations
@@ -404,6 +486,15 @@ function db_getAllWatchEvents() {
     const req = tx.objectStore(STORE_EVENTS).getAll();
     req.onsuccess = ()  => resolve(req.result || []);
     req.onerror   = (e) => reject(e.target.error);
+  }));
+}
+
+function db_getAllWatchSessions() {
+  return openDB().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_SESSIONS, 'readonly');
+    const req = tx.objectStore(STORE_SESSIONS).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = (e) => reject(e.target.error);
   }));
 }
 

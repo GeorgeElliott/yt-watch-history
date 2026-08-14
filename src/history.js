@@ -19,8 +19,9 @@ const showToast = (message) => {
 };
 
 const formatTime = (seconds) => {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
+  const roundedSeconds = Math.max(0, Math.round(seconds || 0));
+  const m = Math.floor(roundedSeconds / 60);
+  const s = roundedSeconds % 60;
   return `${m}m ${s}s`;
 };
 
@@ -80,7 +81,14 @@ const renderBatch = () => {
       : `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&t=${video.time}s`;
     const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/mqdefault.jpg`;
     const date = new Date(video.timestamp).toLocaleDateString();
-    const timeBadge = video.live ? '\u{1F534} Livestream' : video.watched ? '\u2713 Watched' : formatTime(video.time);
+    const liveTime = `${formatTime(video.time)} watched`;
+    const timeBadge = video.live
+      ? `\u{1F534} Livestream \u2022 ${liveTime}`
+      : video.liveReplay
+        ? `\u{1F504} Livestream \u2022 ${liveTime}`
+        : video.watched
+          ? '\u2713 Watched'
+          : formatTime(video.time);
 
     const card = document.createElement('div');
     card.className = 'video-card';

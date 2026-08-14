@@ -23,6 +23,7 @@ const topChannelsContainer = document.getElementById('top-channels');
 const topChannelsRewatchContainer = document.getElementById('top-channels-rewatches');
 const longestVideoContainer = document.getElementById('longest-video');
 const shortestVideoContainer = document.getElementById('shortest-video');
+const dailyWatchTimeContainer = document.getElementById('daily-watch-time');
 
 const DAY_MS = 86400000;
 
@@ -32,6 +33,7 @@ const getWatchCount = (video) =>
   typeof video.watchCount === 'number' ? video.watchCount : (video.watched ? 1 : 0);
 
 const formatDuration = (totalSeconds) => {
+  totalSeconds = Math.max(0, Math.round(totalSeconds || 0));
   const hours   = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   if (hours > 0) return `${hours}h ${minutes}m`;
@@ -243,6 +245,43 @@ const computeTotalWatchSeconds = (videos) => videos.reduce((sum, video) => {
   return sum + completedBeforeCurrent * duration + time;
 }, 0);
 
+const computeSessionWatchSeconds = (videos, sessions) => {
+  const sessionVideoIds = new Set(sessions.map((session) => session.videoId));
+  const sessionSeconds = sessions.reduce((sum, session) =>
+    sum + (Number.isFinite(session.seconds) ? Math.max(0, session.seconds) : 0), 0);
+  const legacySeconds = videos
+    .filter((video) => !sessionVideoIds.has(video.videoId))
+    .reduce((sum, video) => sum + computeTotalWatchSeconds([video]), 0);
+  return sessionSeconds + legacySeconds;
+};
+
+const renderDailyWatchTime = (sessions) => {
+  if (!dailyWatchTimeContainer) return;
+  const today = dayKey(Date.now());
+  const totals = new Map();
+  sessions.forEach((session) => {
+    if (!Number.isFinite(session.watchedAt) || !Number.isFinite(session.seconds)) return;
+    const key = dayKey(session.watchedAt);
+    if (today - key < 0 || today - key > 6 * DAY_MS) return;
+    totals.set(key, (totals.get(key) || 0) + Math.max(0, session.seconds));
+  });
+
+  dailyWatchTimeContainer.replaceChildren(...Array.from({ length: 7 }, (_, index) => {
+    const key = today - (6 - index) * DAY_MS;
+    const row = document.createElement('div');
+    row.className = 'stats-channel-row';
+    const day = document.createElement('div');
+    day.className = 'stats-channel-name';
+    day.textContent = new Date(key).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const total = document.createElement('div');
+    total.className = 'stats-count-badge';
+    total.textContent = formatDuration(totals.get(key) || 0);
+    row.appendChild(day);
+    row.appendChild(total);
+    return row;
+  }));
+};
+
 const computeLiveWatchSeconds = (videos) => videos.reduce((sum, video) => {
   if (!video.live || typeof video.time !== 'number') return sum;
   return sum + Math.max(0, video.time);
@@ -298,19 +337,22 @@ const computeMostActiveDay = (videos) => {
 };
 
 const loadStats = () => {
-  db_getAllVideos().then((videos) => {
+  Promise.all([db_getAllVideos(), db_getAllWatchSessions()]).then(([videos, sessions]) => {
     const totalVideos       = videos.length;
     const watchedVideos     = videos.filter((v) => v.watched).length;
-    const totalWatchSeconds = computeTotalWatchSeconds(videos);
+    const totalWatchSeconds = computeSessionWatchSeconds(videos, sessions);
     const totalWatchCount   = videos.reduce((sum, v) => sum + getWatchCount(v), 0);
     const channelCounts     = computeChannelCounts(videos);
     const channelWatchCounts = computeChannelCounts(videos, true);
     const livestreamCount   = videos.filter((v) => v.live).length;
-    const liveWatchSeconds  = computeLiveWatchSeconds(videos);
+    const liveWatchSeconds  = sessions
+      .filter((session) => session.streamType === 'live' || session.streamType === 'liveReplay')
+      .reduce((sum, session) => sum + Math.max(0, session.seconds || 0), 0);
     const { current, longest } = computeStreaks(videos);
     const mostActiveDay     = computeMostActiveDay(videos);
-    const videosThisWeek    = videos.filter((v) =>
-      typeof v.timestamp === 'number' && Date.now() - v.timestamp <= 7 * DAY_MS).length;
+    const watchTimeThisWeek = sessions
+      .filter((session) => typeof session.watchedAt === 'number' && Date.now() - session.watchedAt <= 7 * DAY_MS)
+      .reduce((sum, session) => sum + Math.max(0, session.seconds || 0), 0);
 
     statTotalEl.textContent      = totalVideos.toLocaleString();
     statWatchedEl.textContent    = watchedVideos.toLocaleString();
@@ -321,7 +363,7 @@ const loadStats = () => {
     statLivestreamsEl.textContent = livestreamCount.toLocaleString();
     statStreakCurrentEl.textContent = current === 1 ? '1 day' : `${current} days`;
     statStreakLongestEl.textContent = longest === 1 ? '1 day' : `${longest} days`;
-    statWeekEl.textContent = videosThisWeek.toLocaleString();
+    statWeekEl.textContent = formatDuration(watchTimeThisWeek);
 
     if (mostActiveDay) {
       statActiveDayEl.textContent = mostActiveDay.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -349,6 +391,7 @@ const loadStats = () => {
     renderTopChannels(topChannelsRewatchContainer, channelWatchCounts, 'watch');
     renderLongestVideo(videos);
     renderShortestVideo(videos);
+    renderDailyWatchTime(sessions);
   }).catch(console.error);
 };
 

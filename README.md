@@ -24,6 +24,9 @@ WatchHistory for YouTube™ is a lightweight, privacy-focused browser extension 
 * 🔖 **Smart Badges** – "Resume" or "Watched" tags appear directly on YouTube thumbnails (toggleable).
 * 🖱️ **Mark as Watched from Any Feed** – Hover a thumbnail on Home, Subscriptions, or Search and use the built-in menu to mark it watched (or reset progress) without opening the video.
 * 🔁 **Rewatch Tracking** – Keeps a count of how many times you've fully watched each video, so your stats reflect genuine rewatches.
+* ⏱️ **Active Watch-Time Tracking** – Records time actually spent watching or listening in buffered 60-second sessions, with partial time saved when playback is paused, completed, or interrupted.
+* 🎧 **Background Playback Option** – By default, only a visible, playing YouTube tab contributes watch time. Enable background playback tracking in Options for music, podcasts, livestreams, or videos you continue playing while using another tab.
+* 🔴 **Livestream Tracking** – Distinguishes livestreams and livestream replays, preserves their channel information, and records active listening or viewing time.
 * 📊 **Stats Dashboard** – A dedicated Stats page with total watch time, videos watched, current/longest watch streaks, your top 5 most-watched videos and channels, favorite channel, and your longest/shortest watched videos.
 * 📋 **Video Management** – Easily mark videos as watched/reset, copy links, or remove them from your history.
 * 👻 **Ghost Mode** – Pause all tracking for the current session with a single click.
@@ -161,6 +164,7 @@ Load the package locally for testing via `chrome://extensions` (Chrome/Edge) or 
 - 🔖 Toggle **resume badges** on YouTube thumbnails
 - 👁️ Toggle **watched badges** on thumbnails
 - 🎚️ **Watched threshold** – customize the % of a video that must be watched before it's marked "Watched" (default 95%)
+- ⏱️ **Background playback tracking** – optionally count playing YouTube tabs even when they are hidden; this applies to music, podcasts, livestreams, and regular videos
 - 🔀 **Redirect YouTube history** to your local history page
 - 🏠 **Redirect Home & Shorts** to your subscriptions feed
 - 🚫 **Hide Shorts** from all YouTube feeds
@@ -172,7 +176,7 @@ Load the package locally for testing via `chrome://extensions` (Chrome/Edge) or 
 ## How It Works
 
 1. **Content Script** (`content.js`) runs on all YouTube watch pages
-2. Every 10 seconds, it saves your current video ID, timestamp, title, and channel to local storage (only while the tab is active and the video is playing); very short videos (under 20s) are saved more frequently, and playback completion is captured immediately
+2. Every 10 seconds, it updates your current video ID, playback position, duration, title, and channel in local storage while the video is playing. By default this requires a visible tab; the optional background playback setting allows hidden tabs too. Very short videos (under 20s) are checked more frequently, and playback completion is captured immediately
 3. **Smart Progress Tracking** - Saves progress immediately when you:
    - Close the tab or browser window
    - Navigate away from the video
@@ -186,7 +190,8 @@ Load the package locally for testing via `chrome://extensions` (Chrome/Edge) or 
    - Search results
 7. **Mark as Watched from Feeds** - Every thumbnail also gets a hover menu so you can mark a video watched (or reset it) without opening it
 8. Livestreams are saved in your history and automatically resume at the live edge
-9. History is trimmed when it exceeds your configured limit
+9. Active playback time is buffered and written in 60-second sessions. The remaining partial session is flushed when playback pauses, completes, the tab becomes inactive, or the page unloads. Paused videos never add watch time, and hidden tabs count only when background playback tracking is enabled
+10. History is trimmed when it exceeds your configured limit
 
 **Note:** This is a rolling limit. To keep your browser fast, we only remember your most recent 1,000 videos. Older entries are deleted automatically.
 

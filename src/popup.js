@@ -41,9 +41,13 @@ const renderBatch = (videos) => {
       ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`
       : `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&t=${video.time}s`;
     const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/mqdefault.jpg`;
+    const liveTotalSeconds = Math.max(0, Math.round(video.time || 0));
+    const liveTime = `${Math.floor(liveTotalSeconds / 60)}m ${liveTotalSeconds % 60}s watched`;
     const timeMeta = video.live
-      ? '\u{1F534} Livestream'
-      : video.watched
+      ? `\u{1F534} Livestream \u2022 ${liveTime}`
+      : video.liveReplay
+        ? `\u{1F504} Livestream \u2022 ${liveTime}`
+        : video.watched
         ? '\u2713 Watched'
         : `${Math.floor(video.time / 60)}m ${video.time % 60}s`;
 

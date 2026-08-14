@@ -11,13 +11,56 @@ let resumeAppliedVideoId = null;
 let resumePendingVideoId = null;
 let liveTrackingVideoId = null;
 let liveLastSampleAt = 0;
+let watchTrackingVideoId = null;
+let watchTrackingState = null;
+let watchLastSampleAt = 0;
+let watchLastCurrentTime = 0;
+let watchAccumulatedSeconds = 0;
+let countBackgroundPlayback = false;
 
 const isWatchPage = () => location.pathname === '/watch';
 
-const isLiveStream = () => {
-  const badge = document.querySelector('.ytp-live-badge');
-  return badge != null && getComputedStyle(badge).display !== 'none';
+const getPlayerResponse = () => {
+  const marker = 'ytInitialPlayerResponse = ';
+  const scripts = document.querySelectorAll('script');
+  let latestResponse = null;
+  for (const script of scripts) {
+    const source = script.textContent || '';
+    const markerIndex = source.indexOf(marker);
+    if (markerIndex < 0) continue;
+
+    const jsonStart = source.indexOf('{', markerIndex + marker.length);
+    const jsonEnd = source.lastIndexOf('}');
+    if (jsonStart < 0 || jsonEnd <= jsonStart) continue;
+
+    try {
+      latestResponse = JSON.parse(source.slice(jsonStart, jsonEnd + 1));
+    } catch {
+      // YouTube may replace the inline response while navigating in-place.
+    }
+  }
+  return latestResponse;
 };
+
+const getVideoStreamState = () => {
+  const response = getPlayerResponse();
+  const videoDetails = response?.videoDetails;
+  const broadcastDetails = response?.microformat?.playerMicroformatRenderer?.liveBroadcastDetails;
+  const isLiveContent = videoDetails?.isLiveContent === true || Boolean(broadcastDetails);
+  const isCurrentlyLive = broadcastDetails?.isLiveNow === true;
+
+  if (isCurrentlyLive) return 'live';
+  if (isLiveContent) return 'liveReplay';
+
+  // Fallback for pages where player metadata has not been injected yet.
+  const badge = document.querySelector('.ytp-live-badge');
+  const hasLiveBadge = badge != null && getComputedStyle(badge).display !== 'none';
+  const video = document.querySelector('video');
+  if (hasLiveBadge && video && !Number.isFinite(video.duration)) return 'live';
+  return 'normal';
+};
+
+const isLiveStream = () => getVideoStreamState() === 'live';
 
 //  Resume & Save (watch pages only) 
 
@@ -130,7 +173,9 @@ const _doSaveProgressInternal = (watchedThreshold = 95) => {
 
   if (!video || !videoId) return;
 
-  const isLive      = isLiveStream();
+  const streamState = getVideoStreamState();
+  const isLive      = streamState === 'live';
+  const isReplay    = streamState === 'liveReplay';
   const duration    = video.duration || 0;
   const currentTime = Math.floor(video.currentTime);
   const progress    = duration > 0 ? video.currentTime / duration : 0;
@@ -154,6 +199,8 @@ const _doSaveProgressInternal = (watchedThreshold = 95) => {
   // 'watched' flag and merge it correctly with the new progress.
   chrome.runtime.sendMessage({ type: 'idb-get-video', videoId }, (response) => {
     const existing = response && response.video;
+    const wasPreviouslyAlivestream = existing?.live === true || existing?.liveReplay === true;
+    const isReplay = streamState === 'liveReplay' || (!isLive && wasPreviouslyAlivestream);
 
     // Clean title: remove notification counts like (1) and the " - YouTube" suffix.
     const cleanTitle = document.title
@@ -180,19 +227,22 @@ const _doSaveProgressInternal = (watchedThreshold = 95) => {
     if (watched && (!wasWatched || isRewatch)) watchCount += 1; // Only on the not-watched → watched transition
 
     const watchedAt = Date.now();
+    const channel = getChannelName() || (typeof existing?.channel === 'string' ? existing.channel : '');
+    const channelUrl = getChannelUrl() || (typeof existing?.channelUrl === 'string' ? existing.channelUrl : '');
     const savedLiveTime = existing && existing.live && typeof existing.time === 'number'
       ? Math.max(0, existing.time)
       : 0;
     const record = {
       videoId,
       title:      cleanTitle,
-      channel:    getChannelName(),
-      channelUrl: getChannelUrl(),
+      channel,
+      channelUrl,
       time:       isLive ? savedLiveTime + liveWatchDelta : currentTime,
       duration:   isLive ? 0 : Math.floor(duration),
       watched,
       watchCount,
       live:       isLive ? true : undefined,
+      liveReplay: isReplay ? true : undefined,
       timestamp:  watchedAt
     };
 
@@ -220,10 +270,78 @@ const _doSaveProgress = () => {
   });
 };
 
+const recordActiveWatchTime = (video, videoId, streamState) => {
+  const now = Date.now();
+  const currentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+
+  if (watchTrackingVideoId !== videoId || watchTrackingState !== streamState || watchLastSampleAt === 0) {
+    watchTrackingVideoId = videoId;
+    watchTrackingState = streamState;
+    watchLastSampleAt = now;
+    watchLastCurrentTime = currentTime;
+    watchAccumulatedSeconds = 0;
+    return;
+  }
+
+  const elapsedSeconds = Math.min(30, Math.max(0, now - watchLastSampleAt) / 1000);
+  const playbackSeconds = Math.max(0, currentTime - watchLastCurrentTime);
+  const watchedSeconds = streamState === 'live'
+    ? elapsedSeconds
+    : Math.min(elapsedSeconds, playbackSeconds);
+
+  watchAccumulatedSeconds += watchedSeconds;
+  watchLastSampleAt = now;
+  watchLastCurrentTime = currentTime;
+
+  if (watchAccumulatedSeconds < WATCH_SESSION_SECONDS) return;
+
+  const sessionSeconds = Math.floor(watchAccumulatedSeconds / WATCH_SESSION_SECONDS) * WATCH_SESSION_SECONDS;
+  watchAccumulatedSeconds -= sessionSeconds;
+  chrome.runtime.sendMessage({
+    type: 'idb-record-watch-session',
+    watchSession: {
+      videoId,
+      watchedAt: now,
+      seconds: sessionSeconds,
+      streamType: streamState
+    }
+  });
+};
+
+const flushActiveWatchTime = (video, videoId, streamState, resetTracking = true) => {
+  if (video && videoId && streamState) {
+    recordActiveWatchTime(video, videoId, streamState);
+  }
+
+  const sessionSeconds = Math.round(watchAccumulatedSeconds);
+  if (videoId && streamState && sessionSeconds > 0) {
+    chrome.runtime.sendMessage({
+      type: 'idb-record-watch-session',
+      watchSession: {
+        videoId,
+        watchedAt: Date.now(),
+        seconds: sessionSeconds,
+        streamType: streamState
+      }
+    });
+  }
+
+  watchAccumulatedSeconds = 0;
+  if (resetTracking) {
+    watchTrackingVideoId = null;
+    watchTrackingState = null;
+    watchLastSampleAt = 0;
+    watchLastCurrentTime = 0;
+  }
+};
+
 const saveProgress = () => {
   if (!isWatchPage()) return;
   const video = document.querySelector('video');
-  if (!video || video.paused || document.hidden) return;
+  if (!video || video.paused || (document.hidden && !countBackgroundPlayback)) return;
+  const videoId = new URLSearchParams(window.location.search).get('v');
+  const streamState = getVideoStreamState();
+  if (videoId) recordActiveWatchTime(video, videoId, streamState);
   _doSaveProgress();
 };
 
@@ -243,6 +361,7 @@ const saveProgressImmediate = () => {
 const SHORT_VIDEO_SECONDS      = 20;
 const NORMAL_SAVE_INTERVAL_MS  = 10000;
 const FAST_SAVE_INTERVAL_MS    = 1000;
+const WATCH_SESSION_SECONDS    = 60;
 
 let saveProgressTimer = null;
 
@@ -274,8 +393,14 @@ const attachVideoLifecycleListeners = () => {
   // for the next periodic tick. Critical for very short videos that
   // can start and finish between ticks.
   video.addEventListener('ended', () => {
+    const videoId = new URLSearchParams(window.location.search).get('v');
+    flushActiveWatchTime(video, videoId, getVideoStreamState());
     completedVideoId = new URLSearchParams(window.location.search).get('v');
     saveProgressImmediate();
+  });
+  video.addEventListener('pause', () => {
+    const videoId = new URLSearchParams(window.location.search).get('v');
+    flushActiveWatchTime(video, videoId, getVideoStreamState());
   });
   video.addEventListener('play', () => {
     const videoId = new URLSearchParams(window.location.search).get('v');
@@ -965,9 +1090,17 @@ const buildShelfVideoCard = (video) => {
     ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`
     : `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&t=${video.time}s`;
   const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/mqdefault.jpg`;
-  const m = Math.floor(video.time / 60);
-  const s = video.time % 60;
-  const timeBadgeText = video.live ? '\uD83D\uDD34 Live' : video.watched ? '\u2713 Watched' : `${m}m ${s}s`;
+  const liveTotalSeconds = Math.max(0, Math.round(video.time || 0));
+  const m = Math.floor(liveTotalSeconds / 60);
+  const s = liveTotalSeconds % 60;
+  const liveTime = `${m}m ${s}s watched`;
+  const timeBadgeText = video.live
+    ? `\uD83D\uDD34 Livestream \u2022 ${liveTime}`
+    : video.liveReplay
+      ? `\u{1F504} Livestream \u2022 ${liveTime}`
+      : video.watched
+        ? '\u2713 Watched'
+        : `${m}m ${s}s`;
 
   const card = document.createElement('a');
   card.className = 'ytwh-video-card';
@@ -1135,6 +1268,15 @@ chrome.storage.onChanged.addListener((changes, area) => {
     updateShelfState();
   }
 
+  if (changes.countBackgroundPlayback) {
+    countBackgroundPlayback = Boolean(changes.countBackgroundPlayback.newValue);
+    if (!countBackgroundPlayback && document.hidden) {
+      const video = document.querySelector('video');
+      const videoId = new URLSearchParams(window.location.search).get('v');
+      flushActiveWatchTime(video, videoId, getVideoStreamState());
+    }
+  }
+
   // Shelf visibility toggles; history changes are handled by cache
   // invalidation inside _doSaveProgressInternal rather than here,
   // since history now lives in IndexedDB (not chrome.storage.local).
@@ -1155,8 +1297,13 @@ let lastUrl = location.href;
 const observer = new MutationObserver(() => {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
+    flushActiveWatchTime(null, watchTrackingVideoId, watchTrackingState);
     liveTrackingVideoId = null;
     liveLastSampleAt = 0;
+    watchTrackingVideoId = null;
+    watchTrackingState = null;
+    watchLastSampleAt = 0;
+    watchLastCurrentTime = 0;
     checkRedirects();
     applyHideShorts();
     updateShelfState();
@@ -1320,10 +1467,26 @@ setTimeout(attachVideoLifecycleListeners, 1500);
 adjustSaveProgressRate();
 setTimeout(tagThumbnails, 2000);
 checkBackupReminder();
+chrome.storage.local.get({ countBackgroundPlayback: false }, (data) => {
+  countBackgroundPlayback = Boolean(data.countBackgroundPlayback);
+});
 
 // Save progress on tab close, navigation, or visibility change
-window.addEventListener('beforeunload', saveProgressImmediate);
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) saveProgressImmediate();
+window.addEventListener('beforeunload', () => {
+  const video = document.querySelector('video');
+  const videoId = new URLSearchParams(window.location.search).get('v');
+  flushActiveWatchTime(video, videoId, getVideoStreamState());
+  saveProgressImmediate();
 });
-window.addEventListener('popstate', saveProgressImmediate);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && !countBackgroundPlayback) {
+    const video = document.querySelector('video');
+    const videoId = new URLSearchParams(window.location.search).get('v');
+    flushActiveWatchTime(video, videoId, getVideoStreamState());
+    saveProgressImmediate();
+  }
+});
+window.addEventListener('popstate', () => {
+  flushActiveWatchTime(null, watchTrackingVideoId, watchTrackingState);
+  saveProgressImmediate();
+});

@@ -62,6 +62,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return;
   }
 
+  if (message.type === 'idb-record-watch-session') {
+    db_recordWatchSession(message.watchSession).catch(console.error);
+    return;
+  }
+
   if (message.type === 'idb-get-video') {
     db_getVideoById(message.videoId)
       .then((video) => sendResponse({ video }))
