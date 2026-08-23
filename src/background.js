@@ -14,6 +14,32 @@ if (typeof importScripts === 'function') {
   importScripts('db.js');
 }
 
+const DEFAULT_SETTINGS = {
+  resumeBadges: true,
+  historyRedirect: true,
+  subsRedirect: true,
+  hideShorts: false,
+  hideWatchedDefault: false,
+  pickupShelf: true,
+  ghostModeActive: false,
+  backupReminderFrequency: 'weekly',
+  watchedThreshold: 95,
+  countBackgroundPlayback: false,
+  keepLocalNoticeCollapsed: false,
+  firstTimeSetupComplete: false
+};
+
+const initializeDefaultSettings = () => {
+  chrome.storage.local.get(null, (settings) => {
+    const missingDefaults = Object.fromEntries(
+      Object.entries(DEFAULT_SETTINGS).filter(([key]) => !(key in settings))
+    );
+    if (Object.keys(missingDefaults).length > 0) {
+      chrome.storage.local.set(missingDefaults);
+    }
+  });
+};
+
 // Message handlers
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -210,6 +236,7 @@ const resetGhostModeState = () => {
 // Startup
 
 chrome.runtime.onInstalled.addListener(() => {
+  initializeDefaultSettings();
   resetGhostModeState();
   scheduleBackupAlarm();
   scheduleCountAlarm();
@@ -218,6 +245,7 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.runtime.onStartup.addListener(() => {
+  initializeDefaultSettings();
   resetGhostModeState();
   scheduleBackupAlarm();
   scheduleCountAlarm();

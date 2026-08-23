@@ -870,7 +870,7 @@ const checkRedirects = () => {
   const path = location.pathname;
 
   if (path === '/feed/history') {
-    chrome.storage.local.get({ historyRedirect: false }, (data) => {
+    chrome.storage.local.get({ historyRedirect: true }, (data) => {
       if (data.historyRedirect) {
         chrome.runtime.sendMessage({ type: 'redirect-history' });
       }
@@ -879,7 +879,7 @@ const checkRedirects = () => {
   }
 
   if (path === '/' || path === '/shorts/') {
-    chrome.storage.local.get({ subsRedirect: false }, (data) => {
+    chrome.storage.local.get({ subsRedirect: true }, (data) => {
       if (data.subsRedirect) {
         location.replace('https://www.youtube.com/feed/subscriptions');
       }
@@ -1167,7 +1167,7 @@ const updateShelfState = () => {
     return;
   }
 
-  chrome.storage.local.get({ pickupShelf: false, ghostModeActive: false, subsRedirect: false }, (data) => {
+  chrome.storage.local.get({ pickupShelf: true, ghostModeActive: false, subsRedirect: true }, (data) => {
     // Redirect gatekeeper: homepage with redirect active — don't inject the shelf.
     if (isHome && data.subsRedirect) {
       document.getElementById(PICKUP_SHELF_ID)?.remove();
@@ -1194,7 +1194,7 @@ const injectPickupShelf = () => {
   const path = location.pathname;
   if (path !== '/' && path !== '/feed/subscriptions') return;
 
-  chrome.storage.local.get({ pickupShelf: false, ghostModeActive: false, subsRedirect: false }, (data) => {
+  chrome.storage.local.get({ pickupShelf: true, ghostModeActive: false, subsRedirect: true }, (data) => {
     if (!data.pickupShelf || data.ghostModeActive) return;
     // Redirect gatekeeper: if redirect is active on homepage, stop here.
     if (path === '/' && data.subsRedirect) return;
@@ -1502,7 +1502,7 @@ document.addEventListener('click', (e) => {
 checkRedirects();
 applyHideShorts();
 // Only load the shelf if we're not redirecting from home to subscriptions
-chrome.storage.local.get({ subsRedirect: false }, (data) => {
+chrome.storage.local.get({ subsRedirect: true }, (data) => {
   const isHome = location.pathname === '/';
   if (!(isHome && data.subsRedirect)) {
     updateShelfState();

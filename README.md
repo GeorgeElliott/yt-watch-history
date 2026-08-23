@@ -39,6 +39,14 @@ I made it because turning off YouTube's official watch history also removes usef
 2. For Firefox, use the Firefox Add-ons listing for a permanent installation. Standard Firefox only loads unsigned local extensions temporarily; see Mozilla's [signing and distribution overview](https://extensionworkshop.com/documentation/publish/signing-and-distribution-overview/).
 3. To test a local Firefox build, open `about:debugging#/runtime/this-firefox`, select **Load Temporary Add-on**, and choose its `manifest.json`. Firefox removes it when the browser restarts.
 
+### YouTube site access
+
+WatchHistory needs access to `https://www.youtube.com` so it can save progress and show features such as resume badges and the Continue Watching shelf.
+
+- In Firefox, open **Manage Extension** from the extension menu (or open `about:addons`) and enable **Access your data for https://www.youtube.com**.
+- In Chrome or Edge, open **Manage extension**, then enable YouTube under **Site access**.
+- Reload YouTube after changing the permission.
+
 ## Usage
 
 ### Popup
