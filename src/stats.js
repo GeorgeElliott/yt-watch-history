@@ -24,8 +24,17 @@ const topChannelsRewatchContainer = document.getElementById('top-channels-rewatc
 const longestVideoContainer = document.getElementById('longest-video');
 const shortestVideoContainer = document.getElementById('shortest-video');
 const dailyWatchTimeContainer = document.getElementById('daily-watch-time');
+const shareStatsBtn          = document.getElementById('share-stats-btn');
+const sharePeriodSelect      = document.getElementById('share-period');
+const shareDialog            = document.getElementById('share-dialog');
+const closeShareDialogBtn    = document.getElementById('close-share-dialog');
+const cancelShareDialogBtn   = document.getElementById('cancel-share-dialog');
+const copyShareBtn           = document.getElementById('copy-share-btn');
+const sharePreviewEl         = document.getElementById('share-preview');
 
 const DAY_MS = 86400000;
+let latestShareText = '';
+let sharePeriods = null;
 
 // Best-effort watch count for a record, falling back for videos saved
 // before the watchCount feature existed.
@@ -287,6 +296,141 @@ const computeLiveWatchSeconds = (videos) => videos.reduce((sum, video) => {
   return sum + Math.max(0, video.time);
 }, 0);
 
+const formatShareDuration = (totalSeconds) => {
+  const seconds = Math.max(0, Math.round(totalSeconds || 0));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  const parts = [];
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
+  if (remainingSeconds > 0 || parts.length === 0) parts.push(`${remainingSeconds}s`);
+  return parts.join(' ');
+};
+
+const formatShareVideoCount = (count) => `${count.toLocaleString()} ${count === 1 ? 'video' : 'videos'}`;
+const formatShareCount = (count, singular, plural) =>
+  `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
+
+const computeSharePeriod = (videos, sessions, startTime) => {
+  const periodVideos = videos.filter((video) =>
+    typeof video.timestamp === 'number' && video.timestamp >= startTime
+  );
+  const topChannel = computeChannelCounts(periodVideos)[0];
+
+  return {
+    videoCount: periodVideos.length,
+    watchSeconds: sessions
+      .filter((session) => typeof session.watchedAt === 'number' && session.watchedAt >= startTime)
+      .reduce((sum, session) => sum + (Number.isFinite(session.seconds) ? Math.max(0, session.seconds) : 0), 0),
+    channelCount: new Set(periodVideos.map((video) => video.channel).filter(Boolean)).size,
+    topChannel: topChannel ? topChannel.channel : ''
+  };
+};
+
+const buildSharePeriods = (videos, sessions, totalWatchSeconds, currentStreak, allTimeStreak) => {
+  const now = Date.now();
+  const daily = computeSharePeriod(videos, sessions, dayKey(now));
+  const weekly = computeSharePeriod(videos, sessions, now - 7 * DAY_MS);
+  const monthly = computeSharePeriod(videos, sessions, now - 30 * DAY_MS);
+  const yearly = computeSharePeriod(videos, sessions, now - 365 * DAY_MS);
+  const allTime = {
+    ...computeSharePeriod(videos, sessions, 0),
+    videoCount: videos.length,
+    watchSeconds: totalWatchSeconds
+  };
+
+  return {
+    daily: { ...daily, currentStreak, allTimeStreak },
+    weekly: { ...weekly, currentStreak, allTimeStreak },
+    monthly: { ...monthly, currentStreak, allTimeStreak },
+    yearly: { ...yearly, currentStreak, allTimeStreak },
+    allTime: { ...allTime, currentStreak, allTimeStreak }
+  };
+};
+
+const buildShareText = (periodKey, period) => {
+  const periodCopy = {
+    daily: 'My stats for today:',
+    weekly: 'My stats for the last week:',
+    monthly: 'My stats for the last month:',
+    yearly: 'My stats for the last year:',
+    allTime: 'My all-time stats:'
+  };
+  const title = periodCopy[periodKey] || periodCopy.allTime;
+
+  return [
+    title,
+    '',
+    `📺 I have watched ${formatShareVideoCount(period.videoCount)}`,
+    `⏱️ For a total of ${formatShareDuration(period.watchSeconds)}`,
+    `🎧 Across ${formatShareCount(period.channelCount, 'channel', 'channels')}`,
+    `🔥 Watch streak: ${formatShareCount(period.currentStreak, 'day', 'days')}`,
+    `🏆 All-time watch streak: ${formatShareCount(period.allTimeStreak, 'day', 'days')}`,
+    period.topChannel ? `⭐ Top channel: ${period.topChannel}` : '',
+    '',
+    'Tracked via WatchHistory for YouTubeTM.',
+    'https://ytwatchhistory.com'
+  ].join('\n');
+};
+
+const updateShareText = () => {
+  if (!sharePeriods) return;
+  const periodKey = sharePeriodSelect?.value || 'allTime';
+  latestShareText = buildShareText(periodKey, sharePeriods[periodKey] || sharePeriods.allTime);
+  if (sharePreviewEl) sharePreviewEl.textContent = latestShareText;
+};
+
+const showToast = (message) => {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+};
+
+const copyTextToClipboard = async (text) => {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (error) {
+    console.warn('Clipboard API unavailable:', error);
+  }
+
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.setAttribute('readonly', '');
+  textArea.style.position = 'fixed';
+  textArea.style.opacity = '0';
+  document.body.appendChild(textArea);
+  textArea.select();
+  const copied = document.execCommand('copy');
+  textArea.remove();
+  return copied;
+};
+
+shareStatsBtn?.addEventListener('click', () => {
+  if (shareDialog?.showModal) shareDialog.showModal();
+});
+
+const closeShareDialog = () => shareDialog?.close();
+
+closeShareDialogBtn?.addEventListener('click', closeShareDialog);
+cancelShareDialogBtn?.addEventListener('click', closeShareDialog);
+
+copyShareBtn?.addEventListener('click', async () => {
+  if (!latestShareText) {
+    showToast('Stats are still loading');
+    return;
+  }
+  const copied = await copyTextToClipboard(latestShareText);
+  showToast(copied ? 'Watch streak copied to clipboard' : 'Copy failed');
+  if (copied) closeShareDialog();
+});
+
+sharePeriodSelect?.addEventListener('change', updateShareText);
+
 // Longest run of consecutive calendar days with at least one saved
 // video, plus the current streak (only counts if it's still "alive",
 // i.e. the most recent activity was today or yesterday).
@@ -353,6 +497,8 @@ const loadStats = () => {
     const watchTimeThisWeek = sessions
       .filter((session) => typeof session.watchedAt === 'number' && Date.now() - session.watchedAt <= 7 * DAY_MS)
       .reduce((sum, session) => sum + Math.max(0, session.seconds || 0), 0);
+    sharePeriods = buildSharePeriods(videos, sessions, totalWatchSeconds, current, longest);
+    updateShareText();
 
     statTotalEl.textContent      = totalVideos.toLocaleString();
     statWatchedEl.textContent    = watchedVideos.toLocaleString();

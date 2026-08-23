@@ -12,6 +12,98 @@
       padding: 32px 20px;
     }
 
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .share-period-select {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .share-dialog {
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      width: min(420px, calc(100% - 32px));
+      max-height: calc(100vh - 32px);
+      overflow: auto;
+      padding: 24px;
+      color: var(--text-primary);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-elevated);
+    }
+
+    .share-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(2px);
+    }
+
+    .share-dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+
+    .share-dialog-title {
+      font-size: 20px;
+    }
+
+    .share-dialog-description {
+      margin-bottom: 20px;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .share-dialog-label {
+      display: block;
+      margin-bottom: 20px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .share-preview {
+      margin: 0 0 20px;
+      padding: 14px;
+      overflow: auto;
+      color: var(--text-secondary);
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font: 12px/1.5 'Roboto', Arial, sans-serif;
+      white-space: pre-wrap;
+    }
+
+    .share-preview-label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .share-dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -194,6 +286,9 @@
       <a href="how-it-works.html" class="nav-tab">How it works</a>
       <a href="https://www.youtube.com" class="nav-tab" target="_blank" rel="noopener noreferrer">YouTube</a>
     </nav>
+    <div class="page-header-actions">
+      <button id="share-stats-btn" class="btn btn-accent btn-sm">Share with Friends</button>
+    </div>
   </div>
 
   <div class="stats-container">
@@ -296,6 +391,32 @@
       <div id="shortest-video"></div>
     </div>
   </div>
+
+  <dialog id="share-dialog" class="share-dialog" aria-labelledby="share-dialog-title">
+    <div class="share-dialog-header">
+      <h2 id="share-dialog-title" class="share-dialog-title">Share your watch streak</h2>
+      <button id="close-share-dialog" class="btn-icon" type="button" aria-label="Close share menu">×</button>
+    </div>
+    <p class="share-dialog-description">Choose the period you want to share.</p>
+    <label class="share-dialog-label" for="share-period">Frequency
+      <select id="share-period" class="input share-period-select">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+        <option value="yearly">Yearly</option>
+        <option value="allTime">All time</option>
+      </select>
+    </label>
+    <span class="share-preview-label">Example message</span>
+    <pre id="share-preview" class="share-preview" aria-label="Example share message">Loading example...</pre>
+    <div class="share-dialog-actions">
+      <button id="cancel-share-dialog" class="btn btn-sm" type="button">Cancel</button>
+      <button id="copy-share-btn" class="btn btn-accent btn-sm" type="button">Copy to clipboard</button>
+    </div>
+  </dialog>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
 
   <script src="db.js"></script>
   <script src="stats.js"></script>
