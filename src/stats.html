@@ -262,6 +262,78 @@
     .stats-channel-row:last-child {
       border-bottom: none;
     }
+    .daily-watch-time {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+      padding-top: 8px;
+    }
+
+    .daily-watch-column {
+      min-width: 0;
+      padding: 10px 6px 8px;
+      text-align: center;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+
+    .daily-watch-day {
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .daily-watch-date {
+      margin-top: 2px;
+      color: var(--text-disabled);
+      font-size: 10px;
+    }
+
+    .daily-watch-total {
+      margin-top: 10px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .video-extremes-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    .video-extreme + .video-extreme {
+      padding-left: 24px;
+      border-left: 1px solid var(--border-color);
+    }
+
+    .video-extreme-title {
+      margin-bottom: 4px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .stats-video-date {
+      margin-top: 2px;
+      color: var(--text-secondary);
+      font-size: 11px;
+    }
+
+    @media (max-width: 560px) {
+      .video-extremes-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .video-extreme + .video-extreme {
+        padding-left: 0;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+        border-left: none;
+      }
+    }
 
     .stats-channel-name {
       font-size: 13px;
@@ -360,7 +432,7 @@
     <div class="panel">
       <div class="panel-title">Watch Time by Day</div>
       <div class="panel-description">Active YouTube watch time during the last seven days.</div>
-      <div id="daily-watch-time"></div>
+      <div id="daily-watch-time" class="daily-watch-time"></div>
     </div>
 
     <!-- Top 5 Most Watched -->
@@ -384,18 +456,20 @@
       <div id="top-channels-rewatches"></div>
     </div>
 
-    <!-- Longest Video Watched -->
+    <!-- Longest and Shortest Videos Watched -->
     <div class="panel">
-      <div class="panel-title">Longest Video Watched</div>
-      <div class="panel-description">The longest single video in your history.</div>
-      <div id="longest-video"></div>
-    </div>
-
-    <!-- Shortest Video Watched -->
-    <div class="panel">
-      <div class="panel-title">Shortest Video Watched</div>
-      <div class="panel-description">The shortest single video in your history.</div>
-      <div id="shortest-video"></div>
+      <div class="panel-title">Longest and Shortest Videos Watched</div>
+      <div class="panel-description">The longest and shortest single videos in your history.</div>
+      <div class="video-extremes-grid">
+        <section class="video-extreme">
+          <h3 class="video-extreme-title">Longest Video</h3>
+          <div id="longest-video"></div>
+        </section>
+        <section class="video-extreme">
+          <h3 class="video-extreme-title">Shortest Video</h3>
+          <div id="shortest-video"></div>
+        </section>
+      </div>
     </div>
   </div>
 

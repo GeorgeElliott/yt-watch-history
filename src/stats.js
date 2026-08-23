@@ -92,7 +92,7 @@ const renderEmptyState = (container, message) => {
 
 // Builds a shared thumbnail/title/channel row used by both the "Top
 // videos" and "Longest video" panels — only the trailing badge differs.
-const buildVideoRow = (video, rankLabel, badgeText) => {
+const buildVideoRow = (video, rankLabel, badgeText, metadataText = '') => {
   const url = video.live || video.watched
     ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`
     : `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&t=${video.time}s`;
@@ -132,6 +132,12 @@ const buildVideoRow = (video, rankLabel, badgeText) => {
     channelLink.className = 'stats-channel';
     channelLink.textContent = video.channel;
     info.appendChild(channelLink);
+  }
+  if (metadataText) {
+    const metadata = document.createElement('div');
+    metadata.className = 'stats-video-date';
+    metadata.textContent = metadataText;
+    info.appendChild(metadata);
   }
 
   const badge = document.createElement('div');
@@ -179,6 +185,7 @@ const computeChannelCounts = (videos, includeRewatches = false) => {
 
 const renderTopChannels = (container, channelCounts, countLabel) => {
   const top = channelCounts.slice(0, 5);
+  const pluralLabel = countLabel === 'watch' ? 'watches' : `${countLabel}s`;
 
   if (top.length === 0) {
     renderEmptyState(container, 'No channel data yet');
@@ -202,7 +209,7 @@ const renderTopChannels = (container, channelCounts, countLabel) => {
 
     const badge = document.createElement('div');
     badge.className = 'stats-count-badge';
-    badge.textContent = entry.count === 1 ? `1 ${countLabel}` : `${entry.count} ${countLabel}s`;
+    badge.textContent = entry.count === 1 ? `1 ${countLabel}` : `${entry.count} ${pluralLabel}`;
 
     row.appendChild(rank);
     row.appendChild(nameEl);
@@ -217,6 +224,17 @@ const renderTopChannels = (container, channelCounts, countLabel) => {
 // much lower, e.g. 5%, and which would make these stats meaningless).
 const PROPER_WATCH_RATIO = 0.95;
 
+const formatWatchedDate = (timestamp) => {
+  if (typeof timestamp !== 'number') return 'Watched date unavailable';
+  return `Watched ${new Date(timestamp).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
+};
+
+const renderVideoExtreme = (container, video, icon) => {
+  container.replaceChildren(
+    buildVideoRow(video, icon, formatVideoDuration(video.duration), formatWatchedDate(video.timestamp))
+  );
+};
+
 const renderLongestVideo = (videos) => {
   const candidates = videos.filter((v) =>
     typeof v.duration === 'number' && v.duration > 0 && (v.time / v.duration) >= PROPER_WATCH_RATIO);
@@ -226,9 +244,7 @@ const renderLongestVideo = (videos) => {
   }
 
   const longest = candidates.reduce((best, v) => (v.duration > best.duration ? v : best));
-  longestVideoContainer.replaceChildren(
-    buildVideoRow(longest, '\uD83C\uDFC6', formatVideoDuration(longest.duration))
-  );
+  renderVideoExtreme(longestVideoContainer, longest, '\u23F1\uFE0F');
 };
 
 const renderShortestVideo = (videos) => {
@@ -240,9 +256,7 @@ const renderShortestVideo = (videos) => {
   }
 
   const shortest = candidates.reduce((best, v) => (v.duration < best.duration ? v : best));
-  shortestVideoContainer.replaceChildren(
-    buildVideoRow(shortest, '\u23F1\uFE0F', formatVideoDuration(shortest.duration))
-  );
+  renderVideoExtreme(shortestVideoContainer, shortest, '\u26A1');
 };
 
 // Counts completed watches using the full duration, then adds the current
@@ -278,17 +292,22 @@ const renderDailyWatchTime = (sessions) => {
 
   dailyWatchTimeContainer.replaceChildren(...Array.from({ length: 7 }, (_, index) => {
     const key = today - (6 - index) * DAY_MS;
-    const row = document.createElement('div');
-    row.className = 'stats-channel-row';
+    const date = new Date(key);
     const day = document.createElement('div');
-    day.className = 'stats-channel-name';
-    day.textContent = new Date(key).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    day.className = 'daily-watch-day';
+    day.textContent = date.toLocaleDateString(undefined, { weekday: 'short' });
+    const dateLabel = document.createElement('div');
+    dateLabel.className = 'daily-watch-date';
+    dateLabel.textContent = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     const total = document.createElement('div');
-    total.className = 'stats-count-badge';
-    total.textContent = formatDuration(totals.get(key) || 0);
-    row.appendChild(day);
-    row.appendChild(total);
-    return row;
+    total.className = 'daily-watch-total';
+    const totalSeconds = totals.get(key) || 0;
+    total.textContent = formatDuration(totalSeconds);
+    const column = document.createElement('div');
+    column.className = 'daily-watch-column';
+    column.title = `${date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}: ${formatDuration(totalSeconds)}`;
+    column.append(day, dateLabel, total);
+    return column;
   }));
 };
 
