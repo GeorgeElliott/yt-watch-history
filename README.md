@@ -19,7 +19,8 @@ I made it because turning off YouTube's official watch history also removes usef
 - Add Resume and Watched badges to YouTube thumbnails
 - Mark videos as watched or reset progress directly from YouTube feeds
 - Browse, search, sort, and manage a local video history
-- Show watch-time, channel, streak, and video statistics
+- Explore saved videos in a chronological timeline with month/year jumping and activity gaps
+- Show watch-time, channel, streak, and video statistics, then copy a shareable stats summary
 - Pause tracking for the current session with Ghost Mode
 - Import and export history as JSON
 - Optionally hide Shorts, redirect YouTube history, and redirect Home to Subscriptions
@@ -42,15 +43,19 @@ I made it because turning off YouTube's official watch history also removes usef
 
 ### Popup
 
-Click the extension icon to see recent videos and open History, Stats, Options, or YouTube.
+Click the extension icon to see recent videos and open History, Timeline, Stats, Options, or YouTube.
 
 ### History
 
 Search by title or channel, hide watched videos, and sort by date or title. Each video can be opened, marked watched, reset, copied, or removed. There is no fixed history-entry limit; history is stored in IndexedDB and remains until you remove it or clear browser data.
 
+### Timeline
+
+Browse your saved history as a chronological feed grouped by day. Jump to an archived month and year without manually scrolling through the whole timeline. Gaps between active days are shown so breaks in viewing activity are easy to spot.
+
 ### Stats
 
-See totals for archived and completed videos, watch time, and rewatches. The page also shows channel, streak, completion, and livestream information, plus the most-watched videos and channels.
+See totals for archived and completed videos, watch time, and rewatches. The page also shows channel, streak, completion, and livestream information, plus the most-watched videos and channels. Copy a ready-to-share summary for a selected period, from today through all time.
 
 ### On YouTube
 
@@ -80,7 +85,7 @@ Because your history is stored locally, it can be lost if your browser data is c
 
 ## Technical details
 
-The extension uses vanilla JavaScript and browser extension APIs. IndexedDB stores video history and watch data; `chrome.storage.local` stores settings. A content script runs on YouTube pages to save progress, add badges and menus, and resume videos. The History, Stats, and Options pages read the same local data.
+The extension uses vanilla JavaScript and browser extension APIs. IndexedDB stores video history and watch data; `chrome.storage.local` stores settings. A content script runs on YouTube pages to save progress, add badges and menus, and resume videos. The History, Timeline, Stats, and Options pages read the same local data.
 
 ## Permissions
 
