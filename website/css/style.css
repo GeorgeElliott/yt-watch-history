@@ -844,7 +844,7 @@ footer {
   }
 
   .nav-menu.active {
-    max-height: 420px;
+    max-height: 520px;
     padding: 1.5rem 1rem;
     border-bottom: 1px solid var(--border);
   }
