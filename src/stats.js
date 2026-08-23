@@ -35,6 +35,7 @@ const sharePreviewEl         = document.getElementById('share-preview');
 const DAY_MS = 86400000;
 let latestShareText = '';
 let sharePeriods = null;
+let shareData = null;
 
 // Best-effort watch count for a record, falling back for videos saved
 // before the watchCount feature existed.
@@ -381,6 +382,18 @@ const updateShareText = () => {
   if (sharePreviewEl) sharePreviewEl.textContent = latestShareText;
 };
 
+const initializeSharePeriods = () => {
+  if (sharePeriods || !shareData) return;
+  sharePeriods = buildSharePeriods(
+    shareData.videos,
+    shareData.sessions,
+    shareData.totalWatchSeconds,
+    shareData.currentStreak,
+    shareData.allTimeStreak
+  );
+  updateShareText();
+};
+
 const showToast = (message) => {
   const toast = document.getElementById('toast');
   toast.textContent = message;
@@ -411,6 +424,7 @@ const copyTextToClipboard = async (text) => {
 };
 
 shareStatsBtn?.addEventListener('click', () => {
+  initializeSharePeriods();
   if (shareDialog?.showModal) shareDialog.showModal();
 });
 
@@ -497,8 +511,14 @@ const loadStats = () => {
     const watchTimeThisWeek = sessions
       .filter((session) => typeof session.watchedAt === 'number' && Date.now() - session.watchedAt <= 7 * DAY_MS)
       .reduce((sum, session) => sum + Math.max(0, session.seconds || 0), 0);
-    sharePeriods = buildSharePeriods(videos, sessions, totalWatchSeconds, current, longest);
-    updateShareText();
+    shareData = {
+      videos,
+      sessions,
+      totalWatchSeconds,
+      currentStreak: current,
+      allTimeStreak: longest
+    };
+    if (shareDialog?.open) initializeSharePeriods();
 
     statTotalEl.textContent      = totalVideos.toLocaleString();
     statWatchedEl.textContent    = watchedVideos.toLocaleString();
