@@ -41,10 +41,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'dismiss-backup-reminder') {
-    chrome.storage.local.set({
-      showBackupReminder: false,
-      lastBackupTimestamp: Date.now()
-    });
+    chrome.storage.local.set({ showBackupReminder: false });
     return;
   }
 
@@ -80,6 +77,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     db_getVideos(limit, offset)
       .then((videos) => sendResponse({ videos }))
       .catch(() => sendResponse({ videos: [] }));
+    return true;
+  }
+
+  if (message.type === 'idb-count-videos-since') {
+    const timestamp = typeof message.timestamp === 'number' ? message.timestamp : 0;
+    db_countVideosSince(timestamp)
+      .then((count) => sendResponse({ count }))
+      .catch(() => sendResponse({ count: 0 }));
     return true;
   }
 

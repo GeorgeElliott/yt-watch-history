@@ -22,6 +22,9 @@ const operationProgress        = document.getElementById('operation-progress');
 const operationLog             = document.getElementById('operation-log');
 const exportButton             = document.getElementById('export-btn');
 const importButton             = document.getElementById('import-btn');
+const localDataNotice          = document.getElementById('local-data-notice');
+const keepCollapsedLink        = document.getElementById('keep-collapsed-link');
+let keepLocalNoticeCollapsed   = false;
 let operationInProgress        = false;
 
 // Helpers
@@ -153,6 +156,7 @@ chrome.storage.local.get(
     backupReminderFrequency: 'weekly',
     watchedThreshold: 95,
     countBackgroundPlayback: false,
+    keepLocalNoticeCollapsed: false,
   },
   (data) => {
     badgeToggle.checked              = data.resumeBadges;
@@ -173,8 +177,25 @@ chrome.storage.local.get(
     if (backgroundPlaybackToggle) {
       backgroundPlaybackToggle.checked = Boolean(data.countBackgroundPlayback);
     }
+    if (localDataNotice) {
+      keepLocalNoticeCollapsed = Boolean(data.keepLocalNoticeCollapsed);
+      localDataNotice.open = !keepLocalNoticeCollapsed;
+    }
+    if (keepCollapsedLink) {
+      keepCollapsedLink.textContent = keepLocalNoticeCollapsed ? 'Keep uncollapsed' : 'Keep collapsed';
+    }
   }
 );
+
+if (keepCollapsedLink) {
+  keepCollapsedLink.onclick = () => {
+    keepLocalNoticeCollapsed = !keepLocalNoticeCollapsed;
+    chrome.storage.local.set({ keepLocalNoticeCollapsed }, () => {
+      keepCollapsedLink.textContent = keepLocalNoticeCollapsed ? 'Keep uncollapsed' : 'Keep collapsed';
+      if (localDataNotice) localDataNotice.open = !keepLocalNoticeCollapsed;
+    });
+  };
+}
 
 // Scroll to export section if navigated via #export hash.
 if (location.hash === '#export') {

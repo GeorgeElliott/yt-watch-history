@@ -47,6 +47,56 @@
       color: var(--text-primary);
       margin-bottom: 4px;
     }
+
+    .local-data-notice summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      color: var(--text-primary);
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .local-data-notice summary::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 7px solid var(--accent);
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+
+    .local-data-notice[open] summary::after {
+      transform: rotate(180deg);
+    }
+
+    .local-data-notice summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .local-data-notice .panel-description {
+      margin-top: 12px;
+    }
+
+    .keep-collapsed-link {
+      display: inline;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--text-secondary);
+      font: inherit;
+      font-size: 13px;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .keep-collapsed-link:hover {
+      color: var(--text-primary);
+    }
   </style>
 </head>
 
@@ -67,13 +117,15 @@
   </div>
 
   <div class="options-container">
-    <div class="panel" style="border-color:var(--accent);">
-      <div class="panel-title">Your history is stored locally</div>
+    <details id="local-data-notice" class="panel local-data-notice" style="border-color:var(--accent);" open>
+      <summary>Your history is stored locally</summary>
       <div class="panel-description" style="margin-bottom:12px;">Your watch history is stored in this browser, not in the cloud. It can be lost if browser data is cleared, the browser is reinstalled, or the device fails. Please make regular backups and keep them in more than one location.</div>
       <a href="how-it-works.html" style="color:var(--accent); text-decoration:underline; font-size:13px;">How it works</a>
       <span style="margin:0 8px; color:var(--text-disabled);">|</span>
       <a href="#export-section" style="color:var(--accent); text-decoration:underline; font-size:13px;">Go to Export</a>
-    </div>
+      <span style="margin:0 8px; color:var(--text-disabled);">|</span>
+      <button id="keep-collapsed-link" class="keep-collapsed-link" type="button">Keep collapsed</button>
+    </details>
 
     <!-- Welcome Card (First Time Setup) -->
     <div id="welcomeCard"

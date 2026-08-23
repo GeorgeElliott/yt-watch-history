@@ -455,6 +455,25 @@ function db_getVideos(limit, offset) {
 }
 
 /**
+ * db_countVideosSince(timestamp)
+ * Counts video records saved after the supplied timestamp.
+ *
+ * @param  {number} timestamp
+ * @returns {Promise<number>}
+ */
+function db_countVideosSince(timestamp) {
+  return openDB().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_VIDEOS, 'readonly');
+    const index = tx.objectStore(STORE_VIDEOS).index(IDX_TIMESTAMP);
+    const range = IDBKeyRange.lowerBound(timestamp, true);
+    const request = index.count(range);
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = (e) => reject(e.target.error);
+  }));
+}
+
+/**
  * db_getAllVideos()
  * Returns every video record ordered by timestamp descending
  * (newest first). Used by the history search page (which performs

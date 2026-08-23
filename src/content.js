@@ -1338,21 +1338,29 @@ const injectBackupBannerStyles = () => {
   style.textContent = `
     #ytwh-backup-banner {
       position: fixed; top: 56px; left: 50%; transform: translateX(-50%);
-      z-index: 9999; display: flex; align-items: center; gap: 12px;
+      z-index: 9999; display: grid; grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center; gap: 12px;
       background: ${bgColor}; border: 1px solid ${borderColor};
       border-radius: 8px; padding: 12px 16px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.18);
       font-family: 'Roboto', Arial, sans-serif; font-size: 13px;
-      color: ${textColor}; max-width: 480px; width: max-content;
+      color: ${textColor}; max-width: min(620px, calc(100vw - 32px)); width: max-content;
     }
     #ytwh-backup-banner-msg {
       color: ${subTextColor};
       flex: 1;
+      font-size: 14px;
+      line-height: 1.35;
     }
     .ytwh-backup-link {
       color: ${textColor};
       text-decoration: underline;
       white-space: nowrap;
+    }
+    .ytwh-backup-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     .ytwh-backup-btn {
       display: inline-flex; align-items: center; padding: 8px 16px;
@@ -1374,6 +1382,15 @@ const injectBackupBannerStyles = () => {
       background: ${chipBg};
       color: ${textColor};
     }
+    @media (max-width: 600px) {
+      #ytwh-backup-banner {
+        grid-template-columns: 1fr;
+        width: calc(100vw - 32px);
+      }
+      .ytwh-backup-actions {
+        justify-content: flex-end;
+      }
+    }
   `;
   document.head.appendChild(style);
 };
@@ -1382,7 +1399,7 @@ const removeBackupBanner = () => {
   document.getElementById(BACKUP_BANNER_ID)?.remove();
 };
 
-const injectBackupBanner = () => {
+const injectBackupBanner = (message) => {
 
   if (document.getElementById(BACKUP_BANNER_ID)) {
     return;
@@ -1395,7 +1412,7 @@ const injectBackupBanner = () => {
 
   const msg = document.createElement('span');
   msg.id = 'ytwh-backup-banner-msg';
-  msg.append('Your watch history is stored locally. Back it up regularly. ');
+  msg.append(message, ' ');
   const howItWorksLink = document.createElement('a');
   howItWorksLink.className = 'ytwh-backup-link';
   howItWorksLink.href = chrome.runtime.getURL('how-it-works.html');
@@ -1420,18 +1437,37 @@ const injectBackupBanner = () => {
     removeBackupBanner();
   });
 
+  const actions = document.createElement('div');
+  actions.className = 'ytwh-backup-actions';
+  actions.appendChild(backupBtn);
+  actions.appendChild(dismissBtn);
   banner.appendChild(msg);
-  banner.appendChild(backupBtn);
-  banner.appendChild(dismissBtn);
+  banner.appendChild(actions);
   document.body.appendChild(banner);
 
 };
 
 const checkBackupReminder = () => {
-  chrome.storage.local.get({ showBackupReminder: false }, (data) => {
-    if (data.showBackupReminder) {
-      injectBackupBanner();
+  chrome.storage.local.get({ showBackupReminder: false, lastBackupTimestamp: 0 }, (data) => {
+    if (!data.showBackupReminder) return;
+
+    if (!data.lastBackupTimestamp) {
+      injectBackupBanner('No backup has been recorded yet. Your watch history is stored locally. Back it up regularly.');
+      return;
     }
+
+    chrome.runtime.sendMessage(
+      { type: 'idb-count-videos-since', timestamp: data.lastBackupTimestamp },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          injectBackupBanner('Your watch history is stored locally. Back it up regularly.');
+          return;
+        }
+        const count = response && typeof response.count === 'number' ? response.count : 0;
+        const videoLabel = count === 1 ? 'video' : 'videos';
+        injectBackupBanner(`You have ${count} ${videoLabel} in your history since your last backup. Your data is stored locally.`);
+      }
+    );
   });
 };
 
