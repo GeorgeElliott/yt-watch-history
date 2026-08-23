@@ -4,6 +4,8 @@ const sentinelEl = document.getElementById('timeline-sentinel');
 const monthPickerEl = document.getElementById('timeline-month-picker');
 const yearPickerEl = document.getElementById('timeline-year-picker');
 const goButtonEl = document.getElementById('timeline-go-button');
+const manifest = chrome.runtime.getManifest();
+document.getElementById('version-number').textContent = manifest.version;
 
 const PAGE_SIZE = 20;
 const DAY_MS = 86400000;

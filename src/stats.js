@@ -4,6 +4,9 @@
  * highlight lists, all derived from a single db_getAllVideos() call.
  */
 
+const manifest = chrome.runtime.getManifest();
+document.getElementById('version-number').textContent = manifest.version;
+
 const statTotalEl          = document.getElementById('stat-total');
 const statWatchedEl        = document.getElementById('stat-watched');
 const statTimeEl           = document.getElementById('stat-time');

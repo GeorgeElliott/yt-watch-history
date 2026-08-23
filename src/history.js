@@ -5,6 +5,9 @@ const hideWatchedToggle = document.getElementById('hide-watched-toggle');
 const loadMoreBtn      = document.getElementById('load-more-btn');
 const statTotal        = document.getElementById('stat-total');
 
+const manifest = chrome.runtime.getManifest();
+document.getElementById('version-number').textContent = manifest.version;
+
 let allHistory     = [];
 let filteredHistory = [];
 let currentIndex   = 0;
