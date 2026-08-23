@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>WatchHistory for YouTube - How it works</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .info-container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+
+    .info-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .info-list {
+      padding-left: 20px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .info-list li + li {
+      margin-top: 8px;
+    }
+
+    .backup-panel {
+      border-color: var(--accent);
+    }
+
+    .backup-panel .panel-title {
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-header">
+    <div class="logo">
+      <div class="logo-icon">WHYT</div>
+      <div class="logo-text">WatchHistory <span>for YouTube</span></div>
+    </div>
+    <nav class="nav-tabs">
+      <a href="history.html" class="nav-tab">History</a>
+      <a href="stats.html" class="nav-tab">Stats</a>
+      <a href="options.html" class="nav-tab">Options</a>
+      <a href="how-it-works.html" class="nav-tab active">How it works</a>
+      <a href="https://www.youtube.com" class="nav-tab" target="_blank" rel="noopener noreferrer">YouTube</a>
+    </nav>
+  </div>
+
+  <main class="info-container">
+    <h1 class="section-title">How it works</h1>
+    <p class="info-intro">WatchHistory saves YouTube progress and history in your browser. It does not use an account, cloud sync, or its own server.</p>
+
+    <section class="panel">
+      <h2 class="panel-title">Your data</h2>
+      <ul class="info-list">
+        <li>Video history and watch data are stored in IndexedDB.</li>
+        <li>Settings are stored in your browser's local extension storage.</li>
+        <li>While you watch YouTube, the extension saves progress so unfinished videos can resume later.</li>
+      </ul>
+    </section>
+
+    <section class="panel backup-panel">
+      <h2 class="panel-title">Back up your history</h2>
+      <p class="panel-description">Your history is only stored locally. It can be lost if you clear browser data, reset or reinstall your browser, remove the extension, or lose the device.</p>
+      <ul class="info-list">
+        <li>Open Options and use <strong>Export</strong> to save a JSON backup.</li>
+        <li>Keep backups in more than one place, such as your computer and a separate drive or cloud storage service.</li>
+        <li>Use <strong>Import</strong> in Options to restore an exported backup.</li>
+      </ul>
+      <p class="mt-16"><a class="btn btn-primary" href="options.html#export">Open Options and export</a></p>
+    </section>
+  </main>
+</body>
+
+</html>

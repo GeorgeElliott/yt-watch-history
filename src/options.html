@@ -61,20 +61,32 @@
       <a href="history.html" class="nav-tab">History</a>
       <a href="stats.html" class="nav-tab">Stats</a>
       <a href="options.html" class="nav-tab active">Options</a>
+      <a href="how-it-works.html" class="nav-tab">How it works</a>
       <a href="https://www.youtube.com" class="nav-tab" target="_blank" rel="noopener noreferrer">YouTube</a>
     </nav>
   </div>
 
   <div class="options-container">
+    <div class="panel" style="border-color:var(--accent);">
+      <div class="panel-title">Your history is stored locally</div>
+      <div class="panel-description" style="margin-bottom:12px;">Your watch history is stored in this browser, not in the cloud. It can be lost if browser data is cleared, the browser is reinstalled, or the device fails. Please make regular backups and keep them in more than one location.</div>
+      <a href="how-it-works.html" style="color:var(--accent); text-decoration:underline; font-size:13px;">How it works</a>
+      <span style="margin:0 8px; color:var(--text-disabled);">|</span>
+      <a href="#export-section" style="color:var(--accent); text-decoration:underline; font-size:13px;">Go to Export</a>
+    </div>
+
     <!-- Welcome Card (First Time Setup) -->
     <div id="welcomeCard"
       style="display:none; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:20px; margin-bottom:20px; box-shadow:var(--shadow-card);">
       <div style="font-size:15px; font-weight:700; margin-bottom:12px; color:var(--text-primary);">Welcome to
         WatchHistory for YouTube™</div>
-      <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:16px;">Welcome to your
-        personal YouTube archive! Thanks for installing. We are excited to help you track your watch progress. We have
-        pre-selected the best settings for you, but feel free to adjust your history limits and preferences below so
-        everything is perfectly tailored to your watching habits.</div>
+      <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:12px;">Welcome to your
+        personal YouTube archive! Thanks for installing. Adjust the settings below to control how WatchHistory tracks
+        and displays your videos.</div>
+      <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:16px;">Your watch
+        history is stored locally in this browser. Use Export in Options to make regular backups, especially before
+        clearing browser data, reinstalling your browser, or moving to a new device. <a href="how-it-works.html"
+          style="color:var(--accent); text-decoration:underline;">How it works</a></div>
       <button id="dismissWelcome" class="btn btn-sm btn-primary" style="align-self:flex-start;">Dismiss</button>
     </div>
 

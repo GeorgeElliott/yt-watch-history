@@ -1349,6 +1349,11 @@ const injectBackupBannerStyles = () => {
       color: ${subTextColor};
       flex: 1;
     }
+    .ytwh-backup-link {
+      color: ${textColor};
+      text-decoration: underline;
+      white-space: nowrap;
+    }
     .ytwh-backup-btn {
       display: inline-flex; align-items: center; padding: 8px 16px;
       border-radius: 20px; border: 1px solid ${chipBorder};
@@ -1390,7 +1395,14 @@ const injectBackupBanner = () => {
 
   const msg = document.createElement('span');
   msg.id = 'ytwh-backup-banner-msg';
-  msg.textContent = 'Time to back up your watch history.';
+  msg.append('Your watch history is stored locally. Back it up regularly. ');
+  const howItWorksLink = document.createElement('a');
+  howItWorksLink.className = 'ytwh-backup-link';
+  howItWorksLink.href = chrome.runtime.getURL('how-it-works.html');
+  howItWorksLink.target = '_blank';
+  howItWorksLink.rel = 'noopener noreferrer';
+  howItWorksLink.textContent = 'How it works';
+  msg.appendChild(howItWorksLink);
 
   const backupBtn = document.createElement('button');
   backupBtn.className = 'ytwh-backup-btn';
