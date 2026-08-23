@@ -98,6 +98,13 @@
       font-weight: 500;
     }
 
+    .share-dialog-thanks {
+      margin: -8px 0 20px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      text-align: center;
+    }
+
     .share-dialog-actions {
       display: flex;
       justify-content: flex-end;
@@ -394,7 +401,7 @@
 
   <dialog id="share-dialog" class="share-dialog" aria-labelledby="share-dialog-title">
     <div class="share-dialog-header">
-      <h2 id="share-dialog-title" class="share-dialog-title">Share your watch streak</h2>
+      <h2 id="share-dialog-title" class="share-dialog-title">Share your stats</h2>
       <button id="close-share-dialog" class="btn-icon" type="button" aria-label="Close share menu">×</button>
     </div>
     <p class="share-dialog-description">Choose the period you want to share.</p>
@@ -409,6 +416,7 @@
     </label>
     <span class="share-preview-label">Example message</span>
     <pre id="share-preview" class="share-preview" aria-label="Example share message">Loading example...</pre>
+    <p class="share-dialog-thanks">Thanks for sharing and helping WatchHistory grow!</p>
     <div class="share-dialog-actions">
       <button id="cancel-share-dialog" class="btn btn-sm" type="button">Cancel</button>
       <button id="copy-share-btn" class="btn btn-accent btn-sm" type="button">Copy to clipboard</button>

@@ -351,11 +351,11 @@ const buildSharePeriods = (videos, sessions, totalWatchSeconds, currentStreak, a
 
 const buildShareText = (periodKey, period) => {
   const periodCopy = {
-    daily: 'My stats for today:',
-    weekly: 'My stats for the last week:',
-    monthly: 'My stats for the last month:',
-    yearly: 'My stats for the last year:',
-    allTime: 'My all-time stats:'
+    daily: 'My YouTube stats for today:',
+    weekly: 'My YouTube stats for the last week:',
+    monthly: 'My YouTube stats for the last month:',
+    yearly: 'My YouTube stats for the last year:',
+    allTime: 'My all-time YouTube stats:'
   };
   const title = periodCopy[periodKey] || periodCopy.allTime;
 
@@ -369,7 +369,7 @@ const buildShareText = (periodKey, period) => {
     `🏆 All-time watch streak: ${formatShareCount(period.allTimeStreak, 'day', 'days')}`,
     period.topChannel ? `⭐ Top channel: ${period.topChannel}` : '',
     '',
-    'Tracked via WatchHistory for YouTubeTM.',
+    'Tracked via WatchHistory for YouTube™.',
     'https://ytwatchhistory.com'
   ].join('\n');
 };
