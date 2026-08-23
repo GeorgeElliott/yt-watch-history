@@ -270,6 +270,11 @@ document.getElementById('open-history').onclick = (e) => {
   chrome.tabs.create({ url: chrome.runtime.getURL('history.html') });
 };
 
+document.getElementById('open-timeline').onclick = (e) => {
+  e.preventDefault();
+  chrome.tabs.create({ url: chrome.runtime.getURL('timeline.html') });
+};
+
 document.getElementById('open-stats').onclick = (e) => {
   e.preventDefault();
   chrome.tabs.create({ url: chrome.runtime.getURL('stats.html') });

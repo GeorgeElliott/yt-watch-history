@@ -50,6 +50,24 @@
       color: var(--accent);
     }
 
+    .popup-youtube-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 9px;
+      margin-left: auto;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+
+    .popup-youtube-link:hover {
+      color: var(--accent);
+      background: var(--bg-hover);
+      border-radius: var(--radius-pill);
+    }
+
     .popup-nav {
       display: flex;
       border-bottom: 1px solid var(--border-color);
@@ -255,6 +273,7 @@
   <div class="popup-header">
     <div class="logo-icon">WHYT</div>
     <div class="title">WatchHistory <span>for YouTube™</span></div>
+    <a class="popup-youtube-link" href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">Open YouTube</a>
   </div>
 
   <!-- Navigation Links -->
@@ -262,14 +281,14 @@
     <a href="history.html" target="_blank" id="open-history">
       <span class="nav-icon">📋</span> History
     </a>
+    <a href="timeline.html" target="_blank" id="open-timeline">
+      <span class="nav-icon">🕒</span> Timeline
+    </a>
     <a href="stats.html" target="_blank" id="open-stats">
       <span class="nav-icon">📊</span> Stats
     </a>
     <a href="options.html" target="_blank" id="open-options">
       <span class="nav-icon">⚙️</span> Options
-    </a>
-    <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">
-      <span class="nav-icon">▶️</span> YouTube
     </a>
   </div>
 

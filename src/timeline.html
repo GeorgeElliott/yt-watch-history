@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>WatchHistory for YouTube™ - Timeline</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .timeline-container {
+      width: min(920px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    .timeline-intro {
+      margin: 0;
+    }
+
+    .timeline-intro h1 {
+      font-size: 24px;
+    }
+
+    .timeline-intro p {
+      margin-top: 4px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .timeline-controls {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      margin: 0;
+    }
+
+    .timeline-heading-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+
+    .timeline-date-picker {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .timeline-picker {
+      width: 120px;
+      height: 34px;
+      padding: 8px 10px;
+      color: var(--text-primary);
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font: inherit;
+      font-size: 13px;
+    }
+
+    .timeline-controls .btn {
+      height: 34px;
+    }
+
+    .timeline-picker:disabled,
+    .timeline-controls .btn:disabled {
+      cursor: wait;
+      color: var(--text-disabled);
+    }
+
+    .timeline-day {
+      position: relative;
+      padding: 0 0 28px 42px;
+      scroll-margin-top: 84px;
+    }
+
+    .timeline-day::before {
+      position: absolute;
+      top: 34px;
+      bottom: -10px;
+      left: 13px;
+      width: 1px;
+      content: '';
+      background: var(--border-color);
+    }
+
+    .timeline-day:last-child::before {
+      display: none;
+    }
+
+    .timeline-day-heading {
+      position: relative;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .timeline-day-heading::before {
+      position: absolute;
+      top: 4px;
+      left: -36px;
+      width: 13px;
+      height: 13px;
+      content: '';
+      background: var(--accent);
+      border: 3px solid var(--bg-primary);
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .timeline-entry {
+      display: grid;
+      grid-template-columns: 116px minmax(0, 1fr);
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .timeline-entry:last-child {
+      border-bottom: none;
+    }
+
+    .timeline-gap {
+      position: relative;
+      margin: -4px 0 24px 42px;
+      color: var(--text-primary);
+      font-size: 12px;
+      font-style: italic;
+    }
+
+    .timeline-gap::before {
+      position: absolute;
+      top: -16px;
+      bottom: -16px;
+      left: -29px;
+      width: 1px;
+      content: '';
+      background: var(--border-color);
+    }
+
+    .timeline-thumb {
+      display: block;
+      width: 116px;
+      height: 65px;
+      overflow: hidden;
+      background: #000;
+      border-radius: var(--radius-sm);
+    }
+
+    .timeline-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .timeline-entry-body {
+      min-width: 0;
+      padding: 2px 0;
+    }
+
+    .timeline-title {
+      display: -webkit-box;
+      overflow: hidden;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.35;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .timeline-title:hover,
+    .timeline-channel:hover {
+      color: var(--accent);
+    }
+
+    .timeline-channel {
+      display: block;
+      overflow: hidden;
+      margin-top: 3px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .timeline-meta {
+      margin-top: 6px;
+      color: var(--text-disabled);
+      font-size: 11px;
+    }
+
+    .timeline-sentinel {
+      min-height: 1px;
+    }
+
+    .timeline-loading {
+      padding: 16px 0;
+      color: var(--text-secondary);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 560px) {
+      .timeline-container {
+        width: min(100% - 28px, 920px);
+        padding-top: 24px;
+      }
+
+      .timeline-heading-row {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .timeline-controls {
+        width: 100%;
+      }
+
+      .timeline-date-picker {
+        width: 100%;
+      }
+
+      .timeline-picker {
+        flex: 1;
+      }
+
+      .timeline-day {
+        padding-left: 30px;
+      }
+
+      .timeline-day::before {
+        left: 9px;
+      }
+
+      .timeline-gap {
+        margin-left: 30px;
+      }
+
+      .timeline-gap::before {
+        left: -21px;
+      }
+
+      .timeline-day-heading::before {
+        left: -27px;
+      }
+
+      .timeline-entry {
+        grid-template-columns: 96px minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .timeline-thumb {
+        width: 96px;
+        height: 54px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-header">
+    <div class="logo">
+      <div class="logo-icon">WHYT</div>
+      <div class="logo-text">WatchHistory <span>for YouTube™</span></div>
+    </div>
+    <nav class="nav-tabs">
+      <a href="history.html" class="nav-tab">History</a>
+      <a href="timeline.html" class="nav-tab active">Timeline</a>
+      <a href="stats.html" class="nav-tab">Stats</a>
+      <a href="options.html" class="nav-tab">Options</a>
+      <a href="how-it-works.html" class="nav-tab">How it works</a>
+      <a href="https://www.youtube.com" class="nav-tab" target="_blank" rel="noopener noreferrer">YouTube</a>
+    </nav>
+  </div>
+
+  <main class="timeline-container">
+    <div class="timeline-heading-row">
+      <div class="timeline-intro">
+        <h1>Watch timeline</h1>
+        <p>Your saved YouTube history, in chronological order.</p>
+      </div>
+      <div class="timeline-date-picker">
+        <div class="timeline-controls">
+          <select id="timeline-month-picker" class="timeline-picker" aria-label="Month" disabled>
+            <option>Loading...</option>
+          </select>
+          <select id="timeline-year-picker" class="timeline-picker" aria-label="Year" disabled>
+            <option>Loading...</option>
+          </select>
+          <button id="timeline-go-button" class="btn btn-sm" type="button" disabled>Go</button>
+        </div>
+      </div>
+    </div>
+    <div id="timeline" aria-live="polite"></div>
+    <div id="timeline-loading" class="timeline-loading">Loading timeline...</div>
+    <div id="timeline-sentinel" class="timeline-sentinel" aria-hidden="true"></div>
+  </main>
+
+  <script src="db.js"></script>
+  <script src="timeline.js"></script>
+</body>
+
+</html>
