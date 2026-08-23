@@ -35,6 +35,7 @@
       </button>
       <nav id="nav-menu" class="nav-menu">
         <a href="#about">About</a>
+        <a href="#how-it-works">How It Works</a>
         <a href="#features">Features</a>
         <a href="#privacy">Privacy</a>
         <a href="#screenshots">Screenshots</a>
@@ -101,6 +102,54 @@
         The project is fully transparent and community-driven. Anyone can audit the source code, suggest new features,
         or contribute to the project directly on GitHub. </p>
   </section>
+
+  <!-- How It Works Section -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="how-it-works-container">
+      <h2 class="section-title">How It Works</h2>
+      <p class="how-it-works-intro">WatchHistory quietly keeps track of the videos you watch, so your viewing progress stays useful without becoming someone else's data.</p>
+
+      <div class="steps-grid">
+        <article class="step-item">
+          <span class="step-number">01</span>
+          <h3>Watch on YouTube</h3>
+          <p>As you watch, the extension records the video, channel, and progress needed to help you find it again.</p>
+        </article>
+        <article class="step-item">
+          <span class="step-number">02</span>
+          <h3>Keep Progress Local</h3>
+          <p>Your history and settings are saved in your browser's local storage, including IndexedDB and browser extension storage.</p>
+        </article>
+        <article class="step-item">
+          <span class="step-number">03</span>
+          <h3>Pick Up Where You Left Off</h3>
+          <p>Search your history, see watched and resume badges, or return to a video at the point where you stopped.</p>
+        </article>
+      </div>
+
+      <aside class="local-note" aria-label="Local data disclaimer">
+        <strong>Your data stays on your device.</strong>
+        <p>WatchHistory does not upload or sync your watch history to its own servers. Clearing browser data or removing the extension can remove local records, so use the export feature if you want a backup.</p>
+      </aside>
+
+      <div class="faq" aria-labelledby="faq-title">
+        <h3 id="faq-title">Frequently Asked Questions</h3>
+        <details class="faq-item">
+          <summary>Does WatchHistory send my viewing history anywhere?</summary>
+          <p>No. WatchHistory stores its history data locally in your browser and does not operate a cloud sync service or collect analytics about your viewing activity.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Will it work if I am signed out of YouTube?</summary>
+          <p>Yes. The extension keeps its own local history, so it can work when you are signed out or when YouTube watch history is paused.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Can I move or back up my history?</summary>
+          <p>Yes. Export your history as JSON from the extension's options, then keep backup copies in multiple places, such as an external drive and a trusted cloud storage provider. You can import the file later when you need to restore your history.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
   <!-- Features Section -->
   <section class="features" id="features">
     <div class="features-container">
@@ -261,6 +310,7 @@
       </div>
       <div class="footer-section">
         <h4>Product</h4>
+        <a href="#how-it-works">How It Works</a>
         <a href="#features">Features</a>
         <a href="#screenshots">Screenshots</a>
         <a href="#privacy">Privacy</a>
