@@ -870,7 +870,7 @@ const checkRedirects = () => {
   const path = location.pathname;
 
   if (path === '/feed/history') {
-    chrome.storage.local.get({ historyRedirect: true }, (data) => {
+    chrome.storage.local.get({ historyRedirect: false }, (data) => {
       if (data.historyRedirect) {
         chrome.runtime.sendMessage({ type: 'redirect-history' });
       }
@@ -879,7 +879,7 @@ const checkRedirects = () => {
   }
 
   if (path === '/' || path === '/shorts/') {
-    chrome.storage.local.get({ subsRedirect: true }, (data) => {
+    chrome.storage.local.get({ subsRedirect: false }, (data) => {
       if (data.subsRedirect) {
         location.replace('https://www.youtube.com/feed/subscriptions');
       }
@@ -1167,7 +1167,7 @@ const updateShelfState = () => {
     return;
   }
 
-  chrome.storage.local.get({ pickupShelf: true, ghostModeActive: false, subsRedirect: true }, (data) => {
+  chrome.storage.local.get({ pickupShelf: true, ghostModeActive: false, subsRedirect: false }, (data) => {
     // Redirect gatekeeper: homepage with redirect active — don't inject the shelf.
     if (isHome && data.subsRedirect) {
       document.getElementById(PICKUP_SHELF_ID)?.remove();
@@ -1194,7 +1194,7 @@ const injectPickupShelf = () => {
   const path = location.pathname;
   if (path !== '/' && path !== '/feed/subscriptions') return;
 
-  chrome.storage.local.get({ pickupShelf: true, ghostModeActive: false, subsRedirect: true }, (data) => {
+  chrome.storage.local.get({ pickupShelf: true, ghostModeActive: false, subsRedirect: false }, (data) => {
     if (!data.pickupShelf || data.ghostModeActive) return;
     // Redirect gatekeeper: if redirect is active on homepage, stop here.
     if (path === '/' && data.subsRedirect) return;
@@ -1286,7 +1286,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
   if ('showBackupReminder' in changes) {
     if (changes.showBackupReminder.newValue) {
-      injectBackupBanner();
+      checkBackupReminder();
     } else {
       removeBackupBanner();
     }
@@ -1448,8 +1448,10 @@ const injectBackupBanner = (message) => {
 };
 
 const checkBackupReminder = () => {
-  chrome.storage.local.get({ showBackupReminder: false, lastBackupTimestamp: 0 }, (data) => {
-    if (!data.showBackupReminder) return;
+  chrome.storage.local.get(
+    { firstTimeSetupComplete: false, showBackupReminder: false, lastBackupTimestamp: 0 },
+    (data) => {
+    if (!data.firstTimeSetupComplete || !data.showBackupReminder) return;
 
     if (!data.lastBackupTimestamp) {
       injectBackupBanner('No backup has been recorded yet. Your watch history is stored locally. Back it up regularly.');
@@ -1468,7 +1470,8 @@ const checkBackupReminder = () => {
         injectBackupBanner(`You have ${count} ${videoLabel} in your history since your last backup. Your data is stored locally.`);
       }
     );
-  });
+    }
+  );
 };
 
 //  YouTube Theme Sync 
@@ -1502,7 +1505,7 @@ document.addEventListener('click', (e) => {
 checkRedirects();
 applyHideShorts();
 // Only load the shelf if we're not redirecting from home to subscriptions
-chrome.storage.local.get({ subsRedirect: true }, (data) => {
+chrome.storage.local.get({ subsRedirect: false }, (data) => {
   const isHome = location.pathname === '/';
   if (!(isHome && data.subsRedirect)) {
     updateShelfState();

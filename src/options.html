@@ -97,6 +97,18 @@
     .keep-collapsed-link:hover {
       color: var(--text-primary);
     }
+
+    .onboarding-highlight {
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin: 12px -12px 0;
+      background: var(--bg-hover);
+    }
+
+    .onboarding-highlight + .panel-row {
+      margin-top: 12px;
+    }
   </style>
 </head>
 
@@ -136,6 +148,7 @@
       <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:12px;">Welcome to your
         personal YouTube archive! Thanks for installing. Adjust the settings below to control how WatchHistory tracks
         and displays your videos.</div>
+      <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:12px;">If you keep official YouTube watch history disabled, we recommend enabling <strong>Redirect YouTube history</strong> and <strong>Redirect Home &amp; Shorts to Subscriptions</strong> below. <a href="https://myactivity.google.com/myactivity" target="_blank" rel="noopener noreferrer" style="color:var(--accent); text-decoration:underline;">Check your setting in Google My Activity</a>.</div>
       <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:16px;">Your watch
         history is stored locally in this browser. Use Export in Options to make regular backups, especially before
         clearing browser data, reinstalling your browser, or moving to a new device. <a href="how-it-works.html"
@@ -157,21 +170,21 @@
           <span class="toggle-slider"></span>
         </label>
       </div>
-      <div class="panel-row">
+      <div id="history-redirect-row" class="panel-row">
         <div>
           <label>Redirect YouTube history</label>
-          <div class="help-text">Redirect youtube.com/feed/history to your local watch history page.</div>
+          <div class="help-text">Redirect youtube.com/feed/history to your local watch history page. Recommended when official YouTube watch history is disabled.</div>
         </div>
         <label class="toggle">
           <input type="checkbox" id="redirect-toggle">
           <span class="toggle-slider"></span>
         </label>
       </div>
-      <div class="panel-row">
+      <div id="subscriptions-redirect-row" class="panel-row">
         <div>
           <label>Redirect Home & Shorts to Subscriptions</label>
           <div class="help-text">Skip recommendations - redirect the YouTube home page and Shorts to your subscriptions
-            feed.</div>
+            feed. Recommended when official YouTube watch history is disabled.</div>
         </div>
         <label class="toggle">
           <input type="checkbox" id="subs-redirect-toggle">

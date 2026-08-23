@@ -2,7 +2,7 @@
 
 Keep your place on YouTube without relying on YouTube history. WatchHistory saves progress and history in your browser, so you can resume unfinished videos and find what you watched later.
 
-It works when YouTube history is disabled or you are signed out.
+It works when official YouTube watch history is disabled or you are signed out.
 
 I made it because turning off YouTube's official watch history also removes useful features such as resume and a list of recently watched videos. This extension adds some of that functionality back while keeping the data in your browser.
 

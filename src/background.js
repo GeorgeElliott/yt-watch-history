@@ -16,8 +16,8 @@ if (typeof importScripts === 'function') {
 
 const DEFAULT_SETTINGS = {
   resumeBadges: true,
-  historyRedirect: true,
-  subsRedirect: true,
+  historyRedirect: false,
+  subsRedirect: false,
   hideShorts: false,
   hideWatchedDefault: false,
   pickupShelf: true,
@@ -157,10 +157,10 @@ const BACKUP_FREQUENCY_MS = {
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'backup-reminder-check') {
     chrome.storage.local.get(
-      { backupReminderFrequency: 'weekly', lastBackupTimestamp: 0 },
+      { backupReminderFrequency: 'weekly', firstTimeSetupComplete: false, lastBackupTimestamp: 0 },
       (data) => {
-        const { backupReminderFrequency, lastBackupTimestamp } = data;
-        if (backupReminderFrequency === 'never') return;
+        const { backupReminderFrequency, firstTimeSetupComplete, lastBackupTimestamp } = data;
+        if (!firstTimeSetupComplete || backupReminderFrequency === 'never') return;
 
         const threshold = BACKUP_FREQUENCY_MS[backupReminderFrequency];
         if (!threshold) return;
@@ -235,13 +235,17 @@ const resetGhostModeState = () => {
 
 // Startup
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   initializeDefaultSettings();
   resetGhostModeState();
   scheduleBackupAlarm();
   scheduleCountAlarm();
   migrateIfNeeded();
   refreshVideoCount();
+
+  if (details.reason === 'install') {
+    chrome.runtime.openOptionsPage();
+  }
 });
 
 chrome.runtime.onStartup.addListener(() => {

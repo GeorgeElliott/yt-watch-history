@@ -126,17 +126,23 @@ db_getStoredVersion().then((storedVersion) => {
 // First-time setup
 const welcomeCard    = document.getElementById('welcomeCard');
 const dismissWelcome = document.getElementById('dismissWelcome');
+const onboardingRedirectRows = [
+  document.getElementById('history-redirect-row'),
+  document.getElementById('subscriptions-redirect-row')
+];
 
 chrome.storage.local.get({ firstTimeSetupComplete: false }, (data) => {
   if (!data.firstTimeSetupComplete && welcomeCard) {
     welcomeCard.style.display = 'block';
+    onboardingRedirectRows.forEach((row) => row?.classList.add('onboarding-highlight'));
   }
 });
 
 if (dismissWelcome) {
   dismissWelcome.onclick = () => {
-    chrome.storage.local.set({ firstTimeSetupComplete: true });
+    chrome.storage.local.set({ firstTimeSetupComplete: true, showBackupReminder: false });
     if (welcomeCard) welcomeCard.style.display = 'none';
+    onboardingRedirectRows.forEach((row) => row?.classList.remove('onboarding-highlight'));
   };
 }
 
@@ -147,8 +153,8 @@ const backupReminderSelect = document.getElementById('backup-reminder-select');
 chrome.storage.local.get(
   {
     resumeBadges:            true,
-    historyRedirect:         true,
-    subsRedirect:            true,
+    historyRedirect:         false,
+    subsRedirect:            false,
     hideShorts:              false,
     hideWatchedDefault:      false,
     ghostModeActive:         false,
