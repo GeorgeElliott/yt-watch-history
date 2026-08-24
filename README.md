@@ -103,12 +103,27 @@ The extension uses vanilla JavaScript and browser extension APIs. IndexedDB stor
 
 ## Development
 
-The extension is plain JavaScript with no package installation or compile step. Clone the repository and load the `src/` directory as an unpacked extension in Chrome or Edge.
+The extension is plain JavaScript with no compile step. Clone the repository and load the `src/` directory as an unpacked extension in Chrome or Edge.
 
 ```bash
 git clone https://github.com/GeorgeElliott/yt-watch-history.git
 cd yt-watch-history
 ```
+
+Install the development dependencies before running the automated tests:
+
+```bash
+npm ci
+npx playwright install chromium
+```
+
+Run the unit and extension tests with:
+
+```bash
+npm run test:all
+```
+
+The GitHub Actions release workflow runs these tests before packaging. When manually dispatching the workflow for debugging, `skip_tests` and `skip_release` are available as optional boolean inputs; both default to `false`.
 
 ### Package a release
 

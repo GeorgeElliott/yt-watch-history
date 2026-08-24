@@ -27,21 +27,6 @@ const monthKey = (timestamp) => {
   return date.getTime();
 };
 
-const formatDuration = (seconds) => {
-  const totalSeconds = Math.max(0, Math.round(seconds || 0));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
-};
-
-const getVideoUrl = (video) => {
-  const videoId = encodeURIComponent(video.videoId);
-  return video.live || video.watched
-    ? `https://www.youtube.com/watch?v=${videoId}`
-    : `https://www.youtube.com/watch?v=${videoId}&t=${video.time || 0}s`;
-};
-
 const getTimelineMeta = (video) => {
   const time = new Date(video.timestamp).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   if (video.live) return `${time} · Livestream · ${formatDuration(video.time)} watched`;
@@ -96,7 +81,7 @@ const createEntry = (video) => {
   thumbnail.target = '_blank';
   thumbnail.rel = 'noopener noreferrer';
   const image = document.createElement('img');
-  image.src = `https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/mqdefault.jpg`;
+  image.src = getVideoThumbnailUrl(video.videoId);
   image.alt = '';
   thumbnail.appendChild(image);
 

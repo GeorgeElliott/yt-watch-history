@@ -40,19 +40,6 @@ let latestShareText = '';
 let sharePeriods = null;
 let shareData = null;
 
-// Best-effort watch count for a record, falling back for videos saved
-// before the watchCount feature existed.
-const getWatchCount = (video) =>
-  typeof video.watchCount === 'number' ? video.watchCount : (video.watched ? 1 : 0);
-
-const formatDuration = (totalSeconds) => {
-  totalSeconds = Math.max(0, Math.round(totalSeconds || 0));
-  const hours   = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
-};
-
 // Like formatDuration() but keeps the seconds — used for a single
 // video's length, where rounding down to whole minutes would hide the
 // difference between, say, a 5s short and a 55s short (both "0m").
@@ -96,10 +83,8 @@ const renderEmptyState = (container, message) => {
 // Builds a shared thumbnail/title/channel row used by both the "Top
 // videos" and "Longest video" panels — only the trailing badge differs.
 const buildVideoRow = (video, rankLabel, badgeText, metadataText = '') => {
-  const url = video.live || video.watched
-    ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`
-    : `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&t=${video.time}s`;
-  const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/mqdefault.jpg`;
+  const url = getVideoUrl(video);
+  const thumbUrl = getVideoThumbnailUrl(video.videoId);
 
   const row = document.createElement('div');
   row.className = 'stats-video-row';

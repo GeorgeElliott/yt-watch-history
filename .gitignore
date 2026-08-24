@@ -147,5 +147,8 @@ vite.config.ts.timestamp-*
 
 promo-images/
 
+# Playwright test artifacts
+test-results/
+
 RELEASING.md
 STORE_LISTING.md

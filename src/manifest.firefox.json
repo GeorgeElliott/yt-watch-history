@@ -30,8 +30,9 @@
   "options_page": "options.html",
   "background": {
     "scripts": [
-      "db.js",
-      "background.js"
+      "core/core.js",
+      "core/db.js",
+      "core/background.js"
     ]
   },
   "content_scripts": [
@@ -40,7 +41,8 @@
         "https://www.youtube.com/*"
       ],
       "js": [
-        "content.js"
+        "core/core.js",
+        "core/content.js"
       ],
       "run_at": "document_idle"
     }

@@ -215,6 +215,13 @@ function openDB() {
 
 // Write operations
 
+const db_addRecord = (storeName, record) => openDB().then((db) => new Promise((resolve, reject) => {
+  const tx = db.transaction(storeName, 'readwrite');
+  tx.objectStore(storeName).add(record);
+  tx.oncomplete = () => resolve();
+  tx.onerror = (event) => reject(event.target.error);
+}));
+
 /**
  * db_saveVideo(video)
  * Inserts or updates (upserts) a single video record using IDB's
@@ -235,21 +242,11 @@ function db_saveVideo(video) {
 }
 
 function db_recordWatchEvent(event) {
-  return openDB().then((db) => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_EVENTS, 'readwrite');
-    tx.objectStore(STORE_EVENTS).add(event);
-    tx.oncomplete = ()  => resolve();
-    tx.onerror    = (e) => reject(e.target.error);
-  }));
+  return db_addRecord(STORE_EVENTS, event);
 }
 
 function db_recordWatchSession(session) {
-  return openDB().then((db) => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_SESSIONS, 'readwrite');
-    tx.objectStore(STORE_SESSIONS).add(session);
-    tx.oncomplete = () => resolve();
-    tx.onerror = (e) => reject(e.target.error);
-  }));
+  return db_addRecord(STORE_SESSIONS, session);
 }
 
 /**
@@ -499,21 +496,56 @@ function db_getAllVideos() {
   }));
 }
 
+const db_getAllRecords = (storeName) => openDB().then((db) => new Promise((resolve, reject) => {
+  const tx = db.transaction(storeName, 'readonly');
+  const req = tx.objectStore(storeName).getAll();
+  req.onsuccess = () => resolve(req.result || []);
+  req.onerror = (event) => reject(event.target.error);
+}));
+
 function db_getAllWatchEvents() {
-  return openDB().then((db) => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_EVENTS, 'readonly');
-    const req = tx.objectStore(STORE_EVENTS).getAll();
-    req.onsuccess = ()  => resolve(req.result || []);
-    req.onerror   = (e) => reject(e.target.error);
-  }));
+  return db_getAllRecords(STORE_EVENTS);
 }
 
 function db_getAllWatchSessions() {
+  return db_getAllRecords(STORE_SESSIONS);
+}
+
+/**
+ * Toggles a video's watched state and records an eligible completion in one
+ * transaction. `fallbackVideo` supplies metadata for feed items not yet saved.
+ *
+ * @returns {Promise<{ video: Object, creditedWatch: boolean }>}
+ */
+function db_toggleWatched(videoId, watchedThreshold = 95, fallbackVideo = null) {
   return openDB().then((db) => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_SESSIONS, 'readonly');
-    const req = tx.objectStore(STORE_SESSIONS).getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = (e) => reject(e.target.error);
+    const storeNames = [STORE_VIDEOS];
+    if (db.objectStoreNames.contains(STORE_EVENTS)) storeNames.push(STORE_EVENTS);
+    const tx = db.transaction(storeNames, 'readwrite');
+    const videos = tx.objectStore(STORE_VIDEOS);
+    const events = storeNames.includes(STORE_EVENTS) ? tx.objectStore(STORE_EVENTS) : null;
+    const getRequest = videos.get(videoId);
+    let result;
+
+    getRequest.onsuccess = () => {
+      const existing = getRequest.result;
+      const state = toggleWatchedState(
+        existing,
+        watchedThreshold,
+        { ...fallbackVideo, videoId },
+        Date.now()
+      );
+      const { video, creditedWatch } = state;
+      videos.put(video);
+      if (creditedWatch && events) {
+        events.add({ videoId, watchedAt: video.timestamp });
+      }
+      result = state;
+    };
+    getRequest.onerror = (event) => reject(event.target.error);
+    tx.oncomplete = () => resolve(result);
+    tx.onerror = (event) => reject(event.target.error);
+    tx.onabort = (event) => reject(event.target.error || new Error('Watched-state update aborted'));
   }));
 }
 

@@ -151,19 +151,7 @@ const backupReminderSelect = document.getElementById('backup-reminder-select');
 
 // Load settings
 chrome.storage.local.get(
-  {
-    resumeBadges:            true,
-    historyRedirect:         false,
-    subsRedirect:            false,
-    hideShorts:              false,
-    hideWatchedDefault:      false,
-    ghostModeActive:         false,
-    pickupShelf:             true,
-    backupReminderFrequency: 'weekly',
-    watchedThreshold: 95,
-    countBackgroundPlayback: false,
-    keepLocalNoticeCollapsed: false,
-  },
+  DEFAULT_SETTINGS,
   (data) => {
     badgeToggle.checked              = data.resumeBadges;
     redirectToggle.checked           = data.historyRedirect;

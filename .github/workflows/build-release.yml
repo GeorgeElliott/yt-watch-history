@@ -10,6 +10,16 @@ on:
         description: 'Tag name (e.g., v1.2.3)'
         required: true
         type: string
+      skip_tests:
+        description: 'Skip unit and Playwright tests'
+        required: false
+        default: false
+        type: boolean
+      skip_release:
+        description: 'Skip creating the GitHub release'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build:
@@ -35,6 +45,18 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
+
+      - name: Install dependencies
+        if: ${{ !inputs.skip_tests }}
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        if: ${{ !inputs.skip_tests }}
+        run: npx playwright install --with-deps chromium
+
+      - name: Run tests
+        if: ${{ !inputs.skip_tests }}
+        run: xvfb-run --auto-servernum npm run test:all
 
       - name: Build Chrome/Edge Package
         shell: bash
@@ -62,6 +84,7 @@ jobs:
           ls -lh dist/ || echo "dist directory not found!"
 
       - name: Create Release
+        if: ${{ !inputs.skip_release }}
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.tag.outputs.tag }}

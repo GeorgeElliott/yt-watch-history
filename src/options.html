@@ -4,112 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <title>WatchHistory for YouTube™ - Options</title>
-  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="shared/theme.css">
   <script src="libraries/webextension-polyfill.js"></script>
-  <style>
-    .options-container {
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 32px 20px;
-    }
-
-    .panel+.panel {
-      margin-top: 16px;
-    }
-
-    .panel-row+.panel-row {
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid var(--border-color);
-    }
-
-    .panel-row label {
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .panel-row .help-text {
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-top: 2px;
-    }
-
-    .about-section {
-      text-align: center;
-      padding: 20px;
-      color: var(--text-secondary);
-      font-size: 12px;
-    }
-
-    .about-section .version {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-primary);
-      margin-bottom: 4px;
-    }
-
-    .local-data-notice summary {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      color: var(--text-primary);
-      font-size: 15px;
-      font-weight: 500;
-    }
-
-    .local-data-notice summary::after {
-      content: '';
-      width: 0;
-      height: 0;
-      border-left: 5px solid transparent;
-      border-right: 5px solid transparent;
-      border-bottom: 7px solid var(--accent);
-      flex-shrink: 0;
-      transition: transform 0.2s ease;
-    }
-
-    .local-data-notice[open] summary::after {
-      transform: rotate(180deg);
-    }
-
-    .local-data-notice summary::-webkit-details-marker {
-      display: none;
-    }
-
-    .local-data-notice .panel-description {
-      margin-top: 12px;
-    }
-
-    .keep-collapsed-link {
-      display: inline;
-      margin: 0;
-      padding: 0;
-      border: 0;
-      background: transparent;
-      color: var(--text-secondary);
-      font: inherit;
-      font-size: 13px;
-      text-decoration: underline;
-      cursor: pointer;
-    }
-
-    .keep-collapsed-link:hover {
-      color: var(--text-primary);
-    }
-
-    .onboarding-highlight {
-      border: 1px solid var(--accent);
-      border-radius: var(--radius-md);
-      padding: 12px;
-      margin: 12px -12px 0;
-      background: var(--bg-hover);
-    }
-
-    .onboarding-highlight + .panel-row {
-      margin-top: 12px;
-    }
-  </style>
 </head>
 
 <body>
@@ -130,30 +26,30 @@
   </div>
 
   <div class="options-container">
-    <details id="local-data-notice" class="panel local-data-notice" style="border-color:var(--accent);" open>
+    <details id="local-data-notice" class="panel local-data-notice" open>
       <summary>Your history is stored locally</summary>
-      <div class="panel-description" style="margin-bottom:12px;">Your watch history is stored in this browser, not in the cloud. It can be lost if browser data is cleared, the browser is reinstalled, or the device fails. Please make regular backups and keep them in more than one location.</div>
-      <a href="how-it-works.html" style="color:var(--accent); text-decoration:underline; font-size:13px;">How it works</a>
-      <span style="margin:0 8px; color:var(--text-disabled);">|</span>
-      <a href="#export-section" style="color:var(--accent); text-decoration:underline; font-size:13px;">Go to Export</a>
-      <span style="margin:0 8px; color:var(--text-disabled);">|</span>
+      <div class="panel-description" class="local-data-notice-description">Your watch history is stored in this browser, not in the cloud. It can be lost if browser data is cleared, the browser is reinstalled, or the device fails. Please make regular backups and keep them in more than one location.</div>
+      <a href="how-it-works.html" class="inline-link">How it works</a>
+      <span class="inline-divider">|</span>
+      <a href="#export-section" class="inline-link">Go to Export</a>
+      <span class="inline-divider">|</span>
       <button id="keep-collapsed-link" class="keep-collapsed-link" type="button">Keep collapsed</button>
     </details>
 
     <!-- Welcome Card (First Time Setup) -->
     <div id="welcomeCard"
-      style="display:none; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:20px; margin-bottom:20px; box-shadow:var(--shadow-card);">
-      <div style="font-size:15px; font-weight:700; margin-bottom:12px; color:var(--text-primary);">Welcome to
+      class="welcome-card">
+      <div class="welcome-card-title">Welcome to
         WatchHistory for YouTube™</div>
-      <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:12px;">Welcome to your
+      <div class="welcome-card-copy">Welcome to your
         personal YouTube archive! Thanks for installing. Adjust the settings below to control how WatchHistory tracks
         and displays your videos.</div>
-      <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:12px;">If you keep official YouTube watch history disabled, we recommend enabling <strong>Redirect YouTube history</strong> and <strong>Redirect Home &amp; Shorts to Subscriptions</strong> below. <a href="https://myactivity.google.com/myactivity" target="_blank" rel="noopener noreferrer" style="color:var(--accent); text-decoration:underline;">Check your setting in Google My Activity</a>.</div>
-      <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:16px;">Your watch
+      <div class="welcome-card-copy">If you keep official YouTube watch history disabled, we recommend enabling <strong>Redirect YouTube history</strong> and <strong>Redirect Home &amp; Shorts to Subscriptions</strong> below. <a href="https://myactivity.google.com/myactivity" target="_blank" rel="noopener noreferrer" class="inline-link">Check your setting in Google My Activity</a>.</div>
+      <div class="welcome-card-copy">Your watch
         history is stored locally in this browser. Use Export in Options to make regular backups, especially before
         clearing browser data, reinstalling your browser, or moving to a new device. <a href="how-it-works.html"
-          style="color:var(--accent); text-decoration:underline;">How it works</a></div>
-      <button id="dismissWelcome" class="btn btn-sm btn-primary" style="align-self:flex-start;">Dismiss</button>
+          class="inline-link">How it works</a></div>
+      <button id="dismissWelcome" class="btn btn-sm btn-primary">Dismiss</button>
     </div>
 
     <!-- Display Settings -->
@@ -231,10 +127,10 @@
           <div class="help-text">How far through a video (%) must be watched before it counts as watched. Default: 95%.
           </div>
         </div>
-        <div style="display:flex; align-items:center; gap:6px;">
+        <div class="threshold-control">
           <input type="number" id="watched-threshold-input" class="input" min="1" max="100" value="95"
-            style="width:64px; text-align:center; padding:6px 8px;">
-          <span style="font-size:13px; color:var(--text-secondary);">%</span>
+            class="input threshold-input">
+          <span class="threshold-suffix">%</span>
         </div>
       </div>
       <div class="panel-row">
@@ -281,7 +177,7 @@
           <label>Backup reminder</label>
           <div class="help-text">Get a reminder banner on YouTube to export your history.</div>
         </div>
-        <select id="backup-reminder-select" class="input" style="width:auto; padding:6px 10px;">
+        <select id="backup-reminder-select" class="input select-compact">
           <option value="never">Never</option>
           <option value="daily">Daily</option>
           <option value="weekly" selected>Weekly</option>
@@ -308,8 +204,8 @@
       <details id="import-status-menu" class="panel-row" hidden>
         <summary id="operation-status-title">Import / Export status</summary>
         <div id="import-status" class="help-text">Waiting to start</div>
-        <progress id="operation-progress" value="0" max="100" style="width:100%; margin-top:8px;"></progress>
-        <ol id="operation-log" class="help-text" style="margin:8px 0 0; padding-left:20px;"></ol>
+        <progress id="operation-progress" value="0" max="100" class="operation-progress"></progress>
+        <ol id="operation-log" class="help-text operation-log"></ol>
       </details>
       <div class="panel-row">
         <div>
@@ -324,12 +220,12 @@
     <div class="about-section">
       <div class="version">WatchHistory for YouTube™ v<span id="version-number">1.1</span></div>
       <div>Tracks YouTube videos locally and resumes where you left off.</div>
-      <div style="margin-top: 12px;">
+      <div class="about-links">
         <a href="https://github.com/GeorgeElliott/yt-watch-history" target="_blank" rel="noopener noreferrer"
-          style="color: var(--accent); text-decoration: none;">View on GitHub</a>
-        <span style="margin: 0 8px; opacity: 0.4;">|</span>
+          class="page-footer-link">View on GitHub</a>
+        <span class="page-footer-divider">|</span>
         <a href="https://github.com/GeorgeElliott/yt-watch-history/issues" target="_blank" rel="noopener noreferrer"
-          style="color: var(--accent); text-decoration: none;">Report a Bug</a>
+          class="page-footer-link">Report a Bug</a>
       </div>
     </div>
   </div>
@@ -337,7 +233,8 @@
   <!-- Toast -->
   <div id="toast" class="toast"></div>
 
-  <script src="db.js"></script>
+  <script src="core/core.js"></script>
+  <script src="core/db.js"></script>
   <script src="options.js"></script>
 </body>
 

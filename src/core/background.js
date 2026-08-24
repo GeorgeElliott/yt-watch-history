@@ -9,25 +9,10 @@
 
 'use strict';
 
-// Load db.js helpers. Chrome: via importScripts. Firefox: already loaded via manifest.
+// Load shared helpers. Chrome imports them here; Firefox loads them via manifest.
 if (typeof importScripts === 'function') {
-  importScripts('db.js');
+  importScripts('core.js', 'db.js');
 }
-
-const DEFAULT_SETTINGS = {
-  resumeBadges: true,
-  historyRedirect: false,
-  subsRedirect: false,
-  hideShorts: false,
-  hideWatchedDefault: false,
-  pickupShelf: true,
-  ghostModeActive: false,
-  backupReminderFrequency: 'weekly',
-  watchedThreshold: 95,
-  countBackgroundPlayback: false,
-  keepLocalNoticeCollapsed: false,
-  firstTimeSetupComplete: false
-};
 
 const initializeDefaultSettings = () => {
   chrome.storage.local.get(null, (settings) => {
@@ -38,6 +23,11 @@ const initializeDefaultSettings = () => {
       chrome.storage.local.set(missingDefaults);
     }
   });
+};
+
+const respondWith = (promise, sendResponse, fallback) => {
+  promise.then(sendResponse).catch(() => sendResponse(fallback));
+  return true;
 };
 
 // Message handlers
@@ -90,35 +80,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return;
   }
 
+  if (message.type === 'idb-toggle-watched') {
+    const watchedThreshold = typeof message.watchedThreshold === 'number'
+      ? message.watchedThreshold
+      : DEFAULT_SETTINGS.watchedThreshold;
+    return respondWith(
+      db_toggleWatched(message.videoId, watchedThreshold, message.fallbackVideo),
+      sendResponse,
+      null
+    );
+  }
+
   if (message.type === 'idb-get-video') {
-    db_getVideoById(message.videoId)
-      .then((video) => sendResponse({ video }))
-      .catch(() => sendResponse({ video: null }));
-    return true;
+    return respondWith(
+      db_getVideoById(message.videoId).then((video) => ({ video })),
+      sendResponse,
+      { video: null }
+    );
   }
 
   if (message.type === 'idb-get-recent-videos') {
     const limit = typeof message.limit === 'number' ? message.limit : 15;
     const offset = typeof message.offset === 'number' ? message.offset : 0;
-    db_getVideos(limit, offset)
-      .then((videos) => sendResponse({ videos }))
-      .catch(() => sendResponse({ videos: [] }));
-    return true;
+    return respondWith(
+      db_getVideos(limit, offset).then((videos) => ({ videos })),
+      sendResponse,
+      { videos: [] }
+    );
   }
 
   if (message.type === 'idb-count-videos-since') {
     const timestamp = typeof message.timestamp === 'number' ? message.timestamp : 0;
-    db_countVideosSince(timestamp)
-      .then((count) => sendResponse({ count }))
-      .catch(() => sendResponse({ count: 0 }));
-    return true;
+    return respondWith(
+      db_countVideosSince(timestamp).then((count) => ({ count })),
+      sendResponse,
+      { count: 0 }
+    );
   }
 
   if (message.type === 'idb-get-all-videos') {
-    db_getAllVideos()
-      .then((videos) => sendResponse({ videos }))
-      .catch(() => sendResponse({ videos: [] }));
-    return true;
+    return respondWith(
+      db_getAllVideos().then((videos) => ({ videos })),
+      sendResponse,
+      { videos: [] }
+    );
   }
 
   if (message.type === 'idb-delete-video') {

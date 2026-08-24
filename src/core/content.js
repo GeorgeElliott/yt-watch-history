@@ -671,54 +671,27 @@ const updateThumbnailAfterToggle = (renderer, nowWatched) => {
 
 /**
  * toggleWatchedForVideo()
- * Reads the current record (if any) via the background IDB proxy,
- * flips its 'watched' flag, and saves it back — creating a new record
- * from feed metadata if the video has never been tracked before.
+ * Delegates watched-state updates to the background so every extension surface
+ * uses the same watch-count and completion-event rules.
  */
 const toggleWatchedForVideo = (renderer, link, videoId) => {
   chrome.storage.local.get({ watchedThreshold: 95 }, ({ watchedThreshold }) => {
-    chrome.runtime.sendMessage({ type: 'idb-get-video', videoId }, (response) => {
-      const existing    = response && response.video;
-      const wasWatched  = existing ? existing.watched : false;
-      const nowWatched  = !wasWatched;
-
-      const record = existing ? { ...existing } : {
+    chrome.runtime.sendMessage({
+      type: 'idb-toggle-watched',
+      videoId,
+      watchedThreshold,
+      fallbackVideo: {
         videoId,
         title:      getRendererTitle(renderer, link),
         channel:    getRendererChannel(renderer),
         channelUrl: getRendererChannelUrl(renderer),
         time:       0,
         duration:   0
-      };
-
-      // Backwards compatibility: a record already marked watched before
-      // this feature existed counts as one prior watch.
-      if (typeof record.watchCount !== 'number') {
-        record.watchCount = wasWatched ? 1 : 0;
       }
-
-      // Only credit a watch when the saved progress actually meets the
-      // user's watch threshold — otherwise spamming "Reset progress" and
-      // "Mark as watched" could inflate the count without watching anything.
-      const progress = record.duration > 0 ? record.time / record.duration : 0;
-      const creditedWatch = nowWatched && !wasWatched && progress >= watchedThreshold / 100;
-      if (creditedWatch) {
-        record.watchCount += 1;
-      }
-
-      record.watched = nowWatched;
-      if (!nowWatched) record.time = 0;
-      record.timestamp = Date.now();
-
-      chrome.runtime.sendMessage({ type: 'idb-save-video', video: record });
-      if (creditedWatch) {
-        chrome.runtime.sendMessage({
-          type: 'idb-record-watch-event',
-          watchEvent: { videoId, watchedAt: record.timestamp }
-        });
-      }
+    }, (result) => {
+      if (!result?.video) return;
       invalidateHistoryCache();
-      updateThumbnailAfterToggle(renderer, nowWatched);
+      updateThumbnailAfterToggle(renderer, result.video.watched);
     });
   });
 };

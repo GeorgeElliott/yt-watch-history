@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "scripts": {
+    "test": "node --test test/unit/core.spec.js",
+    "test:extension": "playwright test",
+    "test:all": "npm run test && npm run test:extension"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "geckodriver": "^6.1.1",
+    "selenium-webdriver": "^4.47.0"
+  }
+}
