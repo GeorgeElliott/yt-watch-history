@@ -27,6 +27,7 @@ test('unpacked extension starts and every page loads', async () => {
       await expect(page.locator(marker)).toBeVisible();
       if (marker === '#version-number') {
         await expect(page.locator(marker)).toHaveText(manifest.version);
+        await expect(page.locator('a[href="https://ytwatchhistory.com"]')).toHaveText('Visit Website');
       }
       await page.close();
     }
