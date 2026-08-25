@@ -28,6 +28,13 @@ test('imports a backup and populates the timeline page', async () => {
     await expect(timelinePage.locator('#timeline-month-picker')).toBeEnabled();
     await expect(timelinePage.locator('#timeline-go-button')).toBeEnabled();
     expect(await timelinePage.locator('.timeline-entry').count()).toBeGreaterThan(0);
+
+    const backToTop = timelinePage.locator('#timeline-back-to-top');
+    await expect(backToTop).toBeHidden();
+    await timelinePage.evaluate(() => window.scrollTo(0, window.innerHeight + 1));
+    await expect(backToTop).toBeVisible();
+    await backToTop.click();
+    await expect.poll(() => timelinePage.evaluate(() => window.scrollY)).toBeLessThan(2);
   } finally {
     await extension.close();
   }

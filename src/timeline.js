@@ -4,6 +4,7 @@ const sentinelEl = document.getElementById('timeline-sentinel');
 const monthPickerEl = document.getElementById('timeline-month-picker');
 const yearPickerEl = document.getElementById('timeline-year-picker');
 const goButtonEl = document.getElementById('timeline-go-button');
+const backToTopEl = document.getElementById('timeline-back-to-top');
 const manifest = chrome.runtime.getManifest();
 document.getElementById('version-number').textContent = manifest.version;
 
@@ -224,6 +225,12 @@ const observer = new IntersectionObserver((entries) => {
 }, { rootMargin: '320px 0px' });
 
 observer.observe(sentinelEl);
+window.addEventListener('scroll', () => {
+  backToTopEl.classList.toggle('hidden', window.scrollY <= window.innerHeight);
+});
+backToTopEl.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 yearPickerEl.addEventListener('change', () => populateMonthPicker(Number(yearPickerEl.value)));
 goButtonEl.addEventListener('click', jumpToMonth);
 

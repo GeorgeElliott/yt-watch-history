@@ -904,6 +904,13 @@ a {
   opacity: 0.4;
 }
 
+.back-to-top {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 20;
+}
+
 .local-data-notice {
   border-color: var(--accent);
 }
