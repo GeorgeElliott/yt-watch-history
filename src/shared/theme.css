@@ -904,6 +904,11 @@ a {
   opacity: 0.4;
 }
 
+.page-footer-legal {
+  margin-top: 8px;
+  font-size: 11px;
+}
+
 .back-to-top {
   position: fixed;
   right: 24px;
@@ -928,34 +933,6 @@ a {
 .inline-divider {
   margin: 0 8px;
   color: var(--text-disabled);
-}
-
-.welcome-card {
-  display: none;
-  margin-bottom: 20px;
-  padding: 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-}
-
-.welcome-card-title {
-  margin-bottom: 12px;
-  color: var(--text-primary);
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.welcome-card-copy {
-  margin-bottom: 12px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.welcome-card-copy:last-of-type {
-  margin-bottom: 16px;
 }
 
 .threshold-control {
@@ -1038,7 +1015,7 @@ a {
 
 
 /* ---- how-it-works page styles ---- */
-.info-container {
+    .info-container {
       max-width: 720px;
       margin: 0 auto;
       padding: 32px 20px;

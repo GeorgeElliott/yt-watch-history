@@ -279,7 +279,7 @@ const renderDailyWatchTime = (sessions) => {
   });
 
   dailyWatchTimeContainer.replaceChildren(...Array.from({ length: 7 }, (_, index) => {
-    const key = today - (6 - index) * DAY_MS;
+    const key = today - index * DAY_MS;
     const date = new Date(key);
     const day = document.createElement('div');
     day.className = 'daily-watch-day';

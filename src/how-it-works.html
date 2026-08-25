@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>WatchHistory for YouTube - How it works</title>
+  <title>WatchHistory for YouTube™ - How it works</title>
   <link rel="stylesheet" href="shared/theme.css">
 </head>
 
@@ -25,7 +25,7 @@
 
   <main class="info-container">
     <h1 class="section-title">How it works</h1>
-    <p class="info-intro">WatchHistory saves YouTube progress and history in your browser. It does not use an account, cloud sync, or its own server.</p>
+    <p class="info-intro">WatchHistory saves YouTube progress and history in your browser. It does not use an account, cloud sync, or its own server. WatchHistory for YouTube™ is an independent project and is not affiliated with, associated with, or endorsed by Google or YouTube.</p>
 
     <section class="panel">
       <h2 class="panel-title">Your data</h2>
@@ -44,9 +44,19 @@
         <li><strong>Redirect YouTube history</strong>: opens your local WatchHistory page instead of <strong>youtube.com/feed/history</strong>.</li>
         <li><strong>Redirect Home &amp; Shorts to Subscriptions</strong>: skips recommendations and sends the YouTube Home page and Shorts feed to your Subscriptions feed.</li>
       </ul>
-      <p class="mt-16"><a class="btn btn-primary" href="options.html">Open Options</a></p>
+      <p class="mt-16"><a class="btn btn-primary" href="options.html?highlight=redirects">Show me how</a></p>
     </section>
-
+    <section class="panel">
+      <h2 class="panel-title">Back up your history</h2>
+      <p class="panel-description">Your history is only stored locally. It can be lost if you clear browser data, reset or reinstall your browser, remove the extension, or lose the device.</p>
+      <ul class="info-list">
+        <li>Open Options and use <strong>Export</strong> to save a JSON backup.</li>
+        <li>Use <strong>Backup reminder</strong> in Options to receive a reminder banner on YouTube. You can choose daily, weekly, or monthly reminders.</li>
+        <li>Keep backups in more than one place, such as your computer and a separate drive or cloud storage service.</li>
+        <li>Use <strong>Import</strong> in Options to restore an exported backup.</li>
+      </ul>
+      <p class="mt-16"><a class="btn btn-primary" href="options.html?highlight=backup">Show me how</a></p>
+    </section>
     <section class="panel">
       <h2 class="panel-title">YouTube site access</h2>
       <p class="panel-description">WatchHistory needs access to <strong>https://www.youtube.com</strong> to save progress and show features such as resume badges and the Continue Watching shelf. This access should be enabled by default when you install the extension. If progress is not being saved or these features do not appear, check the permission in your browser settings.</p>
@@ -57,16 +67,7 @@
       </ul>
     </section>
 
-    <section class="panel backup-panel">
-      <h2 class="panel-title">Back up your history</h2>
-      <p class="panel-description">Your history is only stored locally. It can be lost if you clear browser data, reset or reinstall your browser, remove the extension, or lose the device.</p>
-      <ul class="info-list">
-        <li>Open Options and use <strong>Export</strong> to save a JSON backup.</li>
-        <li>Keep backups in more than one place, such as your computer and a separate drive or cloud storage service.</li>
-        <li>Use <strong>Import</strong> in Options to restore an exported backup.</li>
-      </ul>
-      <p class="mt-16"><a class="btn btn-primary" href="options.html#export">Open Options and export</a></p>
-    </section>
+
   </main>
 
   <!-- Footer -->
@@ -82,6 +83,7 @@
     <span class="page-footer-divider">|</span>
     <a href="https://github.com/GeorgeElliott/yt-watch-history/issues" target="_blank" rel="noopener noreferrer"
       class="page-footer-link">Report a Bug</a>
+    <div class="page-footer-legal">Copyright © 2026 George Elliott. Software licensed under the <a href="https://github.com/GeorgeElliott/yt-watch-history/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="page-footer-link">MIT License</a>. <a href="https://github.com/GeorgeElliott/yt-watch-history/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer" class="page-footer-link">Privacy Policy</a></div>
   </footer>
   <script src="how-it-works.js"></script>
 </body>

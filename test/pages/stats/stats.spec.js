@@ -37,6 +37,13 @@ test('imports a backup and populates stats with correct links', async () => {
     await expect(statsPage.locator('#top-channels .stats-channel-row').first()).toBeVisible();
     await expect(statsPage.locator('#top-channels-rewatches .stats-channel-row').first()).toBeVisible();
     await expect(statsPage.locator('#daily-watch-time .daily-watch-column')).toHaveCount(7);
+    const expectedDailyDates = await statsPage.evaluate(() => [0, 6].map((offset) =>
+      new Date(Date.now() - offset * 86400000)
+        .toLocaleDateString(undefined, { month: 'short', day: 'numeric' })));
+    await expect(statsPage.locator('#daily-watch-time .daily-watch-column').first().locator('.daily-watch-date'))
+      .toHaveText(expectedDailyDates[0]);
+    await expect(statsPage.locator('#daily-watch-time .daily-watch-column').last().locator('.daily-watch-date'))
+      .toHaveText(expectedDailyDates[1]);
 
     await expect(statsPage.locator('#top-videos .stats-video-row').first().locator('.stats-title'))
       .toHaveAttribute('href', getVideoUrl(topVideo));

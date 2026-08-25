@@ -28,6 +28,15 @@ test('unpacked extension starts and every page loads', async () => {
       if (marker === '#version-number') {
         await expect(page.locator(marker)).toHaveText(manifest.version);
         await expect(page.locator('a[href="https://ytwatchhistory.com"]')).toHaveText('Visit Website');
+        const footerLegal = page.locator('.page-footer-legal');
+        await expect(footerLegal.locator('a[href="https://github.com/GeorgeElliott/yt-watch-history/blob/main/LICENSE"]')).toHaveText('MIT License');
+        await expect(footerLegal.locator('a[href="https://github.com/GeorgeElliott/yt-watch-history/blob/main/PRIVACY.md"]')).toHaveText('Privacy Policy');
+        await expect(footerLegal).toContainText('Copyright © 2026 George Elliott');
+        if (name === 'how-it-works.html') {
+          await expect(page.locator('.info-intro')).toContainText('not affiliated with, associated with, or endorsed by Google or YouTube');
+          await expect(page.locator('a[href="options.html?highlight=redirects"]')).toHaveText('Show me how');
+          await expect(page.locator('a[href="options.html?highlight=backup"]')).toHaveText('Show me how');
+        }
       }
       await page.close();
     }

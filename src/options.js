@@ -130,19 +130,37 @@ const onboardingRedirectRows = [
   document.getElementById('history-redirect-row'),
   document.getElementById('subscriptions-redirect-row')
 ];
+const backupReminderRow = document.getElementById('backup-reminder-row');
+const highlightTarget = new URLSearchParams(location.search).get('highlight');
+const shouldHighlightRedirects = highlightTarget === 'redirects';
+const shouldHighlightBackup = highlightTarget === 'backup';
 
 chrome.storage.local.get({ firstTimeSetupComplete: false }, (data) => {
   if (!data.firstTimeSetupComplete && welcomeCard) {
-    welcomeCard.style.display = 'block';
+    welcomeCard.classList.remove('hidden');
+  }
+  if (data.firstTimeSetupComplete) {
+    localDataNotice?.classList.remove('hidden');
+  }
+  if (!data.firstTimeSetupComplete || shouldHighlightRedirects) {
     onboardingRedirectRows.forEach((row) => row?.classList.add('onboarding-highlight'));
+  }
+  if (!data.firstTimeSetupComplete || shouldHighlightBackup) {
+    backupReminderRow?.classList.add('onboarding-highlight');
+  }
+  if (shouldHighlightRedirects || shouldHighlightBackup) {
+    const targetRow = shouldHighlightBackup ? backupReminderRow : onboardingRedirectRows[0];
+    setTimeout(() => targetRow?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
   }
 });
 
 if (dismissWelcome) {
   dismissWelcome.onclick = () => {
     chrome.storage.local.set({ firstTimeSetupComplete: true, showBackupReminder: false });
-    if (welcomeCard) welcomeCard.style.display = 'none';
+    if (welcomeCard) welcomeCard.classList.add('hidden');
+    localDataNotice?.classList.remove('hidden');
     onboardingRedirectRows.forEach((row) => row?.classList.remove('onboarding-highlight'));
+    backupReminderRow?.classList.remove('onboarding-highlight');
   };
 }
 

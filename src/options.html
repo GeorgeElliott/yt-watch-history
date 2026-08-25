@@ -26,7 +26,7 @@
   </div>
 
   <div class="options-container">
-    <details id="local-data-notice" class="panel local-data-notice" open>
+    <details id="local-data-notice" class="panel local-data-notice hidden" open>
       <summary>Your history is stored locally</summary>
       <div class="panel-description" class="local-data-notice-description">Your watch history is stored in this browser, not in the cloud. It can be lost if browser data is cleared, the browser is reinstalled, or the device fails. Please make regular backups and keep them in more than one location.</div>
       <a href="how-it-works.html" class="inline-link">How it works</a>
@@ -37,19 +37,16 @@
     </details>
 
     <!-- Welcome Card (First Time Setup) -->
-    <div id="welcomeCard"
-      class="welcome-card">
-      <div class="welcome-card-title">Welcome to
-        WatchHistory for YouTube™</div>
-      <div class="welcome-card-copy">Welcome to your
-        personal YouTube archive! Thanks for installing. Adjust the settings below to control how WatchHistory tracks
-        and displays your videos.</div>
-      <div class="welcome-card-copy">If you keep official YouTube watch history disabled, we recommend enabling <strong>Redirect YouTube history</strong> and <strong>Redirect Home &amp; Shorts to Subscriptions</strong> below. <a href="https://myactivity.google.com/myactivity" target="_blank" rel="noopener noreferrer" class="inline-link">Check your setting in Google My Activity</a>.</div>
-      <div class="welcome-card-copy">Your watch
-        history is stored locally in this browser. Use Export in Options to make regular backups, especially before
-        clearing browser data, reinstalling your browser, or moving to a new device. <a href="how-it-works.html"
-          class="inline-link">How it works</a></div>
-      <button id="dismissWelcome" class="btn btn-sm btn-primary">Dismiss</button>
+    <div id="welcomeCard" class="panel hidden">
+      <div class="panel-title">Welcome to WatchHistory for YouTube™</div>
+      <p class="panel-description">Welcome to your personal YouTube archive! Thanks for installing. Adjust the settings below to control how WatchHistory tracks and displays your videos.</p>
+      <div class="panel-title">Important Data Notice</div>
+      <p class="panel-description">Your watch history is stored locally in this browser. Use <strong>Export</strong> in Options to make regular backups, especially before clearing browser data, reinstalling your browser, or moving to a new device. <a href="how-it-works.html" class="inline-link">How it works</a></p>
+      <div class="panel-title">Recommended Settings</div>
+      <p class="panel-description">If you keep official YouTube watch history disabled, we recommend enabling <strong>Redirect YouTube history</strong> and <strong>Redirect Home &amp; Shorts to Subscriptions</strong> below. <a href="https://myactivity.google.com/myactivity" target="_blank" rel="noopener noreferrer" class="inline-link">Check your setting in Google My Activity</a>.</p>
+      <p class="panel-description">If you would like backup reminders, we recommend enabling <strong>Backup reminder</strong> below to receive a reminder banner on YouTube. You can choose daily, weekly, or monthly reminders.</p>
+      <p class="panel-description">Please review our <a href="https://github.com/GeorgeElliott/yt-watch-history/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer" class="inline-link">Privacy Policy</a> and open-source <a href="https://github.com/GeorgeElliott/yt-watch-history/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="inline-link">MIT License</a>.</p>
+      <button id="dismissWelcome" class="btn btn-sm btn-primary">I understand</button>
     </div>
 
     <!-- Display Settings -->
@@ -172,7 +169,7 @@
           failure. Please back up regularly.
         </div>
       </div>
-      <div class="panel-row">
+      <div class="panel-row" id="backup-reminder-row">
         <div>
           <label>Backup reminder</label>
           <div class="help-text">Get a reminder banner on YouTube to export your history.</div>
@@ -229,6 +226,7 @@
         <span class="page-footer-divider">|</span>
         <a href="https://github.com/GeorgeElliott/yt-watch-history/issues" target="_blank" rel="noopener noreferrer"
           class="page-footer-link">Report a Bug</a>
+        <div class="page-footer-legal">Copyright © 2026 George Elliott. Software licensed under the <a href="https://github.com/GeorgeElliott/yt-watch-history/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="page-footer-link">MIT License</a>. <a href="https://github.com/GeorgeElliott/yt-watch-history/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer" class="page-footer-link">Privacy Policy</a></div>
       </div>
     </div>
   </div>
