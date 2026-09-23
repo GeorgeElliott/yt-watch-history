@@ -4,11 +4,13 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   DEFAULT_SETTINGS,
+  extractYoutubeVideoId,
   formatDuration,
   getVideoProgress,
   getVideoThumbnailUrl,
   getVideoUrl,
   getWatchCount,
+  matchesHistorySearchByVideoId,
   toggleWatchedState
 } = require('../../src/core/core.js');
 
@@ -102,4 +104,63 @@ test('toggling a previously watched legacy record resets without changing its co
   assert.equal(video.time, 0);
   assert.equal(video.watchCount, 1);
   assert.equal(creditedWatch, false);
+});
+
+test('extractYoutubeVideoId parses common YouTube URL forms', () => {
+  assert.equal(
+    extractYoutubeVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
+    'dQw4w9WgXcQ'
+  );
+  assert.equal(
+    extractYoutubeVideoId('youtube.com/watch?v=dQw4w9WgXcQ&t=42s'),
+    'dQw4w9WgXcQ'
+  );
+  assert.equal(extractYoutubeVideoId('https://youtu.be/dQw4w9WgXcQ'), 'dQw4w9WgXcQ');
+  assert.equal(
+    extractYoutubeVideoId('https://www.youtube.com/shorts/dQw4w9WgXcQ'),
+    'dQw4w9WgXcQ'
+  );
+  assert.equal(
+    extractYoutubeVideoId('https://www.youtube.com/embed/dQw4w9WgXcQ'),
+    'dQw4w9WgXcQ'
+  );
+  assert.equal(
+    extractYoutubeVideoId('https://www.youtube.com/live/dQw4w9WgXcQ'),
+    'dQw4w9WgXcQ'
+  );
+  assert.equal(extractYoutubeVideoId('https://example.com/watch?v=dQw4w9WgXcQ'), '');
+  assert.equal(extractYoutubeVideoId('plain search text'), '');
+  assert.equal(extractYoutubeVideoId(''), '');
+});
+
+test('matchesHistorySearchByVideoId matches video id and YouTube URLs', () => {
+  const video = {
+    videoId: 'history-middle',
+    title: 'Middle video',
+    channel: 'Test Channel'
+  };
+
+  assert.equal(matchesHistorySearchByVideoId(video, '', ''), false);
+  assert.equal(matchesHistorySearchByVideoId(video, 'Middle video', ''), false);
+  assert.equal(matchesHistorySearchByVideoId(video, 'TEST CHANNEL', ''), false);
+  assert.equal(matchesHistorySearchByVideoId(video, 'middle', ''), true);
+  assert.equal(matchesHistorySearchByVideoId(video, 'history-mid', ''), true);
+  assert.equal(matchesHistorySearchByVideoId(video, 'history-middle', ''), true);
+
+  const watchUrl = 'https://www.youtube.com/watch?v=history-middle';
+  assert.equal(
+    matchesHistorySearchByVideoId(video, watchUrl, extractYoutubeVideoId(watchUrl)),
+    true
+  );
+  const shortUrl = 'youtu.be/history-middle';
+  assert.equal(
+    matchesHistorySearchByVideoId(video, shortUrl, extractYoutubeVideoId(shortUrl)),
+    true
+  );
+  assert.equal(matchesHistorySearchByVideoId(video, 'missing', ''), false);
+  const otherUrl = 'https://www.youtube.com/watch?v=other-id';
+  assert.equal(
+    matchesHistorySearchByVideoId(video, otherUrl, extractYoutubeVideoId(otherUrl)),
+    false
+  );
 });

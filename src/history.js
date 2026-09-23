@@ -29,16 +29,24 @@ const formatTime = (seconds) => {
 };
 
 const applyFilters = () => {
-  const query = searchInput.value.toLowerCase().trim();
+  const rawQuery = searchInput.value;
+  const query = rawQuery.toLowerCase().trim();
   const sort = sortSelect.value;
+  let extractedId;
 
   filteredHistory = allHistory.filter(v => {
     if (hideWatched && v.watched) return false;
-    if (query) {
-      return v.title.toLowerCase().includes(query) ||
-        (v.channel && v.channel.toLowerCase().includes(query));
+    if (!query) return true;
+    if (v.title.toLowerCase().includes(query)) return true;
+    if (v.channel && v.channel.toLowerCase().includes(query)) return true;
+
+    const videoId = String(v.videoId || '').toLowerCase();
+    if (videoId.includes(query)) return true;
+    if (extractedId === undefined) {
+      extractedId = extractYoutubeVideoId(rawQuery);
     }
-    return true;
+
+    return matchesHistorySearchByVideoId(v, query, extractedId);
   });
 
   if (sort === 'oldest') {

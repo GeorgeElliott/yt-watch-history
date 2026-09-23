@@ -308,7 +308,7 @@ a {
   border-radius: var(--radius-pill);
   padding: 8px 16px;
   width: 100%;
-  max-width: 300px;
+  max-width: 320px;
 }
 
 /* ---- Cards — Video Thumbnails ---- */

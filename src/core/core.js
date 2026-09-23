@@ -15,6 +15,10 @@ const DEFAULT_SETTINGS = {
   firstTimeSetupComplete: false
 };
 
+const YOUTUBE_HOST_RE = /^(?:www\.|m\.|music\.)?youtube\.com$/i;
+const YOUTUBE_SHORT_HOST_RE = /^youtu\.be$/i;
+const YOUTUBE_PATH_ID_RE = /^\/(?:shorts|embed|live)\/([^/?&#]+)/i;
+
 const getWatchCount = (video) =>
   typeof video.watchCount === 'number' ? video.watchCount : (video.watched ? 1 : 0);
 
@@ -30,6 +34,41 @@ const getVideoUrl = (video) => {
 
 const getVideoThumbnailUrl = (videoId) =>
   `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/mqdefault.jpg`;
+
+const extractYoutubeVideoId = (raw) => {
+  const input = String(raw || '').trim();
+  if (!input) return '';
+
+  let url;
+  try {
+    url = new URL(input.includes('://') ? input : `https://${input}`);
+  } catch {
+    return '';
+  }
+
+  const host = url.hostname;
+  if (YOUTUBE_SHORT_HOST_RE.test(host)) {
+    const id = url.pathname.split('/').filter(Boolean)[0] || '';
+    return id.split(/[?&#]/)[0];
+  }
+
+  if (!YOUTUBE_HOST_RE.test(host)) return '';
+
+  const fromQuery = url.searchParams.get('v');
+  if (fromQuery) return fromQuery;
+
+  const pathMatch = url.pathname.match(YOUTUBE_PATH_ID_RE);
+  return pathMatch ? pathMatch[1] : '';
+};
+
+const matchesHistorySearchByVideoId = (video, query, extractedId = '') => {
+  const normalizedQuery = String(query || '').toLowerCase().trim();
+  const videoId = String(video.videoId || '').toLowerCase();
+  if (normalizedQuery && videoId.includes(normalizedQuery)) return true;
+
+  const id = String(extractedId || '').toLowerCase();
+  return Boolean(id) && videoId === id;
+};
 
 const formatDuration = (seconds) => {
   const totalSeconds = Math.max(0, Math.round(seconds || 0));
@@ -65,11 +104,13 @@ const toggleWatchedState = (existing, watchedThreshold, fallbackVideo, timestamp
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     DEFAULT_SETTINGS,
+    extractYoutubeVideoId,
     formatDuration,
     getVideoProgress,
     getVideoThumbnailUrl,
     getVideoUrl,
     getWatchCount,
+    matchesHistorySearchByVideoId,
     toggleWatchedState
   };
 }
