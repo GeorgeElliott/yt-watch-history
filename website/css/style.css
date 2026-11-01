@@ -1213,7 +1213,7 @@ figcaption a { display: inline-block; padding: .3rem 0; }
 
 .download .download-badge-container { justify-content: center; }
 .download-container p { margin-bottom: 1.5rem; }
-.about-container { text-align: left; max-width: 750px; }
+.about-container { text-align: center; max-width: 750px; }
 .about p { line-height: 1.8; margin-bottom: 1.2rem; }
 .contact p { margin-bottom: 1.5rem; }
 .cta-btn, .email-button, .back-to-top { background: #1269b5; }
