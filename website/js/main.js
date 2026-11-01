@@ -1,221 +1,137 @@
-/**
- * Email Obfuscation and Utility Functions
- */
-
-// Email obfuscation using ROT13-like encoding
-const EmailObfuscator = (() => {
-  const baseEmail = 'georgeelliottdeveloper@gmail.com';
-
-  // Simple character shift for obfuscation
-  const obfuscate = (email) => {
-    return btoa(email);
-  };
-
-  const deobfuscate = (encoded) => {
-    try {
-      return atob(encoded);
-    } catch (e) {
-      console.error('Error deobfuscating email:', e);
-      return baseEmail;
-    }
-  };
-
-  return {
-    getObfuscated: () => obfuscate(baseEmail),
-    getOriginal: () => baseEmail,
-    decode: (encoded) => deobfuscate(encoded),
-    setupButton: () => {
-      const button = document.getElementById('reveal-email-btn');
-      const display = document.getElementById('email-display');
-      const obfuscated = obfuscate(baseEmail);
-
-      if (button && display) {
-        let isRevealed = false;
-
-        button.addEventListener('click', () => {
-          isRevealed = !isRevealed;
-          if (isRevealed) {
-            const link = document.createElement('a');
-            link.href = 'mailto:' + baseEmail;
-            link.textContent = baseEmail;
-            link.style.color = 'var(--primary)';
-            display.innerHTML = '';
-            display.appendChild(link);
-            button.textContent = 'Hide Email';
-            button.style.background = 'linear-gradient(135deg, #FF6B6B 0%, #FF8787 100%)';
-          } else {
-            display.textContent = obfuscated;
-            button.textContent = 'Reveal Email';
-            button.style.background = 'linear-gradient(135deg, #1E88E5 0%, #42A5F5 100%)';
-          }
-        });
-
-        // Show obfuscated version by default
-        display.textContent = obfuscated;
-      }
-    }
-  };
-})();
-
-// Navigation smooth scrolling
-const Navigation = (() => {
-  const setupScrollListeners = () => {
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        const href = this.getAttribute('href');
-        if (href !== '#') {
-          e.preventDefault();
-          const target = document.querySelector(href);
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth' });
-          }
-        }
-      });
-    });
-  };
-
-  return {
-    init: setupScrollListeners
-  };
-})();
-
-// Store link tracking and handling
-const StoreLinks = (() => {
-  const links = {
-    firefox: 'https://addons.mozilla.org/en-GB/firefox/addon/watchhistory-for-youtube/',
-    chrome: 'https://chromewebstore.google.com/detail/watchhistory-for-youtube/bjfbnpccgejpbeofaepnjommafgdknap?authuser=0&hl=en',
-    edge: 'https://microsoftedge.microsoft.com/addons/detail/watchhistory-for-youtube%E2%84%A2/dddoogddjkbiknfieibadpibibmmkpnj',
-    github: 'https://github.com/GeorgeElliott/yt-watch-history'
-  };
-
-  const setupLinks = () => {
-    Object.entries(links).forEach(([key, url]) => {
-      const elements = document.querySelectorAll(`[data-store="${key}"]`);
-      elements.forEach(el => {
-        el.href = url;
-        el.target = '_blank';
-        el.rel = 'noopener noreferrer';
-        el.addEventListener('click', () => trackClick(key));
-      });
-    });
-  };
-
-  const trackClick = (storeName) => {
-    // Send tracking event if analytics available
-    if (window.gtag) {
-      gtag('event', 'store_click', {
-        store: storeName,
-        timestamp: new Date().toISOString()
-      });
-    }
-  };
-
-  return {
-    init: setupLinks,
-    getLinks: () => links
-  };
-})();
-
-// Mobile menu toggle
-const MobileMenu = (() => {
-  const setupToggle = () => {
-    const menuBtn = document.getElementById('mobile-menu-btn');
-    const navMenu = document.getElementById('nav-menu');
-
-    if (menuBtn && navMenu) {
-      // Toggle menu on button click
-      menuBtn.addEventListener('click', () => {
-        menuBtn.classList.toggle('active');
-        navMenu.classList.toggle('active');
-      });
-
-      // Close menu when a link is clicked
-      navMenu.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', () => {
-          menuBtn.classList.remove('active');
-          navMenu.classList.remove('active');
-        });
-      });
-
-      // Close menu when clicking outside
-      document.addEventListener('click', (e) => {
-        if (!menuBtn.contains(e.target) && !navMenu.contains(e.target)) {
-          menuBtn.classList.remove('active');
-          navMenu.classList.remove('active');
-        }
-      });
-    }
-  };
-
-  return {
-    init: setupToggle
-  };
-})();
-
-// Intersection Observer for lazy animations
-const LazyAnimations = (() => {
-  const setupObserver = () => {
-    const elements = document.querySelectorAll('[data-animate="fade"]');
-
-    if ('IntersectionObserver' in window) {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-            observer.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.1 });
-
-      elements.forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(20px)';
-        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(el);
-      });
-    }
-  };
-
-  return {
-    init: setupObserver
-  };
-})();
-
-const backToTop = document.getElementById('backToTop');
-
-window.addEventListener('scroll', () => {
-  if (window.scrollY > 400) {
-    backToTop.classList.add('visible');
-  } else {
-    backToTop.classList.remove('visible');
+const button = document.getElementById('mobile-menu-btn');
+const nav = document.getElementById('nav-menu');
+const mobile = matchMedia('(max-width: 900px)');
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+document.documentElement.classList.add('js');
+function setMenu(open, restoreFocus = false) {
+  button.setAttribute('aria-expanded', String(open));
+  button.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  button.classList.toggle('active', open);
+  nav.classList.toggle('active', open);
+  nav.inert = mobile.matches && !open;
+  if (restoreFocus) button.focus();
+}
+button.addEventListener('click', () => setMenu(button.getAttribute('aria-expanded') !== 'true'));
+nav.addEventListener('click', event => {
+  if (event.target.closest('a') && mobile.matches) setMenu(false);
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && button.getAttribute('aria-expanded') === 'true') setMenu(false, true);
+});
+document.addEventListener('click', event => {
+  if (!event.target.closest('header')) setMenu(false);
+});
+document.addEventListener('focusin', event => {
+  if (mobile.matches && !event.target.closest('header')) setMenu(false);
+});
+mobile.addEventListener('change', () => setMenu(false));
+setMenu(false);
+const topButton = document.getElementById('backToTop');
+function updateTopButton() { topButton.classList.toggle('visible', scrollY > 400); }
+window.addEventListener('scroll', updateTopButton, { passive: true });
+updateTopButton();
+topButton.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+  document.querySelector('.logo').focus({ preventScroll: true });
+});
+const emailButton = document.getElementById('reveal-email-btn');
+const emailDisplay = document.getElementById('email-display');
+emailButton.addEventListener('click', () => {
+  const show = emailButton.getAttribute('aria-expanded') !== 'true';
+  emailButton.setAttribute('aria-expanded', String(show));
+  emailButton.textContent = show ? 'Hide email' : 'Reveal email';
+  emailDisplay.replaceChildren();
+  if (show) {
+    const link = document.createElement('a');
+    link.href = 'mailto:georgeelliottdeveloper@gmail.com';
+    link.textContent = 'georgeelliottdeveloper@gmail.com';
+    emailDisplay.append(link);
   }
 });
 
-backToTop.addEventListener('click', () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-
-// Initialize everything on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
-  EmailObfuscator.setupButton();
-  Navigation.init();
-  StoreLinks.init();
-  MobileMenu.init();
-  LazyAnimations.init();
-});
-
-// Copy to clipboard utility for email reveal
-window.copyToClipboard = (text) => {
-  navigator.clipboard.writeText(text).then(() => {
-    const button = document.getElementById('reveal-email-btn');
-    const originalText = button.textContent;
-    button.textContent = 'Copied!';
-    setTimeout(() => {
-      button.textContent = originalText;
-    }, 2000);
-  }).catch(err => {
-    console.error('Failed to copy:', err);
-    alert('Email: ' + text);
+// Feature carousel. Without JavaScript, every feature stays visible.
+const featureCarousel = document.querySelector('.feature-carousel');
+const featureCards = [...featureCarousel.querySelectorAll('.feature-card')];
+const featureControls = featureCarousel.querySelector('.feature-controls');
+const featurePosition = document.getElementById('features-position');
+let featureStart = 0;
+let featureDots = [];
+const featuresPerPage = () => mobile.matches ? 1 : 3;
+function buildFeatureDots() {
+  const size = featuresPerPage();
+  const count = Math.ceil(featureCards.length / size);
+  if (featureDots.length === count) return;
+  const container = featureCarousel.querySelector('.feature-dots');
+  container.replaceChildren();
+  featureDots = Array.from({ length: count }, (_, index) => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.setAttribute('aria-label', `Show feature group ${index + 1}`);
+    dot.setAttribute('aria-controls', 'feature-slides');
+    dot.addEventListener('click', () => { featureStart = index * size; showFeatures(); });
+    container.append(dot);
+    return dot;
   });
-};
+}
+function showFeatures() {
+  buildFeatureDots();
+  const size = featuresPerPage();
+  featureStart = Math.floor(featureStart / size) * size;
+  featureCards.forEach((card, index) => {
+    card.hidden = index < featureStart || index >= featureStart + size;
+  });
+  featureDots.forEach((dot, index) => {
+    dot.setAttribute('aria-current', String(index === Math.floor(featureStart / size)));
+  });
+  featurePosition.textContent = `${Math.floor(featureStart / size) + 1} / ${Math.ceil(featureCards.length / size)}`;
+}
+function moveFeatures(direction) {
+  featureStart = (featureStart + direction * featuresPerPage() + featureCards.length) % featureCards.length;
+  showFeatures();
+}
+document.getElementById('features-prev').addEventListener('click', () => moveFeatures(-1));
+document.getElementById('features-next').addEventListener('click', () => moveFeatures(1));
+featureCarousel.addEventListener('keydown', event => {
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    event.preventDefault();
+    moveFeatures(event.key === 'ArrowRight' ? 1 : -1);
+  }
+});
+mobile.addEventListener('change', showFeatures);
+featureControls.hidden = false;
+showFeatures();
+
+const playbackButton = document.getElementById('features-playback');
+let playbackPaused = reducedMotion.matches;
+let featureTimer;
+function scheduleFeatures() {
+  clearTimeout(featureTimer);
+  const interacting = featureCarousel.matches(':hover') || featureCarousel.contains(document.activeElement);
+  const playing = !playbackPaused && !document.hidden && !interacting;
+  featurePosition.setAttribute('aria-live', playing ? 'off' : 'polite');
+  const playbackLabel = playbackPaused ? 'Play automatic slides' : 'Pause automatic slides';
+  playbackButton.querySelector('.icon-play').hidden = !playbackPaused;
+  playbackButton.querySelector('.icon-pause').hidden = playbackPaused;
+  playbackButton.setAttribute('aria-label', playbackLabel);
+  playbackButton.title = playbackLabel;
+  if (playing) {
+    featureTimer = setTimeout(() => {
+      moveFeatures(1);
+      scheduleFeatures();
+    }, 8000);
+  }
+}
+playbackButton.addEventListener('click', () => {
+  playbackPaused = !playbackPaused;
+  scheduleFeatures();
+});
+featureCarousel.addEventListener('mouseenter', scheduleFeatures);
+featureCarousel.addEventListener('mouseleave', scheduleFeatures);
+featureCarousel.addEventListener('focusin', scheduleFeatures);
+featureCarousel.addEventListener('focusout', () => queueMicrotask(scheduleFeatures));
+document.addEventListener('visibilitychange', scheduleFeatures);
+reducedMotion.addEventListener('change', () => {
+  playbackPaused = reducedMotion.matches;
+  scheduleFeatures();
+});
+scheduleFeatures();
