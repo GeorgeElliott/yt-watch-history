@@ -104,3 +104,49 @@ test('history supports search, sorting, hiding watched, and clearing all', async
     await extension.close();
   }
 });
+
+test('expanded list stays expanded after card actions', async () => {
+  const extension = await launchExtension();
+  try {
+    const page = await extension.context.newPage();
+    await page.goto(`chrome-extension://${extension.extensionId}/history.html`);
+    for (let i = 0; i < 55; i++) {
+      await seedVideo(page, { videoId: `batch-${i}`, title: `Batch ${i}`, timestamp: 1700000000000 + i });
+    }
+    await page.reload();
+    await expect(page.locator('.video-card')).toHaveCount(24);
+
+    await page.locator('#load-more-btn').click();
+    await expect(page.locator('.video-card')).toHaveCount(48);
+    const first = page.locator('.video-card').first();
+    await first.locator('.card-menu-btn').click();
+    await first.getByRole('button', { name: /Mark as watched/ }).click();
+    await expect(page.locator('.video-card')).toHaveCount(48);
+    await expect(page.locator('.video-card').first().locator('.card-menu-item').first()).toHaveText(/Reset progress/);
+    await page.locator('.video-card').first().locator('.card-menu-btn').click();
+    await page.locator('.video-card').first().getByRole('button', { name: /Reset progress/ }).click();
+    await expect(page.locator('.video-card').first().locator('.card-menu-item').first()).toHaveText(/Mark as watched/);
+    await expect(page.locator('.video-card')).toHaveCount(48);
+    await page.locator('.video-card').first().locator('.card-menu-btn').click();
+    await page.locator('.video-card').first().getByRole('button', { name: /Remove from history/ }).click();
+    await expect(page.locator('.video-card')).toHaveCount(48);
+    await expect(page.locator('.card-title').getByText('Batch 54', { exact: true })).toHaveCount(0);
+    await page.locator('#search-input').fill('Batch');
+    await expect(page.locator('.video-card')).toHaveCount(24);
+    await page.locator('#sort-select').selectOption('title');
+    await page.locator('#hide-watched-toggle').check();
+    await expect(page.locator('.video-card')).toHaveCount(24);
+    await page.locator('#load-more-btn').click();
+    await expect(page.locator('.video-card')).toHaveCount(48);
+    const filteredTitle = await page.locator('.card-title').first().textContent();
+    await page.locator('.video-card').first().locator('.card-menu-btn').click();
+    await page.locator('.video-card').first().getByRole('button', { name: /Mark as watched/ }).click();
+    await expect(page.locator('.card-title').getByText(filteredTitle, { exact: true })).toHaveCount(0);
+    await expect(page.locator('.video-card')).toHaveCount(48);
+    await expect(page.locator('#search-input')).toHaveValue('Batch');
+    await expect(page.locator('#sort-select')).toHaveValue('title');
+    await expect(page.locator('#hide-watched-toggle')).toBeChecked();
+  } finally {
+    await extension.close();
+  }
+});

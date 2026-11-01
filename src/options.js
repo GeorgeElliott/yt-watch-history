@@ -414,6 +414,17 @@ importFile.onchange = (e) => {
           watchCount: typeof v.watchCount === 'number' ? v.watchCount : (v.watched === true ? 1 : 0),
           live:       v.live === true ? true : undefined,
           liveReplay: v.liveReplay === true ? true : undefined,
+          manualOnly: v.manualOnly === true ? true : undefined,
+          ...(v.manualCompletion === true ? {
+            manualCompletion: true,
+            ...(Number.isFinite(v.manualCompletedAt) && v.manualCompletedAt >= 0
+              ? { manualCompletedAt: Math.floor(v.manualCompletedAt) } : {})
+          } : {}),
+          ...(Number.isFinite(v.legacyWatchSeconds) && v.legacyWatchSeconds >= 0 ? {
+            legacyWatchSeconds: v.legacyWatchSeconds,
+            legacyWatchCount: Number.isFinite(v.legacyWatchCount) ? Math.max(0, v.legacyWatchCount) : 0,
+            ...(Number.isFinite(v.legacyTimeOffset) && v.legacyTimeOffset >= 0 ? { legacyTimeOffset: v.legacyTimeOffset } : {})
+          } : {}),
           timestamp:  Math.floor(v.timestamp)
         }));
 
@@ -435,7 +446,7 @@ importFile.onchange = (e) => {
               ? session.streamType
               : 'normal'
           }))
-        : [];
+        : null;
 
       if (validated.length === 0) {
         failOperation('Import failed: no valid videos found.');
@@ -452,21 +463,24 @@ importFile.onchange = (e) => {
           .map((watchEvent) => ({
             videoId: watchEvent.videoId,
             watchedAt: Math.floor(watchEvent.watchedAt),
+            ...(watchEvent.manual === true ? { manual: true } : {}),
             ...(Number.isFinite(watchEvent.watchDurationSeconds)
               ? { watchDurationSeconds: watchEvent.watchDurationSeconds }
               : {})
           }))
         : [];
-      const importedEvents = importedEventsFromBackup.length > 0
+      const importedEvents = Array.isArray(data.watchEvents)
         ? importedEventsFromBackup
-        : validated
-          .filter((video) => video.watchCount > 0 || video.watched === true)
-          .flatMap((video) => Array.from({
-            length: Math.max(1, Math.floor(video.watchCount))
-          }, () => ({
-            videoId: video.videoId,
-            watchedAt: video.timestamp
-          })));
+        : validated.flatMap((video) => {
+          const manualCount = video.manualCompletion ? 1 : 0;
+          const playbackEvents = video.manualOnly ? [] : Array.from({
+            length: Math.max(0, Math.floor(video.watchCount) - manualCount)
+          }, () => ({ videoId: video.videoId, watchedAt: video.timestamp }));
+          if (manualCount && Number.isFinite(video.manualCompletedAt)) {
+            playbackEvents.push({ videoId: video.videoId, watchedAt: video.manualCompletedAt, manual: true });
+          }
+          return playbackEvents;
+        });
 
       // Replace the database and import videos and watch events at the
       // current extension DB version. The backup version is informational.

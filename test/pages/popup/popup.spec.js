@@ -118,3 +118,34 @@ test('popup reveals and loads more videos when the list reaches the bottom', asy
     await extension.close();
   }
 });
+
+test('expanded list stays expanded after card actions', async () => {
+  const extension = await launchExtension();
+  try {
+    const page = await extension.context.newPage();
+    await page.goto(`chrome-extension://${extension.extensionId}/popup.html`);
+    for (let i = 0; i < 12; i++) {
+      await seedVideo(page, { videoId: `batch-${i}`, title: `Batch ${i}`, timestamp: 1700000000000 + i });
+    }
+    await page.reload();
+    await expect(page.locator('.popup-video-card')).toHaveCount(5);
+    await page.locator('#history-list').evaluate((el) => { el.scrollTop = el.scrollHeight; el.dispatchEvent(new Event('scroll')); });
+    await page.locator('#show-more-btn').click();
+    await expect(page.locator('.popup-video-card')).toHaveCount(10);
+    const first = page.locator('.popup-video-card').first();
+    await first.locator('.video-menu-btn').click();
+    await first.getByRole('button', { name: /Mark as watched/ }).click();
+    await expect(page.locator('.popup-video-card')).toHaveCount(10);
+    await expect(page.locator('.popup-video-card').first().locator('.video-menu-item').first()).toHaveText(/Reset progress/);
+    await page.locator('.popup-video-card').first().locator('.video-menu-btn').click();
+    await page.locator('.popup-video-card').first().getByRole('button', { name: /Reset progress/ }).click();
+    await expect(page.locator('.popup-video-card').first().locator('.video-menu-item').first()).toHaveText(/Mark as watched/);
+    await expect(page.locator('.popup-video-card')).toHaveCount(10);
+    await page.locator('.popup-video-card').first().locator('.video-menu-btn').click();
+    await page.locator('.popup-video-card').first().getByRole('button', { name: /Remove from history/ }).click();
+    await expect(page.locator('.popup-video-card')).toHaveCount(10);
+    await expect(page.locator('.item-title').getByText('Batch 11', { exact: true })).toHaveCount(0);
+  } finally {
+    await extension.close();
+  }
+});

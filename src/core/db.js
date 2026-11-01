@@ -9,18 +9,24 @@
  *   videoId {string}   — YouTube video ID (primary key)
  *   title, channel, channelUrl {string}
  *   time, duration {number}    — playback position and total length
- *   watched {boolean}          — true if ≥ 95% viewed
+ *   watched {boolean}          - completed or manually marked watched
  *   watchCount {number}        — how many times the video has been fully
  *                                watched (incremented on each not-watched →
  *                                watched transition)
  *   live {true|undefined}      — set for livestreams only
  *   liveReplay {true|undefined} — set for completed livestream replays
- *   timestamp {number}         — when last saved
+ *   timestamp {number}         - last viewing, or manual creation time
+ *   manualOnly {true|undefined} - created manually and not yet played
+ *   manualCompletion, manualCompletedAt - distinguish an initial manual credit
+ *   legacyWatchSeconds, legacyWatchCount, legacyTimeOffset {number|undefined}
+ *                               - preserved pre-reset or pre-Ghost estimate
+ *   ghostBaselineToken, manualUpdatedAt - prevent duplicate snapshots and stale writes
  *
  * Watch events store schema:
  *   id {number}                 — auto-increment primary key
  *   videoId {string}            — references a videos.videoId record
  *   watchedAt {number}          — when the watch was completed
+ *   manual {true|undefined}    - watchedAt is an action date, not a viewing
  *   watchDurationSeconds {number|undefined} — optional duration
  *
  * Watch sessions store schema:
@@ -169,12 +175,8 @@ function openDB() {
           if (event.oldVersion >= 3) return;
           const sessionStore = transaction.objectStore(STORE_SESSIONS);
           (videos.result || []).forEach((video) => {
-            const duration = typeof video.duration === 'number' ? Math.max(0, video.duration) : 0;
-            const time = typeof video.time === 'number' ? Math.max(0, video.time) : 0;
-            const watchCount = typeof video.watchCount === 'number'
-              ? Math.max(0, video.watchCount)
-              : (video.watched ? 1 : 0);
-            const seconds = Math.max(0, Math.floor(Math.max(0, watchCount - 1) * duration + time));
+            if (video.manualOnly || Number.isFinite(video.legacyWatchSeconds)) return;
+            const seconds = Math.floor(getLegacyWatchSeconds(video));
             if (seconds <= 0) return;
             sessionStore.add({
               videoId: video.videoId,
@@ -245,8 +247,48 @@ function db_recordWatchEvent(event) {
   return db_addRecord(STORE_EVENTS, event);
 }
 
-function db_recordWatchSession(session) {
-  return db_addRecord(STORE_SESSIONS, session);
+function db_recordWatchSession(session, ghostExit = null) {
+  if (!ghostExit) return db_addRecord(STORE_SESSIONS, session);
+  return openDB().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction([STORE_VIDEOS, STORE_SESSIONS], 'readwrite');
+    const videos = tx.objectStore(STORE_VIDEOS);
+    const sessions = tx.objectStore(STORE_SESSIONS);
+    const request = videos.get(session.videoId);
+    request.onsuccess = () => {
+      const video = request.result;
+      if (!video || video.ghostBaselineToken === ghostExit.token) {
+        sessions.add(session);
+        return;
+      }
+      const count = sessions.index(IDX_SESSION_VIDEO_ID).count(IDBKeyRange.only(session.videoId));
+      count.onsuccess = () => {
+        if (count.result === 0) {
+          videos.put({
+            ...video,
+            legacyWatchSeconds: getLegacyWatchSeconds(video),
+            legacyWatchCount: getWatchCount(video),
+            legacyTimeOffset: session.streamType === 'live' ? Math.max(0, video.time || 0) : ghostExit.time,
+            ghostBaselineToken: ghostExit.token
+          });
+        }
+        sessions.add(session);
+      };
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = (event) => reject(event.target.error);
+    tx.onabort = (event) => reject(event.target.error || new Error('Watch session update aborted'));
+  }));
+}
+
+// Remove all records belonging to a video before completing a transaction.
+function db_deleteVideoRecords(store, indexName, videoId, done) {
+  const request = store.index(indexName).openCursor(IDBKeyRange.only(videoId));
+  request.onsuccess = (event) => {
+    const cursor = event.target.result;
+    if (!cursor) { if (done) done(); return; }
+    cursor.delete();
+    cursor.continue();
+  };
 }
 
 /**
@@ -260,17 +302,13 @@ function db_recordWatchSession(session) {
  */
 function db_deleteVideo(videoId) {
   return openDB().then((db) => new Promise((resolve, reject) => {
-    const tx = db.transaction([STORE_VIDEOS, STORE_SESSIONS], 'readwrite');
+    const tx = db.transaction([STORE_VIDEOS, STORE_SESSIONS, STORE_EVENTS], 'readwrite');
     tx.objectStore(STORE_VIDEOS).delete(videoId);
-    const sessionIndex = tx.objectStore(STORE_SESSIONS).index(IDX_SESSION_VIDEO_ID);
-    sessionIndex.openCursor(IDBKeyRange.only(videoId)).onsuccess = (event) => {
-      const cursor = event.target.result;
-      if (!cursor) return;
-      cursor.delete();
-      cursor.continue();
-    };
-    tx.oncomplete = ()  => resolve();
-    tx.onerror    = (e) => reject(e.target.error);
+    db_deleteVideoRecords(tx.objectStore(STORE_SESSIONS), IDX_SESSION_VIDEO_ID, videoId);
+    db_deleteVideoRecords(tx.objectStore(STORE_EVENTS), IDX_EVENT_VIDEO_ID, videoId);
+    tx.oncomplete = () => resolve();
+    tx.onerror = (event) => reject(event.target.error);
+    tx.onabort = (event) => reject(event.target.error || new Error('Video deletion aborted'));
   }));
 }
 
@@ -305,7 +343,7 @@ function db_clearAllVideos() {
  * @param  {Object[]}      videos — Array of validated video records.
  * @returns {Promise<number>}       Resolves with the count imported.
  */
-function db_bulkImport(videos, watchEvents = [], watchSessions = [], onProgress = null) {
+function db_bulkImport(videos, watchEvents = [], watchSessions = null, onProgress = null) {
   return openDB().then((db) => new Promise((resolve, reject) => {
     const tx         = db.transaction([STORE_VIDEOS, STORE_EVENTS, STORE_SESSIONS], 'readwrite');
     const store      = tx.objectStore(STORE_VIDEOS);
@@ -340,13 +378,9 @@ function db_bulkImport(videos, watchEvents = [], watchSessions = [], onProgress 
         });
       }
     });
-    const sessions = watchSessions.length > 0 ? watchSessions : videos.flatMap((video) => {
-      const duration = typeof video.duration === 'number' ? Math.max(0, video.duration) : 0;
-      const time = typeof video.time === 'number' ? Math.max(0, video.time) : 0;
-      const watchCount = typeof video.watchCount === 'number'
-        ? Math.max(0, video.watchCount)
-        : (video.watched ? 1 : 0);
-      const seconds = Math.max(0, Math.floor(Math.max(0, watchCount - 1) * duration + time));
+    const sessions = Array.isArray(watchSessions) ? watchSessions : videos.flatMap((video) => {
+      if (video.manualOnly || Number.isFinite(video.legacyWatchSeconds)) return [];
+      const seconds = Math.floor(getLegacyWatchSeconds(video));
       return seconds > 0 ? [{
         videoId: video.videoId,
         watchedAt: typeof video.timestamp === 'number' ? video.timestamp : Date.now(),
@@ -379,7 +413,7 @@ function db_bulkImport(videos, watchEvents = [], watchSessions = [], onProgress 
  *
  * @returns {Promise<number>} Resolves with the count imported.
  */
-function db_replaceDatabase(videos, watchEvents = [], watchSessions = [], onProgress = null) {
+function db_replaceDatabase(videos, watchEvents = [], watchSessions = null, onProgress = null) {
   // db_bulkImport clears every application store in one atomic transaction,
   // so it replaces the database contents without waiting for other extension
   // contexts to close connections for deleteDatabase().
@@ -511,41 +545,110 @@ function db_getAllWatchSessions() {
   return db_getAllRecords(STORE_SESSIONS);
 }
 
-/**
- * Toggles a video's watched state and records an eligible completion in one
- * transaction. `fallbackVideo` supplies metadata for feed items not yet saved.
- *
- * @returns {Promise<{ video: Object, creditedWatch: boolean }>}
- */
-function db_toggleWatched(videoId, watchedThreshold = 95, fallbackVideo = null) {
+/** Update manual watched state and atomically record its initial completion. */
+function db_toggleWatched(videoId, watchedThreshold = 95, fallbackVideo = null, action = 'toggle') {
   return openDB().then((db) => new Promise((resolve, reject) => {
-    const storeNames = [STORE_VIDEOS];
-    if (db.objectStoreNames.contains(STORE_EVENTS)) storeNames.push(STORE_EVENTS);
-    const tx = db.transaction(storeNames, 'readwrite');
+    const tx = db.transaction([STORE_VIDEOS, STORE_SESSIONS, STORE_EVENTS], 'readwrite');
     const videos = tx.objectStore(STORE_VIDEOS);
-    const events = storeNames.includes(STORE_EVENTS) ? tx.objectStore(STORE_EVENTS) : null;
     const getRequest = videos.get(videoId);
     let result;
 
     getRequest.onsuccess = () => {
       const existing = getRequest.result;
-      const state = toggleWatchedState(
-        existing,
-        watchedThreshold,
-        { ...fallbackVideo, videoId },
-        Date.now()
-      );
-      const { video, creditedWatch } = state;
-      videos.put(video);
-      if (creditedWatch && events) {
-        events.add({ videoId, watchedAt: video.timestamp });
+      const actionAt = Date.now();
+      result = toggleWatchedState(existing, watchedThreshold,
+        { ...fallbackVideo, videoId }, actionAt, action);
+      result.video.manualUpdatedAt = actionAt;
+      const saveManual = () => {
+        if (result.creditedWatch) {
+          tx.objectStore(STORE_EVENTS).add({ videoId, watchedAt: result.video.manualCompletedAt, manual: true });
+        }
+        videos.put(result.video);
+      };
+      if (existing && !result.video.watched) {
+        const count = tx.objectStore(STORE_SESSIONS).index(IDX_SESSION_VIDEO_ID).count(IDBKeyRange.only(videoId));
+        count.onsuccess = () => {
+          if (count.result === 0) {
+            result.video.legacyWatchSeconds = getLegacyWatchSeconds(existing);
+            result.video.legacyWatchCount = getWatchCount(existing);
+            delete result.video.legacyTimeOffset;
+            delete result.video.ghostBaselineToken;
+          }
+          saveManual();
+        };
+      } else if (!existing) {
+        db_deleteVideoRecords(tx.objectStore(STORE_EVENTS), IDX_EVENT_VIDEO_ID, videoId, saveManual);
+      } else {
+        saveManual();
       }
-      result = state;
     };
     getRequest.onerror = (event) => reject(event.target.error);
     tx.oncomplete = () => resolve(result);
     tx.onerror = (event) => reject(event.target.error);
     tx.onabort = (event) => reject(event.target.error || new Error('Watched-state update aborted'));
+  }));
+}
+
+/** Merge one playback sample and its completion atomically with manual actions. */
+function db_recordPlayback(sample) {
+  return openDB().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction([STORE_VIDEOS, STORE_EVENTS, STORE_SESSIONS], 'readwrite');
+    const videos = tx.objectStore(STORE_VIDEOS);
+    const events = tx.objectStore(STORE_EVENTS);
+    const request = videos.get(sample.videoId);
+    let result = null;
+    request.onsuccess = () => {
+      const existing = request.result;
+      if (existing?.manualUpdatedAt >= sample.sampleAt) return;
+      const applySample = () => {
+        const isLive = sample.streamState === 'live';
+        const wasWatched = existing?.watched === true;
+        const isRewatch = wasWatched && sample.rewatch;
+        let watched = wasWatched;
+        if (!isLive && sample.progress >= sample.watchedThreshold / 100 && !sample.suppressCompletion) watched = true;
+        else if (isRewatch || (wasWatched && sample.progress < 0.1)) watched = false;
+        const completed = watched && (!wasWatched || isRewatch);
+        const record = {
+          ...existing,
+          videoId: sample.videoId,
+          title: sample.title,
+          channel: sample.channel || existing?.channel || '',
+          channelUrl: sample.channelUrl || existing?.channelUrl || '',
+          time: isLive ? (existing?.live ? Math.max(0, existing.time || 0) : 0) + sample.liveWatchDelta : sample.currentTime,
+          duration: isLive ? 0 : sample.duration,
+          watched,
+          watchCount: getWatchCount(existing || {}) + (completed ? 1 : 0),
+          live: isLive ? true : undefined,
+          liveReplay: sample.streamState === 'liveReplay' || (!isLive && (existing?.live || existing?.liveReplay)) ? true : undefined,
+          timestamp: sample.sampleAt
+        };
+        delete record.manualOnly;
+        const save = () => {
+          videos.put(record);
+          if (completed) events.add({ videoId: sample.videoId, watchedAt: sample.sampleAt });
+          result = { video: record, completed };
+        };
+        if (sample.ghostExit && existing?.ghostBaselineToken !== sample.ghostExit.token) {
+          const count = tx.objectStore(STORE_SESSIONS).index(IDX_SESSION_VIDEO_ID).count(IDBKeyRange.only(sample.videoId));
+          count.onsuccess = () => {
+            record.ghostBaselineToken = sample.ghostExit.token;
+            if (count.result === 0) {
+              record.legacyWatchSeconds = existing ? getLegacyWatchSeconds(existing) : 0;
+              record.legacyWatchCount = getWatchCount(existing || {});
+              record.legacyTimeOffset = isLive ? Math.max(0, existing?.time || 0) : sample.ghostExit.time;
+            }
+            save();
+          };
+        } else save();
+      };
+      // Orphaned events from older versions must not attach to a newly added record.
+      if (!existing) db_deleteVideoRecords(events, IDX_EVENT_VIDEO_ID, sample.videoId, applySample);
+      else applySample();
+    };
+    request.onerror = (event) => reject(event.target.error);
+    tx.oncomplete = () => resolve(result);
+    tx.onerror = (event) => reject(event.target.error);
+    tx.onabort = (event) => reject(event.target.error || new Error('Playback update aborted'));
   }));
 }
 

@@ -7,6 +7,9 @@
 
 // Pagination state
 let currentIndex = 0;
+let totalCount = 0;
+let loading = false;
+let listGeneration = 0;
 const ITEMS_PER_PAGE = 5;
 
 // DOM refs
@@ -111,7 +114,7 @@ const renderBatch = (videos) => {
     watchedItem.onclick = () => {
       chrome.storage.local.get({ watchedThreshold: 95 }, ({ watchedThreshold }) => {
         db_toggleWatched(video.videoId, watchedThreshold).then(() => {
-          init();
+          init(true);
         }).catch(console.error);
       });
     };
@@ -130,7 +133,7 @@ const renderBatch = (videos) => {
     removeItem.className   = 'video-menu-item danger';
     removeItem.textContent = '\uD83D\uDDD1 Remove from history';
     removeItem.onclick = () => {
-      db_deleteVideo(video.videoId).then(init).catch(console.error);
+      db_deleteVideo(video.videoId).then(() => init(true)).catch(console.error);
     };
 
     menu.appendChild(watchedItem);
@@ -154,7 +157,11 @@ const renderBatch = (videos) => {
  * Called by the scroll listener and the show-more button.
  */
 const loadMore = () => {
+  if (loading || currentIndex >= totalCount) return;
+  loading = true;
+  const generation = listGeneration;
   db_getVideos(ITEMS_PER_PAGE, currentIndex).then((batch) => {
+    if (generation !== listGeneration) return;
     if (batch.length === 0) {
       showMoreBtn.classList.add('hidden');
       return;
@@ -164,7 +171,7 @@ const loadMore = () => {
     // Hide the button by default; scroll listener will reveal it
     // when the user reaches the bottom of the list.
     showMoreBtn.classList.add('hidden');
-  }).catch(console.error);
+  }).catch(console.error).finally(() => { if (generation === listGeneration) loading = false; });
 };
 
 showMoreBtn.onclick = () => {
@@ -179,7 +186,7 @@ const setupScrollListener = () => {
     const distanceFromBottom =
       listContainer.scrollHeight - (listContainer.scrollTop + listContainer.clientHeight);
 
-    if (distanceFromBottom < 100) {
+    if (distanceFromBottom < 100 && currentIndex < totalCount) {
       showMoreBtn.classList.remove('hidden');
     } else {
       showMoreBtn.classList.add('hidden');
@@ -195,13 +202,17 @@ const setupScrollListener = () => {
  * Also called after any mutation (mark-watched, remove) to refresh
  * the list from scratch.
  */
-const init = () => {
-  listContainer.replaceChildren();
-  currentIndex = 0;
+const init = (preserveCapacity = false) => {
+  const capacity = preserveCapacity ? Math.max(ITEMS_PER_PAGE, currentIndex) : ITEMS_PER_PAGE;
+  const scrollTop = listContainer.scrollTop;
+  const generation = ++listGeneration;
+  loading = true;
 
   // Get the total count first so the stat bar is always accurate,
   // regardless of how many items we actually render below.
   db_countVideos().then((count) => {
+    if (generation !== listGeneration) return;
+    totalCount = count;
     if (statCount) statCount.textContent = count.toLocaleString();
 
     if (count === 0) {
@@ -221,20 +232,26 @@ const init = () => {
       empty.appendChild(icon);
       empty.appendChild(text);
       empty.appendChild(sub);
+      currentIndex = 0;
       listContainer.replaceChildren(empty);
+      loading = false;
       showMoreBtn.classList.add('hidden');
       return;
     }
 
     //  First page 
-    db_getVideos(ITEMS_PER_PAGE, 0).then((batch) => {
+    db_getVideos(capacity, 0).then((batch) => {
+      if (generation !== listGeneration) return;
+      listContainer.replaceChildren();
       currentIndex = batch.length;
       renderBatch(batch);
-      showMoreBtn.classList.add('hidden');
-      setupScrollListener();
-    }).catch(console.error);
+      listContainer.scrollTop = scrollTop;
+      showMoreBtn.classList.toggle('hidden', currentIndex >= totalCount ||
+        listContainer.scrollHeight - (listContainer.scrollTop + listContainer.clientHeight) >= 100);
+      loading = false;
+    }).catch((error) => { if (generation === listGeneration) loading = false; console.error(error); });
 
-  }).catch(console.error);
+  }).catch((error) => { if (generation === listGeneration) loading = false; console.error(error); });
 };
 
 //  Navigation 
@@ -267,6 +284,7 @@ document.addEventListener('click', () => {
 //  Ghost Mode Sync 
 
 document.addEventListener('DOMContentLoaded', () => {
+  setupScrollListener();
   syncGhostModeToggle();
   init();
 });
