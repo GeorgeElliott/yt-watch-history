@@ -1301,3 +1301,21 @@ figcaption { text-align: center; }
   .feature-controls { gap: .4rem; }
   .feature-dots { order: 1; flex-basis: 100%; }
 }
+.feature-carousel .feature-icon { text-align: right; }
+.privacy-container > p { text-align: center; }
+.contact-actions { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 1rem; }
+.contact-actions .cta-btn { display: inline-flex; align-items: center; justify-content: center; gap: .6rem; min-height: 48px; }
+.contact-actions .email-button { min-height: 48px; }
+.contact .email-display:empty { display: none; }
+.feature-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .75rem; }
+.feature-heading h3 { margin: 0; min-width: 0; }
+.feature-heading .feature-icon { flex-shrink: 0; margin: 0; font-size: 2rem; line-height: 1.2; }
+.feature-carousel .feature-card { padding: 1.5rem; min-height: 220px; }
+.feature-heading h3 { font-size: 1.1rem; line-height: 1.4; }
+.feature-heading { gap: .75rem; }
+@media (max-width: 900px) {
+  .hero-image { order: -1; }
+  .hero-image > img { max-width: 360px; }
+  .hero { gap: 1.75rem; }
+  .feature-carousel .feature-card { min-height: 200px; padding: 1.25rem; }
+}
