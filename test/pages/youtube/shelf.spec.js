@@ -190,3 +190,70 @@ test('shelf stays hidden when there are no resumable videos on Home', async () =
     await extension.close();
   }
 });
+
+// These fixtures intentionally contain no YouTube account/session state.
+for (const path of ['/', '/feed/subscriptions']) {
+  for (const redirect of [false, true]) {
+    test(`local shelf on signed-out browse layout: ${path}, redirect=${redirect}`, async () => {
+      const extension = await launchExtension();
+      try {
+        const options = await extension.context.newPage();
+        await options.goto(`chrome-extension://${extension.extensionId}/options.html`);
+        await options.evaluate(async (subsRedirect) => {
+          await chrome.storage.local.set({ subsRedirect, pickupShelf: true });
+          await db_saveVideo({ videoId: 'local-only', title: 'Local video', watched: false,
+            time: 12, duration: 120, timestamp: 100 });
+        }, redirect);
+        await extension.context.route('https://www.youtube.com/**', route => route.fulfill({
+          contentType: 'text/html',
+          body: `<ytd-page-manager><ytd-browse hidden><ytd-rich-grid-renderer><div id="contents"></div></ytd-rich-grid-renderer></ytd-browse></ytd-page-manager>
+            <script>setTimeout(() => document.querySelector('ytd-page-manager').insertAdjacentHTML('beforeend',
+              '<ytd-browse id="active"><ytd-background-promo-renderer>Sign in to see subscriptions</ytd-background-promo-renderer></ytd-browse>'), 1200);</script>`
+        }));
+        const page = await extension.context.newPage();
+        await page.goto(`https://www.youtube.com${path}`).catch(() => {});
+        if (redirect) await expect(page).toHaveURL('https://www.youtube.com/feed/subscriptions');
+        const shelf = page.locator('#ytwh-pickup-shelf');
+        await expect(shelf).toBeVisible();
+        await expect(page.locator('#active > #ytwh-pickup-shelf .ytwh-video-card')).toHaveCount(1);
+        await expect(page.locator('ytd-browse[hidden] #ytwh-pickup-shelf')).toHaveCount(0);
+        await page.reload();
+        await expect(shelf).toBeVisible();
+        // A delayed feed replaces the empty-state mount without changing the URL.
+        await page.evaluate(() => {
+          document.querySelector('#active').innerHTML = '<ytd-section-list-renderer><div id="contents">Feed</div></ytd-section-list-renderer>';
+        });
+        await expect(page.locator('#active ytd-section-list-renderer #contents > #ytwh-pickup-shelf')).toBeVisible();
+        await expect(shelf).toHaveCount(1);
+        // Navigate away and back via SPA, initially retaining the hidden old page.
+        await page.evaluate(() => {
+          history.pushState({}, '', '/watch?v=local-only');
+          document.querySelector('#active').hidden = true;
+          document.dispatchEvent(new Event('yt-navigate-finish'));
+        });
+        await expect(shelf).toHaveCount(0);
+        await page.evaluate(() => {
+          history.pushState({}, '', '/feed/subscriptions');
+          document.body.insertAdjacentHTML('beforeend', '<ytd-browse id="destination" page-subtype="subscriptions"></ytd-browse>');
+        });
+        await expect(page.locator('#destination > #ytwh-pickup-shelf')).toBeVisible();
+        await expect(shelf).toHaveCount(1);
+        await options.evaluate(() => chrome.storage.local.set({ pickupShelf: false }));
+        await expect(shelf).toHaveCount(0);
+        await page.evaluate(() => document.body.appendChild(document.createElement('div')));
+        await page.waitForTimeout(1000);
+        await expect(shelf).toHaveCount(0);
+        await options.evaluate(() => chrome.storage.local.set({ pickupShelf: true }));
+        await expect(shelf).toBeVisible();
+        // Authentication pages are never shelf destinations.
+        await page.evaluate(() => {
+          history.pushState({}, '', '/signin');
+          document.body.appendChild(document.createElement('div'));
+        });
+        await expect(shelf).toHaveCount(0);
+      } finally {
+        await extension.close();
+      }
+    });
+  }
+}

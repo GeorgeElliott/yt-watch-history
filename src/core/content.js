@@ -1229,6 +1229,30 @@ const SHELF_PAGE_SIZE = 15;
 let shelfCapacity = SHELF_PAGE_SIZE;
 let shelfUpdateGeneration = 0;
 let shelfEligibleVideos = [];
+let shelfRetryTimer = null;
+
+const getShelfContainer = () => {
+  // YouTube keeps inactive SPA pages in the DOM. Never mount in a hidden feed.
+  const browsePages = [...document.querySelectorAll('ytd-browse')];
+  const browse = browsePages.find((page) => !page.closest('[hidden]') &&
+    (!page.getAttribute('page-subtype') || page.getAttribute('page-subtype') ===
+      (location.pathname === '/' ? 'home' : 'subscriptions')));
+  if (browsePages.length && !browse) return null;
+  const root = browse || document;
+  const feed = [...root.querySelectorAll('ytd-rich-grid-renderer #contents, ytd-section-list-renderer #contents, #primary #contents')]
+    .find((element) => !element.closest('[hidden]'));
+  // Signed-out/empty feeds may have only a promo renderer, without feed contents.
+  // Stay inside YouTube's browse page; never fall back to the app or document body.
+  return feed || (browse && (browse.querySelector('#primary:not([hidden])') || browse));
+};
+
+const scheduleShelfUpdate = () => {
+  if (shelfRetryTimer !== null) return;
+  shelfRetryTimer = setTimeout(() => {
+    shelfRetryTimer = null;
+    updateShelfState();
+  }, 800);
+};
 
 const getEligibleShelfVideos = (history) => history
   .filter((video) => !video.watched && !video.live && video.time >= 5)
@@ -1253,9 +1277,12 @@ const renderShelfVideos = (shelf) => {
 };
 
 const updateShelfState = () => {
+  clearTimeout(shelfRetryTimer);
+  shelfRetryTimer = null;
   const generation = ++shelfUpdateGeneration;
   const path = location.pathname;
   if (path !== '/' && path !== '/feed/subscriptions') {
+    shelfEligibleVideos = [];
     closeShelfMenu();
     document.getElementById(PICKUP_SHELF_ID)?.remove();
     return;
@@ -1263,6 +1290,7 @@ const updateShelfState = () => {
   chrome.storage.local.get({ pickupShelf: true, ghostModeActive: false, subsRedirect: false }, (settings) => {
     if (generation !== shelfUpdateGeneration || location.pathname !== path) return;
     if (!settings.pickupShelf || settings.ghostModeActive || (path === '/' && settings.subsRedirect)) {
+      shelfEligibleVideos = [];
       closeShelfMenu();
       document.getElementById(PICKUP_SHELF_ID)?.remove();
       return;
@@ -1275,11 +1303,14 @@ const updateShelfState = () => {
         document.getElementById(PICKUP_SHELF_ID)?.remove();
         return;
       }
+      const feed = getShelfContainer();
+      if (!feed) {
+        document.getElementById(PICKUP_SHELF_ID)?.remove();
+        scheduleShelfUpdate();
+        return;
+      }
       let shelf = document.getElementById(PICKUP_SHELF_ID);
       if (!shelf) {
-        const feed = document.querySelector('ytd-rich-grid-renderer #contents') ||
-          document.querySelector('ytd-section-list-renderer #contents') || document.querySelector('#primary #contents');
-        if (!feed) { setTimeout(() => { if (generation === shelfUpdateGeneration) updateShelfState(); }, 800); return; }
         injectPickupShelfStyles();
         shelf = document.createElement('div');
         shelf.id = PICKUP_SHELF_ID;
@@ -1327,8 +1358,8 @@ const updateShelfState = () => {
         });
         row.appendChild(more);
         shelf.append(header, announcement, row);
-        feed.prepend(shelf);
       }
+      if (shelf.parentElement !== feed) feed.prepend(shelf);
       renderShelfVideos(shelf);
     });
   });
@@ -1389,7 +1420,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   // Shelf visibility toggles; history changes are handled by cache
   // invalidation inside _doSaveProgressInternal rather than here,
   // since history now lives in IndexedDB (not chrome.storage.local).
-  if ('pickupShelf' in changes) {
+  if ('pickupShelf' in changes || 'subsRedirect' in changes) {
     updateShelfState();
   }
 
@@ -1424,9 +1455,19 @@ const observer = new MutationObserver(() => {
     setTimeout(resumeVideo, 1000);
     setTimeout(attachVideoLifecycleListeners, 1000);
   }
+  // Reuse the existing observer when YouTube replaces a feed after navigation.
+  const shelf = document.getElementById(PICKUP_SHELF_ID);
+  if (shelfEligibleVideos.length && (location.pathname === '/' || location.pathname === '/feed/subscriptions') &&
+      (!shelf || shelf.parentElement !== getShelfContainer())) scheduleShelfUpdate();
   debouncedTagThumbnails();
 });
 observer.observe(document.body, { childList: true, subtree: true });
+// Some SPA transitions only change attributes on retained page elements.
+document.addEventListener('yt-navigate-finish', () => {
+  shelfCapacity = SHELF_PAGE_SIZE;
+  checkRedirects();
+  updateShelfState();
+});
 
 //  Backup Reminder Banner 
 
@@ -1597,23 +1638,6 @@ const syncYouTubeTheme = () => {
 const themeObserver = new MutationObserver(syncYouTubeTheme);
 themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['dark'] });
 syncYouTubeTheme();
-
-//  Force Page Reload on Home/Subscriptions Navigation 
-// Instead of relying on SPA navigation which has timing issues with shelf injection,
-// intercept clicks on the home and subscriptions sidebar links and do a full page reload.
-document.addEventListener('click', (e) => {
-  const link = e.target.closest('a[href="/"], a[href="/feed/subscriptions"]');
-  if (link) {
-    const href = link.getAttribute('href');
-    // Only proceed if we're actually navigating to a different page
-    if (location.pathname !== href) {
-      e.preventDefault();
-      e.stopPropagation();
-      window.location.href = `https://www.youtube.com${href}`;
-      return false;
-    }
-  }
-}, true);
 
 // Ignore an initial read if a change notification has already superseded it.
 const initialRecordingGeneration = recordingGeneration;
