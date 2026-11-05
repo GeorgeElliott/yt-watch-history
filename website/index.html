@@ -1,311 +1,103 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WatchHistory for YouTube&#8482; | Local History &amp; Auto-Resume</title><meta name="description" content="WatchHistory for YouTube&#8482; saves your history and playback progress locally, so you can find videos and pick up where you left off.">
+<meta name="author" content="George Elliott">
+<meta property="og:type" content="website"><meta property="og:title" content="WatchHistory for YouTube&#8482; | Local History &amp; Auto-Resume">
+<meta property="og:description" content="WatchHistory for YouTube&#8482; saves your history and playback progress locally, so you can find videos and pick up where you left off."><meta property="og:url" content="https://ytwatchhistory.com/">
+<meta property="og:image" content="https://ytwatchhistory.com/assets/images/promo.png">
+<meta property="og:image:alt" content="WatchHistory for YouTube&#8482;, local history and video resume">
+<meta property="og:image:width" content="1280"><meta property="og:image:height" content="800">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://ytwatchhistory.com/">
+<link rel="stylesheet" href="css/style.css"><link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
+</head><body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header><div class="header-container"><a href="/" class="logo"><img src="assets/icons/icon.svg" width="40" height="40" alt=""><span class="brand-name">WatchHistory <span>for YouTube&#8482;</span></span></a>
+<button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu"><span></span><span></span><span></span></button>
+<nav id="nav-menu" class="nav-menu" aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#features">Features</a><a href="#privacy">Privacy</a><a href="#about">About</a><a href="https://github.com/GeorgeElliott/yt-watch-history">GitHub</a><a href="#download" class="cta-btn">Install</a></nav></div></header>
+<main id="main" tabindex="-1">
+<section class="hero"><div class="hero-content"><h1>Find videos again. Pick up where you left off.</h1>
+<p>WatchHistory for YouTube&#8482; saves your YouTube history and playback progress in your browser, so you can find videos again and resume unfinished ones, even when you’re signed out or YouTube history is disabled.</p>
+<p class="privacy-reassurance"><strong>Your history stays in your browser.</strong><br>No analytics. No cloud sync.</p>
+<div class="download-badge-container"><a class="badge badge-chrome" href="https://chromewebstore.google.com/detail/watchhistory-for-youtube/bjfbnpccgejpbeofaepnjommafgdknap"><img src="assets/icons/chrome.svg" width="22" height="22" alt="">Add to Chrome</a><a class="badge badge-edge" href="https://microsoftedge.microsoft.com/addons/detail/watchhistory-for-youtube%E2%84%A2/dddoogddjkbiknfieibadpibibmmkpnj"><img src="assets/icons/edge.svg" width="22" height="22" alt="">Add to Edge</a><a class="badge badge-firefox" href="https://addons.mozilla.org/en-GB/firefox/addon/watchhistory-for-youtube/"><img src="assets/icons/firefox.svg" width="22" height="22" alt="">Add to Firefox</a></div>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description"
-    content="WatchHistory for YouTube™ - Track YouTube history, resume videos, and measure active watch time locally. Optional background playback tracking with no cloud sync.">
-  <meta name="keywords" content="YouTube, watch history, watch time, podcasts, music, livestreams, privacy, browser extension, resume video, local storage">
-  <meta name="author" content="George Elliott">
-  <meta name="og:title" content="WatchHistory for YouTube™">
-  <meta name="og:description"
-    content="Track YouTube videos, music, podcasts, and livestreams locally. Resume where you left off and optionally count background playback.">
-  <meta name="og:image" content="/assets/images/promo.png">
-  <meta name="og:url" content="https://ytwatchhistory.com">
-  <meta name="twitter:card" content="summary_large_image">
-  <title>WatchHistory for YouTube™ - Local Privacy-Focused Watch History</title>
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
-  <link rel="canonical" href="https://ytwatchhistory.com">
-</head>
+<a class="secondary-action" href="#how-it-works">See how it works</a>
+<p class="source-link">Independent and open source. <a href="https://github.com/GeorgeElliott/yt-watch-history">Explore the code on GitHub</a>.</p></div>
+<div class="hero-image"><img src="assets/icons/promo-small.svg" width="440" height="280" fetchpriority="high" alt="WatchHistory for YouTube&#8482;: save videos locally and resume where you left off"></div></section>
+<section class="how-it-works" id="how-it-works"><div class="how-it-works-container"><h2 class="section-title">A useful history, saved in your browser</h2><div class="steps-grid">
+<article class="step-item"><span class="step-number">01</span><h3>Install and allow YouTube access</h3><p>Choose your desktop browser above, then allow the extension to work on www.youtube.com.</p></article>
+<article class="step-item"><span class="step-number">02</span><h3>Watch as usual</h3><p>The extension starts saving videos and playback progress as you watch. Dedicated Shorts-feed playback is not recorded.</p></article>
+<article class="step-item"><span class="step-number">03</span><h3>Find your next starting point</h3><p>Search your history, use a Resume badge, or choose an unfinished video from Continue Watching.</p></article></div>
+<article class="product-demo"><div><h3>Browse the videos you saved</h3><p>Use the history overview to search, sort, and revisit videos. Watched labels and saved positions help you choose where to start.</p></div><figure><a href="assets/images/history.webp" aria-label="Open larger screenshot: History overview with search controls and watched and unfinished video cards"><img src="assets/images/history.webp" width="1275" height="770" loading="lazy" decoding="async" alt="History overview with search controls and watched and unfinished video cards"></a><figcaption>Keep watched and unfinished videos easy to find.</figcaption></figure></article>
+</div></section>
+<section class="features" id="features"><div class="features-container"><h2 class="section-title" id="features-title">Powerful Features</h2>
+<div class="feature-carousel" role="region" aria-roledescription="carousel" aria-labelledby="features-title">
+<div class="features-grid" id="feature-slides">
+<article class="feature-card"><div class="feature-heading"><h3>Find videos by title or channel</h3><div class="feature-icon" aria-hidden="true">&#128269;</div></div><p>Search your saved history, sort your videos, and hide watched ones to focus on unfinished videos.</p></article>
+<article class="feature-card"><div class="feature-heading"><h3>Auto-Resume</h3><div class="feature-icon" aria-hidden="true">&#9654;&#65039;</div></div><p>Return to a saved video and carry on from your recorded position. Your progress is saved as you watch.</p></article>
+<article class="feature-card"><div class="feature-heading"><h3>Smart Badges</h3><div class="feature-icon" aria-hidden="true">&#127903;&#65039;</div></div><p>See Resume and Watched badges on YouTube thumbnails. Turn them on or off in settings.</p></article>
+<article class="feature-card"><div class="feature-heading"><h3>History Timeline</h3><div class="feature-icon" aria-hidden="true">&#128338;</div></div><p>Browse saved videos by day, jump to a month and year, and see gaps between viewing days.</p></article>
+<article class="feature-card"><div class="feature-heading"><h3>Hide Shorts</h3><div class="feature-icon" aria-hidden="true">&#128683;</div></div><p>Hide Shorts from YouTube Home, Subscriptions, and search feeds.</p></article>
+<article class="feature-card"><div class="feature-heading"><h3>Completion Tracking</h3><div class="feature-icon" aria-hidden="true">&#127919;</div></div><p>Videos are marked as watched when they reach your chosen completion threshold. The default is 95%.</p></article>
+<article class="feature-card"><div class="feature-heading"><h3>Active Watch Time</h3><div class="feature-icon" aria-hidden="true">&#9201;&#65039;</div></div><p>See time spent watching or listening, recorded while a YouTube video is playing.</p></article>
+<article class="feature-card"><div class="feature-heading"><h3>Stats and Sharing</h3><div class="feature-icon" aria-hidden="true">&#128202;</div></div><p>Explore watch time, streaks, channels, and viewing records. Copy a stats summary for your chosen period.</p></article>
+<article class="feature-card"><div class="feature-heading"><h3>Background Playback</h3><div class="feature-icon" aria-hidden="true">&#127911;</div></div><p>Choose whether playing videos in hidden tabs count toward watch time, including music and podcasts.</p></article>
+<article class="feature-card"><div class="feature-heading"><h3>Livestream Support</h3><div class="feature-icon" aria-hidden="true">&#128308;</div></div><p>Track viewing or listening time for livestreams and replays, with channel details saved in your history.</p></article>
+<article class="feature-card"><div class="feature-heading"><h3>Ghost Mode</h3><div class="feature-icon" aria-hidden="true">&#128123;</div></div><p>Pause recording for the current session from the extension settings.</p></article>
+<article class="feature-card"><div class="feature-heading"><h3>Import and Export</h3><div class="feature-icon" aria-hidden="true">&#128229;</div></div><p>Export your history as a JSON backup. Import a backup to replace your existing saved history.</p></article>
+</div>
+<div class="feature-controls" hidden>
+  <button type="button" id="features-playback" aria-label="Pause automatic slides" title="Pause automatic slides">
+    <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h3v14H8zM14 5h3v14h-3z"/></svg>
+    <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M8 4.5 19 12 8 19.5z"/></svg>
+  </button>
+  <button type="button" id="features-prev" aria-label="Previous features" aria-controls="feature-slides" title="Previous features"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button>
+  <span id="features-position" aria-live="polite" aria-atomic="true"></span>
+  <div class="feature-dots" role="group" aria-label="Choose a feature"></div>
+  <button type="button" id="features-next" aria-label="Next features" aria-controls="feature-slides" title="Next features"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+</div>
+</div>
+<article class="product-demo"><div><h3>Pick something up from Continue Watching</h3><p>Pick up unfinished videos from the Continue Watching shelf on YouTube Home and Subscriptions.</p></div><figure><a href="assets/images/shelf.webp" aria-label="Open larger screenshot: Continue Watching shelf above a YouTube feed with a Resume badge"><img src="assets/images/shelf.webp" srcset="assets/images/shelf-1120.webp 1120w, assets/images/shelf.webp 2240w" sizes="(max-width: 900px) calc(100vw - 48px), 730px" width="2240" height="710" loading="lazy" decoding="async" alt="Continue Watching shelf above a YouTube feed with a Resume badge"></a><figcaption>Return to an unfinished video directly from YouTube.</figcaption></figure></article>
 
-<body>
-  <!-- Header -->
-  <header>
-    <div class="header-container">
-      <a href="/" class="logo">
-        <img src="assets/icons/icon.svg" alt="WatchHistory Logo">
-        <span>WatchHistory for YouTube™</span>
-      </a>
-      <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Toggle menu">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-      <nav id="nav-menu" class="nav-menu">
-        <a href="#about">About</a>
-        <a href="#how-it-works">How It Works</a>
-        <a href="#features">Features</a>
-        <a href="#privacy">Privacy</a>
-        <a href="#screenshots">Screenshots</a>
-        <a href="#contact">Contact</a>
-        <a href="https://github.com/GeorgeElliott/yt-watch-history" target="_blank" rel="noopener noreferrer"
-          class="cta-btn">GitHub</a>
-      </nav>
-    </div>
-  </header>
-
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="hero-content">
-      <h1>Reclaim Your Privacy</h1>
-      <p>Track your YouTube history locally. Resume videos where you left off - with complete privacy and no cloud sync.
-      </p>
-      <p class="hero-sub">Works even when signed out or with official YouTube watch history disabled.</p>
-
-      <div class="hero-cta">
-        <a href="#screenshots" class="cta-btn">See It In Action</a>
-        <a href="https://github.com/GeorgeElliott/yt-watch-history" target="_blank" rel="noopener noreferrer"
-          class="cta-btn ghost-btn">
-          <img src="assets/icons/github.svg" alt="" width="18" height="18"
-            style="vertical-align:middle;margin-right:6px;">
-          View on GitHub
-        </a>
-      </div>
-
-      <div class="hero-badges">
-        <p class="badges-label">Available for</p>
-        <div class="download-badge-container">
-          <a href="https://chromewebstore.google.com/detail/watchhistory-for-youtube/bjfbnpccgejpbeofaepnjommafgdknap?authuser=0&hl=en"
-            class="badge badge-chrome" target="_blank" rel="noopener noreferrer" data-store="chrome">
-            <img src="assets/icons/chrome.svg" alt="Chrome" width="22" height="22">
-            Chrome
-          </a>
-          <a href="https://microsoftedge.microsoft.com/addons/detail/watchhistory-for-youtube%E2%84%A2/dddoogddjkbiknfieibadpibibmmkpnj"
-            class="badge badge-edge" target="_blank" rel="noopener noreferrer" data-store="edge">
-            <img src="assets/icons/edge.svg" alt="Edge" width="22" height="22">
-            Edge
-          </a>
-          <a href="https://addons.mozilla.org/en-GB/firefox/addon/watchhistory-for-youtube/" class="badge badge-firefox"
-            target="_blank" rel="noopener noreferrer" data-store="firefox">
-            <img src="assets/icons/firefox.svg" alt="Firefox" width="22" height="22">
-            Firefox
-          </a>
-        </div>
-      </div>
-    </div>
-    <div class="hero-image">
-      <img src="assets/icons/promo-small.svg"
-        alt="WatchHistory for YouTube™ — track videos locally, resume where you left off">
-    </div>
-  </section>
-  <section class="about" id="about">
-    <div class="about-container">
-      <h2>Why WatchHistory?</h2>
-      <p style="text-align: center; color: var(--text-secondary); margin-bottom: 2rem;">
-        WatchHistory is an independent, open-source browser extension designed to bring local-first history tracking to
-        YouTube.
-        Built using native browser storage like IndexedDB, the extension operates entirely on your device with zero
-        external server dependencies.
-
-        The project is fully transparent and community-driven. Anyone can audit the source code, suggest new features,
-        or contribute to the project directly on GitHub. </p>
-  </section>
-
-  <!-- How It Works Section -->
-  <section class="how-it-works" id="how-it-works">
-    <div class="how-it-works-container">
-      <h2 class="section-title">How It Works</h2>
-      <p class="how-it-works-intro">WatchHistory quietly keeps track of the videos you watch, so your viewing progress stays useful without becoming someone else's data.</p>
-
-      <div class="steps-grid">
-        <article class="step-item">
-          <span class="step-number">01</span>
-          <h3>Watch on YouTube</h3>
-          <p>As you watch, the extension records the video, channel, and progress needed to help you find it again.</p>
-        </article>
-        <article class="step-item">
-          <span class="step-number">02</span>
-          <h3>Keep Progress Local</h3>
-          <p>Your history and settings are saved in your browser's local storage, including IndexedDB and browser extension storage.</p>
-        </article>
-        <article class="step-item">
-          <span class="step-number">03</span>
-          <h3>Pick Up Where You Left Off</h3>
-          <p>Search your history, see watched and resume badges, or return to a video at the point where you stopped.</p>
-        </article>
-      </div>
-
-      <aside class="local-note" aria-label="Local data disclaimer">
-        <strong>Your data stays on your device.</strong>
-        <p>WatchHistory does not upload or sync your watch history to its own servers. Clearing browser data or removing the extension can remove local records, so use the export feature if you want a backup.</p>
-      </aside>
-
-      <div class="faq" aria-labelledby="faq-title">
-        <h3 id="faq-title">Frequently Asked Questions</h3>
-        <details class="faq-item">
-          <summary>Does WatchHistory send my viewing history anywhere?</summary>
-          <p>No. WatchHistory stores its history data locally in your browser and does not operate a cloud sync service or collect analytics about your viewing activity.</p>
-        </details>
-        <details class="faq-item">
-          <summary>Will it work if I am signed out of YouTube?</summary>
-          <p>Yes. The extension keeps its own local history, so it can work when you are signed out or when official YouTube watch history is paused.</p>
-        </details>
-        <details class="faq-item">
-          <summary>Can I move or back up my history?</summary>
-          <p>Yes. Export your history as JSON from the extension's options, then keep backup copies in multiple places, such as an external drive and a trusted cloud storage provider. You can import the file later when you need to restore your history.</p>
-        </details>
-      </div>
-    </div>
-  </section>
-
-  <!-- Features Section -->
-  <section class="features" id="features">
-    <div class="features-container">
-      <h2 class="section-title">Powerful Features</h2>
-      <div class="features-grid">
-        <div class="feature-card" data-animate="fade">
-          <div class="feature-icon">🕒</div>
-          <h3>History Timeline</h3>
-          <p>Browse your saved videos day by day, jump to an archived month and year, and spot gaps between viewing days.</p>
-        </div>
-        <div class="feature-card" data-animate="fade">
-          <div class="feature-icon">▶️</div>
-          <h3>Auto-Resume</h3>
-          <p>Pick up exactly where you left off. Every video is tracked to the second, resuming automatically on your
-            next visit.</p>
-        </div>
-        <div class="feature-card" data-animate="fade">
-          <div class="feature-icon">🔖</div>
-          <h3>Smart Badges</h3>
-          <p>"Resume" and "Watched" tags appear directly on YouTube thumbnails. Easily toggleable in settings.</p>
-        </div>
-        <div class="feature-card" data-animate="fade">
-          <div class="feature-icon">🚫</div>
-          <h3>Hide Shorts</h3>
-          <p>Clean up your YouTube experience by removing Shorts from home, subscriptions, and search feeds.</p>
-        </div>
-        <div class="feature-card" data-animate="fade">
-          <div class="feature-icon">🔍</div>
-          <h3>Advanced Search</h3>
-          <p>Find videos instantly by title or channel. Toggle "hide watched" to focus on what you haven't seen yet.</p>
-        </div>
-        <div class="feature-card" data-animate="fade">
-          <div class="feature-icon">🎯</div>
-          <h3>Smart Tracking</h3>
-          <p>Videos are automatically tagged as "watched" when you reach 95% progress. No manual marking required.</p>
-        </div>
-        <div class="feature-card" data-animate="fade">
-          <div class="feature-icon">⏱️</div>
-          <h3>Active Watch Time</h3>
-          <p>Track time actually spent watching or listening in buffered sessions. Progress and video duration update frequently, while watch-time records stay lightweight.</p>
-        </div>
-        <div class="feature-card" data-animate="fade">
-          <div class="feature-icon">📊</div>
-          <h3>Stats and Sharing</h3>
-          <p>See watch time, streaks, channels, and viewing records, then copy a shareable YouTube stats summary for the period you choose.</p>
-        </div>
-        <div class="feature-card" data-animate="fade">
-          <div class="feature-icon">🎧</div>
-          <h3>Background Playback</h3>
-          <p>Choose whether hidden YouTube tabs count toward watch time. Enable it for music, podcasts, livestreams, or videos playing while you use another tab.</p>
-        </div>
-        <div class="feature-card" data-animate="fade">
-          <div class="feature-icon">🔴</div>
-          <h3>Livestream Support</h3>
-          <p>Recognize livestreams and livestream replays, preserve channel details, and include active viewing or listening time in your statistics.</p>
-        </div>
-        <div class="feature-card" data-animate="fade">
-          <div class="feature-icon">👻</div>
-          <h3>Ghost Mode</h3>
-          <p>Pause all tracking for the current session with a single click. Perfect for private browsing moments.</p>
-        </div>
-        <div class="feature-card" data-animate="fade">
-          <div class="feature-icon">📥</div>
-          <h3>Import/Export</h3>
-          <p>Back up and restore your watch history as JSON. Keep your data safe and portable.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Privacy Section -->
-  <section class="privacy" id="privacy">
-    <div class="privacy-container">
-      <h2>🔒 Your Data. Your Device. Always.</h2>
-      <p style="text-align: center; color: var(--text-secondary); margin-bottom: 2rem;">
-        WatchHistory uses native browser storage technologies to ensure maximum privacy and performance. No cloud sync.
-        No tracking. No external servers.
-      </p>
-
-      <div class="privacy-grid">
-        <div class="privacy-item">
-          <strong>IndexedDB</strong>
-          <p>Video history archive with high-speed search performance and unlimited storage capacity.</p>
-        </div>
-        <div class="privacy-item">
-          <strong>chrome.storage</strong>
-          <p>User settings managed locally for fast, optimized access during page loads.</p>
-        </div>
-        <div class="privacy-item">
-          <strong>No Analytics</strong>
-          <p>We don't track your usage, analyze your data, or use tracking pixels. Ever.</p>
-        </div>
-        <div class="privacy-item">
-          <strong>Open Source</strong>
-          <p>Fully auditable code on GitHub. See exactly what we do with your data.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Screenshots Section -->
-  <section class="screenshots" id="screenshots">
-    <div class="screenshots-container">
-      <h2 class="section-title">See It In Action</h2>
-      <div class="screenshots-grid">
-        <div class="screenshot-item" data-animate="fade">
-          <img src="assets/images/video-finder.png" alt="Video search and finder interface">
-          <p>Advanced search &amp; filters</p>
-        </div>
-        <div class="screenshot-item" data-animate="fade">
-          <img src="assets/images/resume-suggestions.png" alt="Resume badge on YouTube thumbnails">
-          <p>Resume badges on thumbnails</p>
-        </div>
-        <div class="screenshot-item" data-animate="fade">
-          <img src="assets/images/tagged-videos.png" alt="Watched and resume tags on video grid">
-          <p>Watched &amp; resume tags in-feed</p>
-        </div>
-        <div class="screenshot-item" data-animate="fade">
-          <img src="assets/images/video-menu-demo.png" alt="Right-click context menu on a video">
-          <p>Quick-action context menu</p>
-        </div>
-        <div class="screenshot-item" data-animate="fade">
-          <img src="assets/images/options-demo.png" alt="Extension options and settings page">
-          <p>Fully configurable settings</p>
-        </div>
-        <div class="screenshot-item" data-animate="fade">
-          <img src="assets/images/popup-demo.png" alt="Extension popup interface">
-          <p>Quick-access popup</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Contact Section -->
-  <section class="contact" id="contact">
-    <div class="contact-container">
-      <h2>Get in Touch</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 2rem;">Have feedback, suggestions, or found an issue? Reach
-        out!</p>
-
-      <div class="email-wrapper">
-        <button id="reveal-email-btn" class="email-button">Reveal Email</button>
-        <div id="email-display" class="email-display"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Footer -->
+</div></section>
+<section class="screenshots" id="screenshots"><div class="screenshots-container">
+<h2 class="section-title">See It In Action</h2>
+<div class="screenshots-grid">
+<figure class="screenshot-item"><a href="assets/images/history.webp" aria-label="View larger: History overview with search controls and saved video cards"><img src="assets/images/history.webp" width="1275" height="770" loading="lazy" decoding="async" alt="History overview with search controls and saved video cards"></a><figcaption>Find saved videos by title or channel</figcaption></figure>
+<figure class="screenshot-item"><a href="assets/images/resume-suggestions.png" aria-label="View larger: Resume badges beside suggested YouTube videos"><img src="assets/images/resume-suggestions.png" width="1280" height="800" loading="lazy" decoding="async" alt="Resume badges beside suggested YouTube videos"></a><figcaption>Resume videos from YouTube suggestions</figcaption></figure>
+<figure class="screenshot-item"><a href="assets/images/tagged-videos.png" aria-label="View larger: YouTube thumbnails with Watched and Resume badges"><img src="assets/images/tagged-videos.png" width="640" height="400" loading="lazy" decoding="async" alt="YouTube thumbnails with Watched and Resume badges"></a><figcaption>Recognize watched and unfinished videos</figcaption></figure>
+<figure class="screenshot-item"><a href="assets/images/timeline.webp" aria-label="View larger: Timeline with date controls and saved viewing days"><img src="assets/images/timeline.webp" width="960" height="1110" loading="lazy" decoding="async" alt="Timeline with date controls and saved viewing days"></a><figcaption>Browse your saved videos by day</figcaption></figure>
+<figure class="screenshot-item"><a href="assets/images/stats.webp" aria-label="View larger: Statistics totals and watch time by day"><img src="assets/images/stats.webp" width="895" height="605" loading="lazy" decoding="async" alt="Statistics totals and watch time by day"></a><figcaption>See your viewing patterns</figcaption></figure>
+<figure class="screenshot-item"><a href="assets/images/options.png" aria-label="View larger: extension display and recording settings"><img src="assets/images/options.png" width="620" height="1100" loading="lazy" decoding="async" alt="extension display and recording settings"></a><figcaption>Choose how the extension works for you</figcaption></figure>
+</div>
+</div></section>
+<section class="privacy" id="privacy"><div class="privacy-container"><h2>Your history stays in this browser</h2><p>Your history stays in this browser profile. The extension doesn’t upload it to us, and there’s no automatic cloud sync. Export a backup before removing the extension or clearing its stored data.</p><div class="privacy-grid">
+<div class="privacy-item"><strong>Local storage</strong><p>Saved history and settings live in your browser profile. Storage is subject to browser and device limits.</p></div>
+<div class="privacy-item"><strong>No analytics</strong><p>The extension has no analytics or tracking pixels.</p></div>
+<div class="privacy-item"><strong>You control your records</strong><p>Delete saved videos, clear your history, or export a JSON backup from options.</p></div></div>
+</div></section>
+<section class="faq-section" aria-labelledby="faq-title"><div class="faq"><h2 id="faq-title">Before you install</h2>
+<details class="faq-item"><summary>Can it recover my old YouTube history?</summary><p>No. The extension records activity going forward. It cannot recover deleted official history or activity from before installation.</p></details>
+<details class="faq-item"><summary>Does it work while I’m signed out?</summary><p>Yes. The extension saves its own history in your browser, so you can find videos and resume them while signed out or with YouTube history disabled.</p></details>
+<details class="faq-item"><summary>How do backups work?</summary><p>Export a JSON backup from options and keep it somewhere safe. Importing JSON replaces your existing saved history. Export first if you want to keep the current records.</p></details>
+<details class="faq-item"><summary>What does Ghost Mode do?</summary><p>It pauses the extension’s history, progress, and watch-time recording for the session. It does not make YouTube browsing anonymous.</p></details>
+</div></section>
+<section class="about" id="about"><div class="about-container"><h2>Why I built WatchHistory for YouTube&#8482;</h2>
+<p>I prefer using YouTube with watch history turned off, but I still wanted to find videos I’d watched and pick up where I stopped.</p>
+<p>I built it to keep those useful features without turning YouTube history back on. It saves history and playback progress locally in your browser, with no analytics or cloud sync.</p>
+<p>It’s an independent, open-source project built around that simple idea: keeping a useful history in your browser instead of relying on your YouTube account.</p><div class="about-action"><a class="cta-btn" href="https://github.com/GeorgeElliott/yt-watch-history"><img src="assets/icons/github.svg" width="20" height="20" alt="">View on GitHub</a></div></div></section>
+<section class="download" id="download"><div class="download-container"><h2>Make your next video easier to find</h2><p>Save your history locally and return to unfinished videos.</p><div class="download-badge-container"><a class="badge badge-chrome" href="https://chromewebstore.google.com/detail/watchhistory-for-youtube/bjfbnpccgejpbeofaepnjommafgdknap"><img src="assets/icons/chrome.svg" width="22" height="22" alt="">Add to Chrome</a><a class="badge badge-edge" href="https://microsoftedge.microsoft.com/addons/detail/watchhistory-for-youtube%E2%84%A2/dddoogddjkbiknfieibadpibibmmkpnj"><img src="assets/icons/edge.svg" width="22" height="22" alt="">Add to Edge</a><a class="badge badge-firefox" href="https://addons.mozilla.org/en-GB/firefox/addon/watchhistory-for-youtube/"><img src="assets/icons/firefox.svg" width="22" height="22" alt="">Add to Firefox</a></div></div></section>
+<section class="contact" id="contact"><div class="contact-container"><h2>Get in touch</h2><p>Have feedback or found an issue? Get in touch on GitHub or by email.</p><div class="contact-actions"><a class="cta-btn" href="https://github.com/GeorgeElliott/yt-watch-history/issues"><img src="assets/icons/github.svg" width="20" height="20" alt="">Open an issue on GitHub</a><button id="reveal-email-btn" class="email-button" aria-expanded="false" aria-controls="email-display">Reveal email</button></div><div id="email-display" class="email-display" aria-live="polite"></div></div></section>
+</main>
   <footer>
     <div class="footer-content">
       <div class="footer-brand">
         <a href="/" class="footer-logo">
-          <img src="assets/icons/icon.svg" alt="WatchHistory Logo" width="32" height="32">
-          <span>WatchHistory</span>
+          <img src="assets/icons/icon.svg" alt="" width="32" height="32">
+          <span>WatchHistory for YouTube&#8482;</span>
         </a>
-        <p class="footer-tagline">Track your YouTube history locally. No cloud. No tracking. Always private.</p>
+        <p class="footer-tagline">Find videos again and resume unfinished ones. Your saved history stays in your browser.</p>
       </div>
       <div class="footer-section">
         <h4>Product</h4>
@@ -337,7 +129,7 @@
       <p class="footer-disclaimer">WatchHistory for YouTube™ is not affiliated with Google or YouTube.</p>
     </div>
   </footer>
-  <button class="back-to-top" id="backToTop" aria-label="Back to top">
+  <button class="back-to-top" id="backToTop" aria-label="Back to top"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m-7 7 7-7 7 7"/></svg>
     Back to Top
   </button>
   <script src="js/main.js"></script>

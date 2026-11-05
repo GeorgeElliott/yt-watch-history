@@ -17,6 +17,21 @@ let watchLastSampleAt = 0;
 let watchLastCurrentTime = 0;
 let watchAccumulatedSeconds = 0;
 let countBackgroundPlayback = false;
+// Until the initial setting is loaded, do not record automatic activity.
+let ghostModeActive = true;
+let recordingGeneration = 0;
+let ghostExitBaseline = null;
+const resetRecordingTracking = () => {
+  watchTrackingVideoId = null;
+  watchTrackingState = null;
+  watchLastSampleAt = 0;
+  watchLastCurrentTime = 0;
+  watchAccumulatedSeconds = 0;
+  liveTrackingVideoId = null;
+  liveLastSampleAt = 0;
+  completedVideoId = null;
+  rewatchingVideoId = null;
+};
 
 const isWatchPage = () => location.pathname === '/watch';
 
@@ -74,6 +89,7 @@ const resumeVideo = () => {
   if (resumeAppliedVideoId === videoId || resumePendingVideoId === videoId) return;
 
   resumePendingVideoId = videoId;
+  const generation = recordingGeneration;
 
   // If this is a livestream, jump to the live edge immediately.
   if (isLiveStream()) {
@@ -88,12 +104,12 @@ const resumeVideo = () => {
   // in IndexedDB. Content scripts cannot access extension IDB directly.
   chrome.runtime.sendMessage({ type: 'idb-get-video', videoId }, (response) => {
     if (resumePendingVideoId === videoId) resumePendingVideoId = null;
-    if (new URLSearchParams(window.location.search).get('v') !== videoId) return;
+    if (generation !== recordingGeneration || new URLSearchParams(window.location.search).get('v') !== videoId) return;
 
     const savedVideo = response && response.video;
     // Only auto-jump if the user hasn't already seeked past the start.
     if (savedVideo && video.currentTime < 5) {
-      rewatchingVideoId = savedVideo.watched ? videoId : null;
+      rewatchingVideoId = !ghostModeActive && savedVideo.watched ? videoId : null;
       const startTime = savedVideo.watched ? 0 : savedVideo.time;
       video.currentTime = startTime;
       log(`Resumed at ${startTime}s`);
@@ -167,25 +183,23 @@ const getChannelUrl = () => {
   return '';
 };
 
-const _doSaveProgressInternal = (watchedThreshold = 95) => {
-  const video   = document.querySelector('video');
+const _doSaveProgressInternal = (watchedThreshold = 95, generation = recordingGeneration, sampleAt = Date.now()) => {
+  if (ghostModeActive || generation !== recordingGeneration) return;
+  const video = document.querySelector('video');
   const videoId = new URLSearchParams(window.location.search).get('v');
-
   if (!video || !videoId) return;
+  if (ghostExitBaseline?.videoId === videoId && !ghostExitBaseline.observedPlayback) return;
 
   const streamState = getVideoStreamState();
-  const isLive      = streamState === 'live';
-  const isReplay    = streamState === 'liveReplay';
-  const duration    = video.duration || 0;
-  const currentTime = Math.floor(video.currentTime);
-  const progress    = duration > 0 ? video.currentTime / duration : 0;
-  const sampleAt    = Date.now();
+  const isLive = streamState === 'live';
+  const duration = Number.isFinite(video.duration) ? video.duration : 0;
+  const currentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+  const progress = duration > 0 ? currentTime / duration : 0;
+  const suppressCompletion = ghostExitBaseline?.videoId === videoId &&
+    ghostExitBaseline.progress >= watchedThreshold / 100;
   let liveWatchDelta = 0;
-
   if (isLive) {
     if (liveTrackingVideoId === videoId && liveLastSampleAt > 0) {
-      // Save is called only while the player is active, so the elapsed wall
-      // time between samples represents the livestream watch interval.
       liveWatchDelta = Math.min(30, Math.max(0, sampleAt - liveLastSampleAt) / 1000);
     }
     liveTrackingVideoId = videoId;
@@ -195,82 +209,45 @@ const _doSaveProgressInternal = (watchedThreshold = 95) => {
     liveLastSampleAt = 0;
   }
 
-  // Fetch the existing record first so we can preserve the previous
-  // 'watched' flag and merge it correctly with the new progress.
-  chrome.runtime.sendMessage({ type: 'idb-get-video', videoId }, (response) => {
-    const existing = response && response.video;
-    const wasPreviouslyAlivestream = existing?.live === true || existing?.liveReplay === true;
-    const isReplay = streamState === 'liveReplay' || (!isLive && wasPreviouslyAlivestream);
-
-    // Clean title: remove notification counts like (1) and the " - YouTube" suffix.
-    const cleanTitle = document.title
-      .replace(/^\(\d+\)\s/, '')
-      .replace(' - YouTube', '');
-
-    const wasWatched = existing ? existing.watched : false;
-    const isRewatch = wasWatched && rewatchingVideoId === videoId;
-    let watched;
-    if (!isLive && progress >= watchedThreshold / 100) {
-      watched = true;                         // Reached the end — mark watched
-    } else if (isRewatch || (wasWatched && progress < 0.1)) {
-      watched = false;                        // Re-watching from the beginning
-    } else {
-      watched = wasWatched;                   // No change
-    }
-
-    // Track how many times this video has been fully watched. Records
-    // that predate this feature but were already marked watched are
-    // treated as having one watch already (backwards compatibility).
-    let watchCount = existing && typeof existing.watchCount === 'number'
-      ? existing.watchCount
-      : (wasWatched ? 1 : 0);
-    if (watched && (!wasWatched || isRewatch)) watchCount += 1; // Only on the not-watched → watched transition
-
-    const watchedAt = Date.now();
-    const channel = getChannelName() || (typeof existing?.channel === 'string' ? existing.channel : '');
-    const channelUrl = getChannelUrl() || (typeof existing?.channelUrl === 'string' ? existing.channelUrl : '');
-    const savedLiveTime = existing && existing.live && typeof existing.time === 'number'
-      ? Math.max(0, existing.time)
-      : 0;
-    const record = {
-      videoId,
-      title:      cleanTitle,
-      channel,
-      channelUrl,
-      time:       isLive ? savedLiveTime + liveWatchDelta : currentTime,
-      duration:   isLive ? 0 : Math.floor(duration),
-      watched,
-      watchCount,
-      live:       isLive ? true : undefined,
-      liveReplay: isReplay ? true : undefined,
-      timestamp:  watchedAt
-    };
-
-    // Send the updated record to the background proxy for IDB storage.
-    // Fire-and-forget — we don't need to wait for confirmation.
-    chrome.runtime.sendMessage({ type: 'idb-save-video', video: record });
-    if (watched && (!wasWatched || isRewatch)) {
-      rewatchingVideoId = null;
-      chrome.runtime.sendMessage({
-        type: 'idb-record-watch-event',
-        watchEvent: { videoId, watchedAt }
-      });
-    }
-
-    // Invalidate the in-memory history cache so the next badge or
-    // shelf render reflects the freshly saved data.
-    invalidateHistoryCache();
+  const rewatch = rewatchingVideoId === videoId;
+  const sample = {
+    videoId,
+    title: document.title.replace(/^\(\d+\)\s/, '').replace(' - YouTube', ''),
+    channel: getChannelName(),
+    channelUrl: getChannelUrl(),
+    currentTime: Math.floor(currentTime),
+    duration: Math.floor(duration),
+    progress,
+    streamState,
+    watchedThreshold,
+    sampleAt,
+    liveWatchDelta,
+    rewatch,
+    suppressCompletion: Boolean(suppressCompletion),
+    ghostExit: ghostExitBaseline?.videoId === videoId
+      ? { token: ghostExitBaseline.token, time: ghostExitBaseline.time } : null
+  };
+  // Claim a rewatch completion before another timer or ended event can send it.
+  if (rewatch && !isLive && progress >= watchedThreshold / 100 && !suppressCompletion) {
+    rewatchingVideoId = null;
+  }
+  chrome.runtime.sendMessage({ type: 'idb-record-playback', sample }, (result) => {
+    if (result?.video) invalidateHistoryCache();
   });
 };
 
 const _doSaveProgress = () => {
+  if (ghostModeActive) return;
+  const generation = recordingGeneration;
+  const requestedAt = Date.now();
   chrome.storage.local.get({ ghostModeActive: false, watchedThreshold: 95 }, (data) => {
-    if (data.ghostModeActive) return;
-    _doSaveProgressInternal(data.watchedThreshold);
+    if (data.ghostModeActive || ghostModeActive || generation !== recordingGeneration) return;
+    _doSaveProgressInternal(data.watchedThreshold, generation, requestedAt);
   });
 };
 
 const recordActiveWatchTime = (video, videoId, streamState) => {
+  if (ghostModeActive) return;
   const now = Date.now();
   const currentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
 
@@ -289,6 +266,9 @@ const recordActiveWatchTime = (video, videoId, streamState) => {
     ? elapsedSeconds
     : Math.min(elapsedSeconds, playbackSeconds);
 
+  if (watchedSeconds > 0 && ghostExitBaseline?.videoId === videoId) {
+    ghostExitBaseline.observedPlayback = true;
+  }
   watchAccumulatedSeconds += watchedSeconds;
   watchLastSampleAt = now;
   watchLastCurrentTime = currentTime;
@@ -299,6 +279,7 @@ const recordActiveWatchTime = (video, videoId, streamState) => {
   watchAccumulatedSeconds -= sessionSeconds;
   chrome.runtime.sendMessage({
     type: 'idb-record-watch-session',
+    ghostExit: ghostExitBaseline?.videoId === videoId ? { token: ghostExitBaseline.token, time: ghostExitBaseline.time } : null,
     watchSession: {
       videoId,
       watchedAt: now,
@@ -309,6 +290,10 @@ const recordActiveWatchTime = (video, videoId, streamState) => {
 };
 
 const flushActiveWatchTime = (video, videoId, streamState, resetTracking = true) => {
+  if (ghostModeActive) {
+    resetRecordingTracking();
+    return;
+  }
   if (video && videoId && streamState) {
     recordActiveWatchTime(video, videoId, streamState);
   }
@@ -317,6 +302,7 @@ const flushActiveWatchTime = (video, videoId, streamState, resetTracking = true)
   if (videoId && streamState && sessionSeconds > 0) {
     chrome.runtime.sendMessage({
       type: 'idb-record-watch-session',
+      ghostExit: ghostExitBaseline?.videoId === videoId ? { token: ghostExitBaseline.token, time: ghostExitBaseline.time } : null,
       watchSession: {
         videoId,
         watchedAt: Date.now(),
@@ -336,7 +322,7 @@ const flushActiveWatchTime = (video, videoId, streamState, resetTracking = true)
 };
 
 const saveProgress = () => {
-  if (!isWatchPage()) return;
+  if (!isWatchPage() || ghostModeActive) return;
   const video = document.querySelector('video');
   if (!video || video.paused || (document.hidden && !countBackgroundPlayback)) return;
   const videoId = new URLSearchParams(window.location.search).get('v');
@@ -384,7 +370,7 @@ const attachVideoLifecycleListeners = () => {
   if (!video || video.dataset.ytwhTracked) return;
   video.dataset.ytwhTracked = '1';
 
-  if (!video.paused && isLiveStream()) {
+  if (!ghostModeActive && !video.paused && isLiveStream()) {
     liveTrackingVideoId = new URLSearchParams(window.location.search).get('v');
     liveLastSampleAt = Date.now();
   }
@@ -393,6 +379,7 @@ const attachVideoLifecycleListeners = () => {
   // for the next periodic tick. Critical for very short videos that
   // can start and finish between ticks.
   video.addEventListener('ended', () => {
+    if (ghostModeActive) return;
     const videoId = new URLSearchParams(window.location.search).get('v');
     flushActiveWatchTime(video, videoId, getVideoStreamState());
     completedVideoId = new URLSearchParams(window.location.search).get('v');
@@ -403,7 +390,15 @@ const attachVideoLifecycleListeners = () => {
     flushActiveWatchTime(video, videoId, getVideoStreamState());
   });
   video.addEventListener('play', () => {
+    if (ghostModeActive) return;
     const videoId = new URLSearchParams(window.location.search).get('v');
+    if (ghostExitBaseline?.videoId === videoId && video.currentTime < ghostExitBaseline.time) {
+      ghostExitBaseline.time = 0;
+      ghostExitBaseline.progress = 0;
+    }
+    if (ghostExitBaseline?.videoId === videoId && !ghostExitBaseline.observedPlayback) {
+      recordActiveWatchTime(video, videoId, getVideoStreamState());
+    }
     if (isLiveStream()) {
       liveTrackingVideoId = videoId;
       liveLastSampleAt = Date.now();
@@ -431,6 +426,7 @@ const attachVideoLifecycleListeners = () => {
 let _historyCache     = null;
 /** @type {number} */
 let _historyCacheTime = 0;
+let _historyCacheGeneration = 0;
 
 // How long (ms) the cache is considered fresh before re-fetching.
 const CACHE_TTL_MS = 30000; // 30 seconds
@@ -445,8 +441,10 @@ const getHistoryCache = () => {
   if (_historyCache && (Date.now() - _historyCacheTime) < CACHE_TTL_MS) {
     return Promise.resolve(_historyCache);
   }
+  const generation = _historyCacheGeneration;
   return new Promise((resolve) => {
     chrome.runtime.sendMessage({ type: 'idb-get-all-videos' }, (response) => {
+      if (generation !== _historyCacheGeneration) { resolve(getHistoryCache()); return; }
       _historyCache     = (response && response.videos) || [];
       _historyCacheTime = Date.now();
       resolve(_historyCache);
@@ -460,6 +458,7 @@ const getHistoryCache = () => {
  * Called after saving a new video record so badges update promptly.
  */
 const invalidateHistoryCache = () => {
+  _historyCacheGeneration += 1;
   _historyCache     = null;
   _historyCacheTime = 0;
 };
@@ -649,27 +648,6 @@ const getRendererChannelUrl = (renderer) => {
 };
 
 /**
- * updateThumbnailAfterToggle()
- * Refreshes the menu label and the watched badge in place immediately
- * after a manual toggle, so the UI doesn't wait for the next debounced
- * tagThumbnails() pass.
- */
-const updateThumbnailAfterToggle = (renderer, nowWatched) => {
-  const item = renderer.querySelector('.ytwh-watch-menu-item');
-  if (item) item.textContent = nowWatched ? '\u21A9 Reset progress' : '\u2713 Mark as watched';
-
-  renderer.querySelectorAll('.ytwh-resume-badge, .ytwh-watched-badge').forEach((b) => b.remove());
-  if (nowWatched) {
-    const badge = document.createElement('span');
-    badge.className = 'ytwh-watched-badge';
-    badge.textContent = 'Watched';
-    badge.style.left   = `${renderer.dataset.ytwhInsetLeft || 4}px`;
-    badge.style.bottom = `${renderer.dataset.ytwhInsetBottom || 4}px`;
-    renderer.appendChild(badge);
-  }
-};
-
-/**
  * toggleWatchedForVideo()
  * Delegates watched-state updates to the background so every extension surface
  * uses the same watch-count and completion-event rules.
@@ -690,8 +668,7 @@ const toggleWatchedForVideo = (renderer, link, videoId) => {
       }
     }, (result) => {
       if (!result?.video) return;
-      invalidateHistoryCache();
-      updateThumbnailAfterToggle(renderer, result.video.watched);
+      refreshShelfAfterAction();
     });
   });
 };
@@ -769,7 +746,8 @@ const tagThumbnails = () => {
         if (renderer.hasAttribute(BADGE_ATTR)) return;
 
         // Find the first watch link to extract the video ID.
-        const link = renderer.querySelector('a[href*="/watch"]');
+        const link = [...renderer.querySelectorAll('a[href*="/watch"]')]
+          .find((candidate) => !candidate.closest('#ytwh-pickup-shelf'));
         if (!link) return; // Don't mark — link may not be loaded yet
 
         renderer.setAttribute(BADGE_ATTR, '');
@@ -979,6 +957,49 @@ const injectPickupShelfStyles = () => {
       background: var(--shelf-scrollbar-thumb);
       border-radius: 4px;
     }
+    .ytwh-video-card { position: relative; }
+    .ytwh-shelf-card-link { text-decoration: none; color: inherit; }
+    .ytwh-shelf-menu-btn {
+      position: absolute; right: 5px; top: 5px; z-index: 2;
+      width: 32px; height: 32px; border: 0; border-radius: 50%;
+      background: rgba(0,0,0,.8); color: white; cursor: pointer; font-size: 20px;
+    }
+    .ytwh-shelf-menu-btn:focus-visible, .ytwh-shelf-menu button:focus-visible,
+    .whyt-chip:focus-visible { outline: 3px solid #3ea6ff; outline-offset: 2px; }
+    .ytwh-shelf-menu {
+      position: fixed; z-index: 2147483647; min-width: 185px;
+      background: ${chipBg}; border: 1px solid ${chipBorder}; border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.35); padding: 4px;
+    }
+    .ytwh-shelf-menu button {
+      display: block; width: 100%; border: 0; background: transparent;
+      color: ${textColor}; text-align: left; padding: 10px; cursor: pointer;
+    }
+    .ytwh-shelf-menu button:hover { background: ${chipBgHover}; }
+    .ytwh-shelf-load-more {
+      align-self: flex-start;
+      /* Center the 44px button against the 210px-wide 16:9 thumbnail. */
+      margin-top: 37px;
+      flex: 0 0 auto;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      justify-content: center;
+      border-radius: 50%;
+    }
+    .ytwh-shelf-load-more svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.2s ease;
+    }
+    .ytwh-shelf-load-more:hover svg { transform: translateX(2px); }
+    #ytwh-shelf-videos .ytwh-shelf-load-more[hidden] { display: none; }
+    .ytwh-shelf-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     .ytwh-video-card {
       flex: 0 0 auto;
       width: 210px;
@@ -1058,63 +1079,137 @@ const injectPickupShelfStyles = () => {
   document.head.appendChild(style);
 };
 
-const buildShelfVideoCard = (video) => {
-  const url = video.live || video.watched
-    ? `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`
-    : `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&t=${video.time}s`;
-  const thumbUrl = `https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/mqdefault.jpg`;
-  const liveTotalSeconds = Math.max(0, Math.round(video.time || 0));
-  const m = Math.floor(liveTotalSeconds / 60);
-  const s = liveTotalSeconds % 60;
-  const liveTime = `${m}m ${s}s watched`;
-  const timeBadgeText = video.live
-    ? `\uD83D\uDD34 Livestream \u2022 ${liveTime}`
-    : video.liveReplay
-      ? `\u{1F504} Livestream \u2022 ${liveTime}`
-      : video.watched
-        ? '\u2713 Watched'
-        : `${m}m ${s}s`;
+let shelfMenu = null;
+let shelfMenuButton = null;
+const closeShelfMenu = (restoreFocus = false) => {
+  if (!shelfMenu) return;
+  shelfMenu.remove();
+  shelfMenu = null;
+  if (shelfMenuButton) {
+    shelfMenuButton.setAttribute('aria-expanded', 'false');
+    if (restoreFocus && shelfMenuButton.isConnected) shelfMenuButton.focus();
+  }
+  shelfMenuButton = null;
+};
 
-  const card = document.createElement('a');
+document.addEventListener('click', (event) => {
+  if (shelfMenu && !shelfMenu.contains(event.target) && event.target !== shelfMenuButton) closeShelfMenu();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && shelfMenu) { event.preventDefault(); closeShelfMenu(true); }
+});
+
+const refreshShelfAfterAction = () => {
+  invalidateHistoryCache();
+  clearThumbnailBadges();
+  debouncedTagThumbnails();
+  updateShelfState();
+};
+
+const positionShelfMenu = () => {
+  if (!shelfMenu || !shelfMenuButton) return;
+  const rect = shelfMenuButton.getBoundingClientRect();
+  const rowRect = shelfMenuButton.closest('#ytwh-shelf-videos').getBoundingClientRect();
+  if (rect.right <= rowRect.left || rect.left >= rowRect.right || rect.bottom <= 0 || rect.top >= window.innerHeight) { closeShelfMenu(); return; }
+  const menuRect = shelfMenu.getBoundingClientRect();
+  shelfMenu.style.left = `${Math.max(4, Math.min(rect.right - menuRect.width, window.innerWidth - menuRect.width - 4))}px`;
+  shelfMenu.style.top = `${Math.max(4, Math.min(rect.bottom + 4, window.innerHeight - menuRect.height - 4))}px`;
+};
+
+window.addEventListener('scroll', positionShelfMenu, true);
+window.addEventListener('resize', positionShelfMenu);
+
+const openShelfMenu = (button, video) => {
+  if (shelfMenuButton === button) { closeShelfMenu(true); return; }
+  closeShelfMenu();
+  shelfMenuButton = button;
+  button.setAttribute('aria-expanded', 'true');
+  const menu = document.createElement('div');
+  menu.className = 'ytwh-shelf-menu';
+  menu.setAttribute('role', 'group');
+  menu.setAttribute('aria-label', `Actions for ${video.title || 'video'}`);
+  shelfMenu = menu;
+  const actions = [
+    ['Mark as watched', 'mark'], ['Reset progress', 'reset'],
+    ['Copy link', 'copy'], ['Remove from history', 'delete']
+  ];
+  actions.forEach(([label, action]) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.textContent = label;
+    item.addEventListener('click', (event) => {
+      event.stopPropagation();
+      closeShelfMenu(action === 'copy');
+      if (action === 'copy') {
+        navigator.clipboard.writeText(`https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`).catch(console.error);
+        return;
+      }
+      const message = action === 'delete'
+        ? { type: 'idb-delete-video', videoId: video.videoId }
+        : { type: 'idb-toggle-watched', videoId: video.videoId, action };
+      chrome.runtime.sendMessage(message, (result) => {
+        if (result && (result.ok || result.video)) refreshShelfAfterAction();
+      });
+    });
+    menu.appendChild(item);
+  });
+  document.body.appendChild(menu);
+  positionShelfMenu();
+  menu.querySelector('button').focus();
+};
+
+const buildShelfVideoCard = (video) => {
+  const card = document.createElement('div');
   card.className = 'ytwh-video-card';
-  card.href = url;
-  card.target = '_blank';
-  card.rel = 'noopener noreferrer';
-  card.addEventListener('click', (e) => e.stopPropagation());
+  card.dataset.videoId = video.videoId;
+  card._ytwhSignature = JSON.stringify(video);
+
+  const link = document.createElement('a');
+  link.className = 'ytwh-shelf-card-link';
+  link.href = getVideoUrl(video);
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.addEventListener('click', (event) => event.stopPropagation());
 
   const thumbWrap = document.createElement('div');
   thumbWrap.className = 'ytwh-thumb-wrap';
   const img = document.createElement('img');
-  img.src = thumbUrl;
+  img.src = getVideoThumbnailUrl(video.videoId);
   img.alt = '';
   img.loading = 'lazy';
   const badge = document.createElement('span');
-  badge.className = video.watched ? 'ytwh-time-badge watched' : 'ytwh-time-badge';
-  badge.textContent = timeBadgeText;
-  thumbWrap.appendChild(img);
-  thumbWrap.appendChild(badge);
-
+  badge.className = 'ytwh-time-badge';
+  const seconds = Math.max(0, Math.round(video.time || 0));
+  badge.textContent = `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  thumbWrap.append(img, badge);
   const info = document.createElement('div');
   info.className = 'ytwh-video-info';
-  const titleEl = document.createElement('div');
-  titleEl.className = 'ytwh-video-title';
-  titleEl.textContent = video.title;
-  info.appendChild(titleEl);
+  const title = document.createElement('div');
+  title.className = 'ytwh-video-title';
+  title.textContent = video.title;
+  info.appendChild(title);
+  link.append(thumbWrap, info);
+  card.appendChild(link);
   if (video.channel) {
-    const channelEl = document.createElement('a');
-    channelEl.className = 'ytwh-video-channel';
-    channelEl.textContent = video.channel;
-    const isSafeChannelUrl = typeof video.channelUrl === 'string' &&
+    const channel = document.createElement('a');
+    channel.className = 'ytwh-video-channel';
+    channel.textContent = video.channel;
+    const safe = typeof video.channelUrl === 'string' &&
       (video.channelUrl.startsWith('https://www.youtube.com/') || video.channelUrl.startsWith('/'));
-    channelEl.href = isSafeChannelUrl ? video.channelUrl : '#';
-    channelEl.target = '_blank';
-    channelEl.rel = 'noopener noreferrer';
-    channelEl.addEventListener('click', (e) => e.stopPropagation());
-    info.appendChild(channelEl);
+    channel.href = safe ? video.channelUrl : '#';
+    channel.target = '_blank';
+    channel.rel = 'noopener noreferrer';
+    channel.addEventListener('click', (event) => event.stopPropagation());
+    card.appendChild(channel);
   }
-
-  card.appendChild(thumbWrap);
-  card.appendChild(info);
+  const menuButton = document.createElement('button');
+  menuButton.type = 'button';
+  menuButton.className = 'ytwh-shelf-menu-btn';
+  menuButton.setAttribute('aria-label', `More actions for ${video.title || 'video'}`);
+  menuButton.setAttribute('aria-expanded', 'false');
+  menuButton.textContent = '\u22ee';
+  menuButton.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); openShelfMenu(menuButton, video); });
+  card.appendChild(menuButton);
   return card;
 };
 
@@ -1130,93 +1225,142 @@ const createViewAllChip = () => {
   return btn;
 };
 
-const updateShelfState = () => {
-  const path = location.pathname;
-  const isHome = path === '/';
-  const isSubs = path === '/feed/subscriptions';
+const SHELF_PAGE_SIZE = 15;
+let shelfCapacity = SHELF_PAGE_SIZE;
+let shelfUpdateGeneration = 0;
+let shelfEligibleVideos = [];
+let shelfRetryTimer = null;
 
-  if (!isHome && !isSubs) {
+const getShelfContainer = () => {
+  // YouTube keeps inactive SPA pages in the DOM. Never mount in a hidden feed.
+  const browsePages = [...document.querySelectorAll('ytd-browse')];
+  const browse = browsePages.find((page) => !page.closest('[hidden]') &&
+    (!page.getAttribute('page-subtype') || page.getAttribute('page-subtype') ===
+      (location.pathname === '/' ? 'home' : 'subscriptions')));
+  if (browsePages.length && !browse) return null;
+  const root = browse || document;
+  const feed = [...root.querySelectorAll('ytd-rich-grid-renderer #contents, ytd-section-list-renderer #contents, #primary #contents')]
+    .find((element) => !element.closest('[hidden]'));
+  // Signed-out/empty feeds may have only a promo renderer, without feed contents.
+  // Stay inside YouTube's browse page; never fall back to the app or document body.
+  return feed || (browse && (browse.querySelector('#primary:not([hidden])') || browse));
+};
+
+const scheduleShelfUpdate = () => {
+  if (shelfRetryTimer !== null) return;
+  shelfRetryTimer = setTimeout(() => {
+    shelfRetryTimer = null;
+    updateShelfState();
+  }, 800);
+};
+
+const getEligibleShelfVideos = (history) => history
+  .filter((video) => !video.watched && !video.live && video.time >= 5)
+  .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0) || a.videoId.localeCompare(b.videoId));
+
+const renderShelfVideos = (shelf) => {
+  const row = shelf.querySelector('#ytwh-shelf-videos');
+  const scrollLeft = row.scrollLeft;
+  const desired = shelfEligibleVideos.slice(0, shelfCapacity);
+  const ids = new Set(desired.map((video) => video.videoId));
+  row.querySelectorAll('.ytwh-video-card').forEach((card) => { if (!ids.has(card.dataset.videoId)) card.remove(); });
+  const existing = new Map([...row.querySelectorAll('.ytwh-video-card')].map((card) => [card.dataset.videoId, card]));
+  const loadMore = row.querySelector('.ytwh-shelf-load-more');
+  desired.forEach((video) => {
+    let card = existing.get(video.videoId);
+    if (card && card._ytwhSignature !== JSON.stringify(video)) { card.remove(); card = null; }
+    if (!card) card = buildShelfVideoCard(video);
+    row.insertBefore(card, loadMore);
+  });
+  loadMore.hidden = desired.length >= shelfEligibleVideos.length;
+  row.scrollLeft = scrollLeft;
+};
+
+const updateShelfState = () => {
+  clearTimeout(shelfRetryTimer);
+  shelfRetryTimer = null;
+  const generation = ++shelfUpdateGeneration;
+  const path = location.pathname;
+  if (path !== '/' && path !== '/feed/subscriptions') {
+    shelfEligibleVideos = [];
+    closeShelfMenu();
     document.getElementById(PICKUP_SHELF_ID)?.remove();
     return;
   }
-
-  chrome.storage.local.get({ pickupShelf: true, ghostModeActive: false, subsRedirect: false }, (data) => {
-    // Redirect gatekeeper: homepage with redirect active — don't inject the shelf.
-    if (isHome && data.subsRedirect) {
+  chrome.storage.local.get({ pickupShelf: true, ghostModeActive: false, subsRedirect: false }, (settings) => {
+    if (generation !== shelfUpdateGeneration || location.pathname !== path) return;
+    if (!settings.pickupShelf || settings.ghostModeActive || (path === '/' && settings.subsRedirect)) {
+      shelfEligibleVideos = [];
+      closeShelfMenu();
       document.getElementById(PICKUP_SHELF_ID)?.remove();
       return;
     }
-
-    if (!data.pickupShelf || data.ghostModeActive) {
-      document.getElementById(PICKUP_SHELF_ID)?.remove();
-      return;
-    }
-
-    // Only inject if we actually have history to show.
     getHistoryCache().then((history) => {
-      if (history.length === 0) {
+      if (generation !== shelfUpdateGeneration || location.pathname !== path) return;
+      shelfEligibleVideos = getEligibleShelfVideos(history);
+      if (!shelfEligibleVideos.length) {
+        closeShelfMenu();
         document.getElementById(PICKUP_SHELF_ID)?.remove();
         return;
       }
-      if (!document.getElementById(PICKUP_SHELF_ID)) injectPickupShelf();
-    });
-  });
-};
-
-const injectPickupShelf = () => {
-  const path = location.pathname;
-  if (path !== '/' && path !== '/feed/subscriptions') return;
-
-  chrome.storage.local.get({ pickupShelf: true, ghostModeActive: false, subsRedirect: false }, (data) => {
-    if (!data.pickupShelf || data.ghostModeActive) return;
-    // Redirect gatekeeper: if redirect is active on homepage, stop here.
-    if (path === '/' && data.subsRedirect) return;
-    if (document.getElementById(PICKUP_SHELF_ID)) return;
-
-    // Fetch history via the in-memory cache, then inject.
-    getHistoryCache().then((history) => {
-      if (history.length === 0) return;
-      if (document.getElementById(PICKUP_SHELF_ID)) return;
-
-      // Works on both homepage and subscriptions page
-      const feedContainer =
-        document.querySelector('ytd-rich-grid-renderer #contents') ||
-        document.querySelector('ytd-section-list-renderer #contents') ||
-        document.querySelector('#primary #contents');
-
-      if (!feedContainer) {
-        setTimeout(injectPickupShelf, 800);
+      const feed = getShelfContainer();
+      if (!feed) {
+        document.getElementById(PICKUP_SHELF_ID)?.remove();
+        scheduleShelfUpdate();
         return;
       }
-
-      injectPickupShelfStyles();
-
-      const shelf = document.createElement('div');
-      shelf.id = PICKUP_SHELF_ID;
-
-      //  Header row 
-      const header = document.createElement('div');
-      header.id = 'ytwh-shelf-header';
-
-      const title = document.createElement('span');
-      title.className = 'whyt-shelf-title';
-      title.textContent = 'Continue Watching';
-
-      header.appendChild(title);
-      header.appendChild(createViewAllChip());
-
-      //  Video strip 
-      const videosRow = document.createElement('div');
-      videosRow.id = 'ytwh-shelf-videos';
-
-      // Prioritise unwatched/in-progress videos; fall back to recents.
-      const resumable = history.filter((v) => !v.watched && v.time >= 5);
-      const toShow    = resumable.length > 0 ? resumable.slice(0, 15) : history.slice(0, 15);
-      toShow.forEach((video) => videosRow.appendChild(buildShelfVideoCard(video)));
-
-      shelf.appendChild(header);
-      shelf.appendChild(videosRow);
-      feedContainer.prepend(shelf);
+      let shelf = document.getElementById(PICKUP_SHELF_ID);
+      if (!shelf) {
+        injectPickupShelfStyles();
+        shelf = document.createElement('div');
+        shelf.id = PICKUP_SHELF_ID;
+        const header = document.createElement('div');
+        header.id = 'ytwh-shelf-header';
+        const title = document.createElement('span');
+        title.className = 'whyt-shelf-title';
+        title.textContent = 'Continue Watching';
+        header.append(title, createViewAllChip());
+        const announcement = document.createElement('div');
+        announcement.className = 'ytwh-shelf-announcement';
+        announcement.setAttribute('aria-live', 'polite');
+        const row = document.createElement('div');
+        row.id = 'ytwh-shelf-videos';
+        row.addEventListener('scroll', positionShelfMenu, { passive: true });
+        row.addEventListener('wheel', (event) => {
+          if (event.ctrlKey || !event.deltaY || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+          const multiplier = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16
+            : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? row.clientWidth : 1;
+          row.scrollLeft += event.deltaY * multiplier;
+          event.preventDefault();
+        }, { passive: false });
+        const more = document.createElement('button');
+        more.type = 'button';
+        more.className = 'whyt-chip ytwh-shelf-load-more';
+        more.title = 'Load more videos';
+        more.setAttribute('aria-label', 'Load more');
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        arrow.setAttribute('viewBox', '0 0 24 24');
+        arrow.setAttribute('aria-hidden', 'true');
+        const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        arrowPath.setAttribute('d', 'M5 12h14m-6-6 6 6-6 6');
+        arrow.appendChild(arrowPath);
+        more.appendChild(arrow);
+        more.addEventListener('click', (event) => {
+          event.preventDefault(); event.stopPropagation();
+          if (shelfCapacity >= shelfEligibleVideos.length) return;
+          const before = Math.min(shelfCapacity, shelfEligibleVideos.length);
+          shelfCapacity += SHELF_PAGE_SIZE;
+          renderShelfVideos(shelf);
+          const added = Math.min(shelfCapacity, shelfEligibleVideos.length) - before;
+          announcement.textContent = `${added} ${added === 1 ? 'video' : 'videos'} added`;
+          if (more.hidden) row.querySelectorAll('.ytwh-video-card')[before]?.querySelector('.ytwh-shelf-card-link')?.focus({ preventScroll: true });
+          else more.focus({ preventScroll: true });
+        });
+        row.appendChild(more);
+        shelf.append(header, announcement, row);
+      }
+      if (shelf.parentElement !== feed) feed.prepend(shelf);
+      renderShelfVideos(shelf);
     });
   });
 };
@@ -1233,6 +1377,29 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
 
   if (changes.ghostModeActive) {
+    recordingGeneration += 1;
+    ghostModeActive = Boolean(changes.ghostModeActive.newValue);
+    // Discard the partial buffer at either boundary; never credit ghost time.
+    resetRecordingTracking();
+    const video = document.querySelector('video');
+    const videoId = new URLSearchParams(window.location.search).get('v');
+    ghostExitBaseline = !ghostModeActive && video && videoId
+      ? {
+        videoId,
+        progress: Number.isFinite(video.duration) && video.duration > 0 ? video.currentTime / video.duration : 0,
+        time: Number.isFinite(video.currentTime) ? video.currentTime : 0,
+        token: `${Date.now()}-${Math.random()}`,
+        observedPlayback: false
+      }
+      : null;
+    if (ghostExitBaseline && !video.paused && (!document.hidden || countBackgroundPlayback)) {
+      const streamState = getVideoStreamState();
+      recordActiveWatchTime(video, videoId, streamState);
+      if (streamState === 'live') {
+        liveTrackingVideoId = videoId;
+        liveLastSampleAt = Date.now();
+      }
+    }
     if (changes.ghostModeActive.newValue) {
       clearThumbnailBadges();
     } else {
@@ -1253,7 +1420,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   // Shelf visibility toggles; history changes are handled by cache
   // invalidation inside _doSaveProgressInternal rather than here,
   // since history now lives in IndexedDB (not chrome.storage.local).
-  if ('pickupShelf' in changes) {
+  if ('pickupShelf' in changes || 'subsRedirect' in changes) {
     updateShelfState();
   }
 
@@ -1270,7 +1437,12 @@ let lastUrl = location.href;
 const observer = new MutationObserver(() => {
   if (location.href !== lastUrl) {
     lastUrl = location.href;
+    shelfCapacity = SHELF_PAGE_SIZE;
+    closeShelfMenu();
     flushActiveWatchTime(null, watchTrackingVideoId, watchTrackingState);
+    if (!isWatchPage() || new URLSearchParams(window.location.search).get('v') !== ghostExitBaseline?.videoId) {
+      ghostExitBaseline = null;
+    }
     liveTrackingVideoId = null;
     liveLastSampleAt = 0;
     watchTrackingVideoId = null;
@@ -1283,9 +1455,19 @@ const observer = new MutationObserver(() => {
     setTimeout(resumeVideo, 1000);
     setTimeout(attachVideoLifecycleListeners, 1000);
   }
+  // Reuse the existing observer when YouTube replaces a feed after navigation.
+  const shelf = document.getElementById(PICKUP_SHELF_ID);
+  if (shelfEligibleVideos.length && (location.pathname === '/' || location.pathname === '/feed/subscriptions') &&
+      (!shelf || shelf.parentElement !== getShelfContainer())) scheduleShelfUpdate();
   debouncedTagThumbnails();
 });
 observer.observe(document.body, { childList: true, subtree: true });
+// Some SPA transitions only change attributes on retained page elements.
+document.addEventListener('yt-navigate-finish', () => {
+  shelfCapacity = SHELF_PAGE_SIZE;
+  checkRedirects();
+  updateShelfState();
+});
 
 //  Backup Reminder Banner 
 
@@ -1457,22 +1639,13 @@ const themeObserver = new MutationObserver(syncYouTubeTheme);
 themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['dark'] });
 syncYouTubeTheme();
 
-//  Force Page Reload on Home/Subscriptions Navigation 
-// Instead of relying on SPA navigation which has timing issues with shelf injection,
-// intercept clicks on the home and subscriptions sidebar links and do a full page reload.
-document.addEventListener('click', (e) => {
-  const link = e.target.closest('a[href="/"], a[href="/feed/subscriptions"]');
-  if (link) {
-    const href = link.getAttribute('href');
-    // Only proceed if we're actually navigating to a different page
-    if (location.pathname !== href) {
-      e.preventDefault();
-      e.stopPropagation();
-      window.location.href = `https://www.youtube.com${href}`;
-      return false;
-    }
-  }
-}, true);
+// Ignore an initial read if a change notification has already superseded it.
+const initialRecordingGeneration = recordingGeneration;
+chrome.storage.local.get({ ghostModeActive: false }, (data) => {
+  if (recordingGeneration !== initialRecordingGeneration) return;
+  ghostModeActive = Boolean(data.ghostModeActive);
+  resetRecordingTracking();
+});
 
 // Initial triggers
 checkRedirects();

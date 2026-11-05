@@ -204,7 +204,7 @@ const renderEmptyState = () => {
 const loadTimeline = () => {
   db_getAllVideos().then((videos) => {
     timelineVideos = videos
-      .filter((video) => Number.isFinite(video.timestamp))
+      .filter((video) => !video.manualOnly && Number.isFinite(video.timestamp))
       .sort((a, b) => b.timestamp - a.timestamp);
 
     if (timelineVideos.length === 0) {

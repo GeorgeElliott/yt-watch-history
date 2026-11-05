@@ -6,6 +6,7 @@ const {
   DEFAULT_SETTINGS,
   extractYoutubeVideoId,
   formatDuration,
+  getLegacyWatchSeconds,
   getVideoProgress,
   getVideoThumbnailUrl,
   getVideoUrl,
@@ -48,9 +49,9 @@ test('video URL resumes only unfinished standard videos', () => {
   assert.equal(getVideoProgress({ time: 20, duration: 0 }), 0);
 });
 
-test('toggling a qualifying legacy record credits a completion', () => {
+test('manual marking credits an initial completion and preserves position and viewing date', () => {
   const { video, creditedWatch } = toggleWatchedState(
-    { videoId: 'video', watched: false, time: 95, duration: 100 },
+    { videoId: 'video', watched: false, time: 12, duration: 100, timestamp: 1000 },
     95,
     null,
     1234
@@ -58,13 +59,16 @@ test('toggling a qualifying legacy record credits a completion', () => {
 
   assert.equal(video.watched, true);
   assert.equal(video.watchCount, 1);
-  assert.equal(video.timestamp, 1234);
+  assert.equal(video.time, 12);
+  assert.equal(video.timestamp, 1000);
+  assert.equal(video.manualCompletedAt, 1234);
   assert.equal(creditedWatch, true);
+  assert.equal(getLegacyWatchSeconds(video), 12);
 });
 
 test('toggling resets progress without credit when below threshold', () => {
   const marked = toggleWatchedState(
-    { videoId: 'video', watched: false, time: 94, duration: 100, watchCount: 2 },
+    { videoId: 'video', watched: false, time: 94, duration: 100, watchCount: 2, timestamp: 987 },
     95,
     null,
     1234
@@ -76,6 +80,7 @@ test('toggling resets progress without credit when below threshold', () => {
   assert.equal(reset.video.watched, false);
   assert.equal(reset.video.time, 0);
   assert.equal(reset.video.watchCount, 2);
+  assert.equal(reset.video.timestamp, 987);
 });
 
 test('toggle creates a record from supplied feed metadata', () => {
@@ -87,9 +92,11 @@ test('toggle creates a record from supplied feed metadata', () => {
 
   assert.equal(video.videoId, 'new-video');
   assert.equal(video.title, 'Example');
+  assert.equal(video.timestamp, 1234);
   assert.equal(video.watched, true);
-  assert.equal(video.watchCount, 0);
-  assert.equal(creditedWatch, false);
+  assert.equal(video.watchCount, 1);
+  assert.equal(video.manualCompletion, true);
+  assert.equal(creditedWatch, true);
 });
 
 test('toggling a previously watched legacy record resets without changing its count', () => {
@@ -163,4 +170,34 @@ test('matchesHistorySearchByVideoId matches video id and YouTube URLs', () => {
     matchesHistorySearchByVideoId(video, otherUrl, extractYoutubeVideoId(otherUrl)),
     false
   );
+});
+
+test('manual mark and reset cycles never add repeat completions or estimated watch time', () => {
+  const initial = { videoId: 'cycle', watched: false, watchCount: 0, time: 20, duration: 100, timestamp: 1000 };
+  const marked = toggleWatchedState(initial, 95, null, 2000);
+  const reset = toggleWatchedState(marked.video, 95, null, 3000);
+  const again = toggleWatchedState(reset.video, 95, null, 4000);
+  assert.equal(marked.creditedWatch, true);
+  assert.equal(again.creditedWatch, false);
+  assert.equal(again.video.watchCount, 1);
+  assert.equal(again.video.timestamp, 1000);
+  assert.equal(getLegacyWatchSeconds({ ...again.video, watchCount: 2, time: 50 }), 50);
+});
+
+test('a manual credit after a legacy reset does not inflate fallback time', () => {
+  const existing = { watched: false, watchCount: 0, time: 0, duration: 100,
+    legacyWatchSeconds: 30, legacyWatchCount: 0, timestamp: 1000 };
+  const marked = toggleWatchedState(existing, 95, null, 2000);
+  assert.equal(getLegacyWatchSeconds(marked.video), 30);
+  assert.equal(getLegacyWatchSeconds({ ...marked.video, watchCount: 2, time: 40 }), 70);
+});
+
+
+test('first manual completion is independent of the playback threshold', () => {
+  for (const threshold of [1, 95, 100]) {
+    const result = toggleWatchedState({ watched: false, watchCount: 0, time: 0, duration: 100, timestamp: 10 }, threshold, null, 20);
+    assert.equal(result.video.watchCount, 1);
+    assert.equal(result.creditedWatch, true);
+    assert.equal(getLegacyWatchSeconds(result.video), 0);
+  }
 });

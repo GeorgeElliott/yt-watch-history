@@ -65,6 +65,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Each handler mirrors a db.js function. Handlers that need to return data
   // must call sendResponse({ ... }) inside a .then() and return true.
 
+  if (message.type === 'idb-record-playback') {
+    return respondWith(db_recordPlayback(message.sample), sendResponse, null);
+  }
+
   if (message.type === 'idb-save-video') {
     db_saveVideo(message.video).catch(console.error);
     return;
@@ -76,7 +80,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'idb-record-watch-session') {
-    db_recordWatchSession(message.watchSession).catch(console.error);
+    db_recordWatchSession(message.watchSession, message.ghostExit).catch(console.error);
     return;
   }
 
@@ -85,7 +89,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       ? message.watchedThreshold
       : DEFAULT_SETTINGS.watchedThreshold;
     return respondWith(
-      db_toggleWatched(message.videoId, watchedThreshold, message.fallbackVideo),
+      db_toggleWatched(message.videoId, watchedThreshold, message.fallbackVideo, message.action),
       sendResponse,
       null
     );
@@ -127,8 +131,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'idb-delete-video') {
-    db_deleteVideo(message.videoId).catch(console.error);
-    return;
+    return respondWith(db_deleteVideo(message.videoId).then(() => ({ ok: true })), sendResponse, { ok: false });
   }
 });
 

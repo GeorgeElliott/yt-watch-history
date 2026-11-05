@@ -28,7 +28,9 @@ const formatTime = (seconds) => {
   return `${m}m ${s}s`;
 };
 
-const applyFilters = () => {
+const applyFilters = (preserveCapacity = false) => {
+  const capacity = preserveCapacity ? Math.max(PAGE_SIZE, currentIndex) : PAGE_SIZE;
+  const scrollY = window.scrollY;
   const rawQuery = searchInput.value;
   const query = rawQuery.toLowerCase().trim();
   const sort = sortSelect.value;
@@ -59,7 +61,8 @@ const applyFilters = () => {
 
   currentIndex = 0;
   container.replaceChildren();
-  renderBatch();
+  do { renderBatch(); } while (currentIndex < capacity && currentIndex < filteredHistory.length);
+  if (preserveCapacity) window.scrollTo(0, scrollY);
 };
 
 const renderBatch = () => {
@@ -123,7 +126,7 @@ const renderBatch = () => {
       chrome.storage.local.get({ watchedThreshold: 95 }, ({ watchedThreshold }) => {
         db_toggleWatched(video.videoId, watchedThreshold).then(({ video: entry }) => {
           showToast(entry.watched ? 'Marked as watched' : 'Progress reset');
-          loadHistory();
+          loadHistory(true);
         }).catch(console.error);
       });
     };
@@ -143,7 +146,7 @@ const renderBatch = () => {
     removeItem.onclick = () => {
       db_deleteVideo(video.videoId).then(() => {
         showToast('Video removed');
-        loadHistory();
+        loadHistory(true);
       }).catch(console.error);
     };
 
@@ -201,7 +204,7 @@ const renderBatch = () => {
   loadMoreBtn.classList.toggle('hidden', currentIndex >= filteredHistory.length);
 };
 
-const loadHistory = () => {
+const loadHistory = (preserveCapacity = false) => {
   // Fetch all records from IndexedDB for client-side filtering/sorting.
   // db_getAllVideos() returns them newest-first; applyFilters() may re-sort.
   db_getAllVideos().then((videos) => {
@@ -217,7 +220,7 @@ const loadHistory = () => {
         applyFilters();
       });
     } else {
-      applyFilters();
+      applyFilters(preserveCapacity);
     }
   }).catch(console.error);
 };
@@ -228,10 +231,10 @@ loadMoreBtn.onclick = renderBatch;
 let searchTimeout;
 searchInput.oninput = () => {
   clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(applyFilters, 300);
+  searchTimeout = setTimeout(() => applyFilters(), 300);
 };
 
-sortSelect.onchange = applyFilters;
+sortSelect.onchange = () => applyFilters();
 
 hideWatchedToggle.onchange = () => {
   hideWatched = hideWatchedToggle.checked;
