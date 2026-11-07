@@ -57,7 +57,7 @@ Click the extension icon to see recent videos and open History, Timeline, Stats,
 
 ### History
 
-Search by title or channel, hide watched videos, and sort by date or title. Each video can be opened, marked watched, reset, copied, or removed. There is no fixed history-entry limit; history is stored in IndexedDB and remains until you remove it or clear browser data.
+Search by title, channel, video id or video url, hide watched videos, and sort by date or title. Each video can be opened, marked watched, reset, copied, or removed. There is no fixed history-entry limit; history is stored in IndexedDB and remains until you remove it or clear browser data.
 
 ### Timeline
 

@@ -86,6 +86,14 @@ test('history supports search, sorting, hiding watched, and clearing all', async
     await expect(historyPage.locator('.video-card')).toHaveCount(1);
     await expect(historyPage.locator('.card-title')).toHaveText('Middle video');
 
+    await historyPage.locator('#search-input').fill('history-middle');
+    await expect(historyPage.locator('.video-card')).toHaveCount(1);
+    await expect(historyPage.locator('.card-title')).toHaveText('Middle video');
+
+    await historyPage.locator('#search-input').fill('https://www.youtube.com/watch?v=history-middle');
+    await expect(historyPage.locator('.video-card')).toHaveCount(1);
+    await expect(historyPage.locator('.card-title')).toHaveText('Middle video');
+
     await historyPage.locator('#search-input').fill('');
     await historyPage.locator('#sort-select').selectOption('title');
     await expect(historyPage.locator('.card-title').allTextContents())
